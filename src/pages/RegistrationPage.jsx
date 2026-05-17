@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useTournamentCountdown } from '../hooks/useTournamentCountdown';
 import { uploadFile } from '../utils/storage';
 import GhostInput from '../components/ui/GhostInput';
+import WhatsAppModal from '../components/ui/WhatsAppModal';
 import toast from 'react-hot-toast';
 
 export default function RegistrationPage() {
@@ -28,6 +29,7 @@ export default function RegistrationPage() {
     player_5_ign: '', player_5_id: '',
     player_6_ign: '', player_6_id: '',
   });
+  const [showWAModal, setShowWAModal] = useState(false);
 
   const handleAutoFill = () => {
     if (!userDoc) return;
@@ -271,7 +273,7 @@ export default function RegistrationPage() {
 
       if (result.success) {
         toast.success('Registration finalized successfully!', { id: 'reg' });
-        navigate('/tournaments');
+        setShowWAModal(true);
       } else {
         toast.error(result.error || 'Registration failed', { id: 'reg' });
       }
@@ -336,6 +338,7 @@ export default function RegistrationPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-[#0a0a0a] overflow-x-hidden animate-page-enter">
 
       {/* ── Page Header ── */}
@@ -516,6 +519,8 @@ export default function RegistrationPage() {
         </form>
       </div>
     </div>
+    <WhatsAppModal isOpen={showWAModal} onClose={() => { setShowWAModal(false); navigate('/tournaments'); }} />
+    </>
   );
 }
 

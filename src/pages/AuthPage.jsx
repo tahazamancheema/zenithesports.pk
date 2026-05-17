@@ -5,6 +5,7 @@ import { signInWithEmail, signUpWithEmail } from '../supabase/auth';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import StaticBackground from '../components/ui/StaticBackground';
+import WhatsAppModal from '../components/ui/WhatsAppModal';
 
 export default function AuthPage() {
   const [mode, setMode] = useState('login');
@@ -12,6 +13,7 @@ export default function AuthPage() {
   const [errors, setErrors] = useState({});
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showWAModal, setShowWAModal] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -55,8 +57,8 @@ export default function AuthPage() {
       } else {
         const { session } = await signUpWithEmail(form.email.trim(), form.password, form.displayName);
         if (session) {
-          toast.success('Account created! Welcome to Zenith Esports 🎮');
-          navigate('/tournaments');
+          toast.success('Account created! Welcome to Zenith Esports.');
+          setShowWAModal(true);
         } else {
           toast.success('Account created! Please check your email to verify.');
           setMode('login');
@@ -70,6 +72,7 @@ export default function AuthPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen flex items-center justify-center p-6 bg-[#0a0a0a] relative overflow-hidden">
       <StaticBackground variant="mesh" />
 
@@ -219,5 +222,7 @@ export default function AuthPage() {
         </div>
       </div>
     </div>
+    <WhatsAppModal isOpen={showWAModal} onClose={() => { setShowWAModal(false); navigate('/tournaments'); }} />
+    </>
   );
 }

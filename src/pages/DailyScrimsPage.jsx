@@ -5,12 +5,12 @@ const PRIZE_DISTRIBUTION = [
   { rank: '1ST PLACE',   amount: '2,100 PKR', label: 'Champion'   },
   { rank: '2ND PLACE',   amount: '1,000 PKR', label: 'Runner-Up'  },
   { rank: '3RD PLACE',   amount: '700 PKR',   label: 'Top 3'      },
-  { rank: '4TH – 5TH',  amount: 'Retention', label: 'Top 5'      },
-  { rank: 'PER CHICKEN', amount: '150 PKR',   label: 'Kill Bonus' },
+  { rank: '4TH & 5TH',  amount: 'Retention', label: 'Top 5'      },
+  { rank: 'PER CHICKEN', amount: '150 PKR',   label: 'WWCD Bonus' },
 ];
 
 const SESSIONS = [
-  { id: 's1', name: 'SESSION 01', tag: 'EVENING',    time: '8:05',  ampm: 'PM', maps: ['Erangel', 'Miramar', 'Erangel', 'Rondo'] },
+  { id: 's1', name: 'SESSION 01', tag: 'EVENING',    time: '8:00',  ampm: 'PM', maps: ['Erangel', 'Miramar', 'Erangel', 'Rondo'] },
   { id: 's2', name: 'SESSION 02', tag: 'NIGHT',      time: '10:30', ampm: 'PM', maps: ['Erangel', 'Miramar', 'Erangel', 'Rondo'] },
   { id: 's3', name: 'SESSION 03', tag: 'LATE NIGHT', time: '12:45', ampm: 'AM', maps: ['Erangel', 'Miramar', 'Erangel', 'Rondo'] },
 ];
@@ -18,7 +18,7 @@ const SESSIONS = [
 const ADMINS = [
   { name: 'ADMIN 01', phone: '03390715753', wa: '923390715753' },
   { name: 'ADMIN 02', phone: '03140679418', wa: '923140679418' },
-  { name: 'ADMIN 03', phone: '03163126525', wa: '923163126525' },
+  { name: 'ADMIN 03', phone: '923715902051', wa: '923715902051' },
 ];
 
 const MAPS = ['Erangel', 'Miramar', 'Erangel', 'Rondo'];
@@ -68,8 +68,8 @@ export default function DailyScrimsPage() {
               </h1>
 
               <p className="font-teko text-[#d1c5b3] text-[18px] opacity-65 max-w-lg mt-6 tracking-[0.08em] leading-relaxed uppercase">
-                Pakistan's most competitive daily scrim format.
-                Three sessions, four maps, real prize money — every single day.
+                No days off. Drop into Pakistan’s fiercest daily arena
+                 across four iconic maps and turn your grind into real cash.
               </p>
             </div>
 
@@ -206,7 +206,7 @@ export default function DailyScrimsPage() {
               </div>
 
               <p className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase mt-5">
-                Follows PUBG Mobile Official Esports rotation standards
+                Each session features the same 4-map lineup.
               </p>
             </div>
 

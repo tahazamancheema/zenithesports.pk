@@ -253,6 +253,7 @@ export default function AdminDashboard() {
             const withStatus = { ...data, poster_url: posterUrl };
             withStatus.status = computeTournamentStatus(withStatus);
             if (!withStatus.start_date) withStatus.start_date = null;
+            if (!withStatus.end_date) withStatus.end_date = null;
             if (!withStatus.registration_deadline) withStatus.registration_deadline = null;
             if (!withStatus.registration_open_date) withStatus.registration_open_date = null;
 
@@ -970,6 +971,18 @@ function TournamentGroupsModal({ tournament, registrations, allRegistrations, up
 // Tournament Create/Edit Modal
 // ─────────────────────────────────────────────────────────────
 
+const GAME_MODES = {
+  'PUBG Mobile': ['Squad', 'Duo', 'Solo'],
+  'Free Fire':   ['Squad', 'Duo', 'Solo'],
+  'Valorant':    ['5v5', 'Duo', 'Solo'],
+  'Warzone':     ['Trio', 'Duo', 'Solo'],
+  'Other':       ['Team', 'Duo', 'Solo', 'Custom'],
+};
+
+const TEAM_SIZE_BY_FORMAT = {
+  Squad: 4, Duo: 2, Solo: 1, Trio: 3, '5v5': 5, Team: 4, Custom: 4,
+};
+
 const ROADMAP_PRESETS = {
   standard: {
     label: 'Standard (4 stages)',
@@ -1004,24 +1017,44 @@ const EMPTY_FORM = {
   description: '',
   briefing: '',
   game: 'PUBG Mobile',
+  format: 'Squad',
+  team_size: 4,
+  region: 'Pakistan',
   max_teams: 64,
   prize_pool: '',
+  prize_breakdown: { first: '', second: '', third: '' },
+  entry_fee: 0,
+  discord_link: '',
+  stream_url: '',
   registration_open_date: '',
   registration_deadline: '',
   start_date: '',
+  end_date: '',
   poster_url: '',
   is_completed: false,
   registration_config: { screenshots: [] },
 };
 
-function TournamentModal({ isOpen, onClose, tournament, onSave }) {
+const MODAL_SECTIONS = [
+  { id: 'basics',   label: 'BASICS',   icon: Trophy      },
+  { id: 'media',    label: 'MEDIA',    icon: Eye         },
+  { id: 'dates',    label: 'DATES',    icon: Calendar    },
+  { id: 'prize',    label: 'PRIZE',    icon: TrendingUp  },
+  { id: 'briefing', label: 'BRIEFING', icon: FileText    },
+  { id: 'schedule', label: 'SCHEDULE', icon: ListOrdered },
+  { id: 'roadmap',  label: 'ROADMAP',  icon: Map         },
+  { id: 'config',   label: 'CONFIG',   icon: ToggleRight },
+];
 
+function TournamentModal({ isOpen, onClose, tournament, onSave }) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [scheduleRows, setScheduleRows] = useState([]);
   const [roadmapRows, setRoadmapRows] = useState([]);
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [section, setSection] = useState('basic');
+  const [section, setSection] = useState('basics');
+
+  const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
   const parseJSON = (val) => {
     if (!val) return [];
@@ -1043,66 +1076,75 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
   const fromPKT = (val) => val ? `${val}:00+05:00` : null;
 
   React.useEffect(() => {
-    if (isOpen) {
-      if (tournament) {
-        setForm({
-          title:                  tournament.title || '',
-          description:            tournament.description || '',
-          briefing:               tournament.briefing || '',
-          game:                   tournament.game || 'PUBG Mobile',
-          max_teams:              tournament.max_teams === null ? '' : (tournament.max_teams ?? 64),
-          prize_pool:             tournament.prize_pool || '',
-          registration_open_date: toPKT(tournament.registration_open_date),
-          registration_deadline:  toPKT(tournament.registration_deadline),
-          start_date:             tournament.start_date ? new Date(tournament.start_date).toISOString().slice(0, 10) : '',
-          poster_url:             tournament.poster_url || '',
-          is_completed:           tournament.is_completed || false,
-          registration_config:    tournament.registration_config || { screenshots: [] },
-        });
-        setScheduleRows(parseJSON(tournament.schedule).map((r) => ({ ...r, id: Math.random() })));
-        setRoadmapRows(parseJSON(tournament.roadmap).map((r) => ({ ...r, id: Math.random() })));
-      } else {
-        setForm({ ...EMPTY_FORM });
-        setScheduleRows([]);
-        setRoadmapRows([]);
-      }
-      setFile(null);
-      setSection('basic');
+    if (!isOpen) return;
+    if (tournament) {
+      const pb = tournament.prize_breakdown;
+      setForm({
+        title:                  tournament.title || '',
+        description:            tournament.description || '',
+        briefing:               tournament.briefing || '',
+        game:                   tournament.game || 'PUBG Mobile',
+        format:                 tournament.format || 'Squad',
+        team_size:              tournament.team_size ?? 4,
+        region:                 tournament.region || 'Pakistan',
+        max_teams:              tournament.max_teams === null ? '' : (tournament.max_teams ?? 64),
+        prize_pool:             tournament.prize_pool || '',
+        prize_breakdown:        (pb && typeof pb === 'object' && !Array.isArray(pb)) ? pb : { first: '', second: '', third: '' },
+        entry_fee:              tournament.entry_fee ?? 0,
+        discord_link:           tournament.discord_link || '',
+        stream_url:             tournament.stream_url || '',
+        registration_open_date: toPKT(tournament.registration_open_date),
+        registration_deadline:  toPKT(tournament.registration_deadline),
+        start_date:             tournament.start_date ? new Date(tournament.start_date).toISOString().slice(0, 10) : '',
+        end_date:               tournament.end_date   ? new Date(tournament.end_date).toISOString().slice(0, 10)   : '',
+        poster_url:             tournament.poster_url || '',
+        is_completed:           tournament.is_completed || false,
+        registration_config:    tournament.registration_config || { screenshots: [] },
+      });
+      setScheduleRows(parseJSON(tournament.schedule).map(r => ({ ...r, id: Math.random() })));
+      setRoadmapRows(parseJSON(tournament.roadmap).map(r => ({ ...r, id: Math.random() })));
+    } else {
+      setForm({ ...EMPTY_FORM, prize_breakdown: { first: '', second: '', third: '' } });
+      setScheduleRows([]);
+      setRoadmapRows([]);
     }
+    setFile(null);
+    setSection('basics');
   }, [tournament, isOpen]);
 
   // ── Schedule helpers ──
-  const addScheduleRow = () => setScheduleRows((p) => [...p, { id: Math.random(), date: '', time: '', event: '' }]);
-  const updSched = (id, field, value) => setScheduleRows((p) => p.map((r) => r.id === id ? { ...r, [field]: value } : r));
-  const delSched = (id) => setScheduleRows((p) => p.filter((r) => r.id !== id));
+  const addScheduleRow = () => setScheduleRows(p => [...p, { id: Math.random(), date: '', time: '', event: '', note: '' }]);
+  const updSched = (id, f, v) => setScheduleRows(p => p.map(r => r.id === id ? { ...r, [f]: v } : r));
+  const delSched = (id) => setScheduleRows(p => p.filter(r => r.id !== id));
 
   // ── Roadmap helpers ──
-  const addRoadmapRow = () => setRoadmapRows((p) => [...p, { id: Math.random(), phase: '', title: '', description: '' }]);
-  const updRoad = (id, field, value) => setRoadmapRows((p) => p.map((r) => r.id === id ? { ...r, [field]: value } : r));
-  const delRoad = (id) => setRoadmapRows((p) => p.filter((r) => r.id !== id));
+  const addRoadmapRow = () => setRoadmapRows(p => [...p, { id: Math.random(), phase: '', title: '', description: '' }]);
+  const updRoad = (id, f, v) => setRoadmapRows(p => p.map(r => r.id === id ? { ...r, [f]: v } : r));
+  const delRoad = (id) => setRoadmapRows(p => p.filter(r => r.id !== id));
 
-  // ── Auto-generators ──
   function autoFillBriefing() {
     const title    = form.title?.trim() || 'ZENITH OPEN';
     const game     = form.game || 'PUBG Mobile';
+    const fmt      = form.format || 'Squad';
+    const teamSz   = form.team_size || 4;
     const prize    = form.prize_pool ? `PKR ${Number(form.prize_pool).toLocaleString('en-PK')}` : 'TBA';
     const slots    = form.max_teams ? `${form.max_teams} teams` : 'unlimited teams';
+    const fee      = (form.entry_fee && Number(form.entry_fee) > 0) ? `PKR ${Number(form.entry_fee).toLocaleString('en-PK')}` : 'FREE';
     const deadline = form.registration_deadline
       ? new Date(fromPKT(form.registration_deadline)).toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' })
       : 'TBA';
     const startStr = form.start_date
       ? new Date(form.start_date).toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' })
       : 'TBA';
-
-    setForm(f => ({
-      ...f,
-      briefing: `Welcome to ${title} — an official ${game} tournament hosted by Zenith Esports Pakistan.
+    const discordLine = form.discord_link ? `\nDiscord: ${form.discord_link}` : '';
+    set('briefing', `Welcome to ${title} — an official ${game} tournament hosted by Zenith Esports Pakistan.
 
 TOURNAMENT FORMAT
-• Mode: Battle Royale (Squad — 4 players per team)
+• Mode: ${fmt} (${teamSz} player${teamSz > 1 ? 's' : ''} per team)
 • Total Slots: ${slots}
 • Format: Group Stage → Knockout Rounds → Grand Final
-• Scoring: Standard PUBG Mobile scoring (Placement Points + Kill Points)
+• Scoring: Standard ${game} scoring (Placement Points + Kill Points)
+• Entry Fee: ${fee}
 
 PRIZE POOL
 Total Prize Pool: ${prize}
@@ -1113,16 +1155,16 @@ KEY DATES
 • Tournament Start: ${startStr}
 
 ELIGIBILITY & RULES
-1. All players must be registered with their correct PUBG Mobile Character IDs.
+1. All players must be registered with their correct ${game} Character IDs.
 2. No roster changes are allowed after the registration deadline.
 3. Players must be online and ready 15 minutes before each scheduled match.
 4. No cheating, hacking, or use of any unauthorized third-party software.
 5. Misconduct, toxicity, or unsportsmanlike behavior will result in disqualification.
 6. All disputes are subject to the final decision of Zenith Esports administration.
 
-For queries, reach out via WhatsApp or our official Discord server.
-Good luck, and may the best team win!`,
-    }));
+CONTACT${discordLine}
+For queries, reach out via WhatsApp or our official Discord.
+Good luck, and may the best team win!`);
     toast.success('Briefing template applied');
   }
 
@@ -1134,37 +1176,36 @@ Good luck, and may the best team win!`,
   }
 
   function autoFillSchedule() {
-    if (!form.start_date) { toast.error('Set the Tournament Start Date first (Basic tab)'); return; }
+    if (!form.start_date) { toast.error('Set the Start Date first (Dates tab)'); return; }
     const base = new Date(form.start_date);
-    const offsetDate = (d, days) => {
-      const n = new Date(d); n.setDate(n.getDate() + days);
-      return n.toISOString().slice(0, 10);
-    };
-    const rows = [
-      { date: form.start_date,      time: '18:00', event: 'Group Stage — Day 1' },
-      { date: offsetDate(base, 1),  time: '18:00', event: 'Group Stage — Day 2' },
-      { date: offsetDate(base, 2),  time: '18:00', event: 'Quarter Finals' },
-      { date: offsetDate(base, 3),  time: '18:00', event: 'Semi Finals' },
-      { date: offsetDate(base, 4),  time: '20:00', event: 'Grand Finals' },
-    ];
-    setScheduleRows(rows.map(r => ({ ...r, id: Math.random() })));
-    toast.success('Schedule template generated from start date');
+    const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+    setScheduleRows([
+      { date: form.start_date,   time: '18:00', event: 'Group Stage — Day 1', note: ''               },
+      { date: addDays(base, 1),  time: '18:00', event: 'Group Stage — Day 2', note: ''               },
+      { date: addDays(base, 2),  time: '18:00', event: 'Quarter Finals',      note: ''               },
+      { date: addDays(base, 3),  time: '18:00', event: 'Semi Finals',         note: ''               },
+      { date: addDays(base, 4),  time: '20:00', event: 'Grand Finals',        note: 'Championship'   },
+    ].map(r => ({ ...r, id: Math.random() })));
+    toast.success('Schedule generated from start date');
   }
 
   async function handleSave() {
     if (!form.title.trim()) { toast.error('Tournament title is required'); return; }
     if (form.title.trim().length < 3) { toast.error('Title must be at least 3 characters'); return; }
 
-    // ── Date ordering validation ──
     const openTs     = form.registration_open_date ? new Date(fromPKT(form.registration_open_date)) : null;
     const deadlineTs = form.registration_deadline  ? new Date(fromPKT(form.registration_deadline))  : null;
     const startTs    = form.start_date             ? new Date(form.start_date)                       : null;
+    const endTs      = form.end_date               ? new Date(form.end_date)                         : null;
 
     if (openTs && deadlineTs && openTs >= deadlineTs) {
       toast.error('Registration deadline must be after the open date'); return;
     }
     if (deadlineTs && startTs && deadlineTs > startTs) {
-      toast.error('Tournament start date must be on or after the registration deadline'); return;
+      toast.error('Start date must be on or after the registration deadline'); return;
+    }
+    if (startTs && endTs && startTs > endTs) {
+      toast.error('End date must be on or after the start date'); return;
     }
 
     const parsedMaxTeams = (form.max_teams === '' || form.max_teams === null) ? null : parseInt(form.max_teams, 10);
@@ -1172,466 +1213,715 @@ Good luck, and may the best team win!`,
       toast.error('Max teams must be at least 2'); return;
     }
 
-    // ── Warn about empty schedule/roadmap rows ──
     const validSchedule = scheduleRows.filter(r => r.event?.trim());
     const validRoadmap  = roadmapRows.filter(r => r.title?.trim());
 
     setSaving(true);
     try {
-      const finalData = {
+      await onSave({
         ...form,
         max_teams:              parsedMaxTeams,
+        team_size:              Number(form.team_size) || 4,
+        entry_fee:              Number(form.entry_fee) || 0,
         registration_open_date: fromPKT(form.registration_open_date),
         registration_deadline:  fromPKT(form.registration_deadline),
-        schedule: validSchedule.map(({ date, time, event }) => ({ date, time, event })),
-        roadmap:  validRoadmap.map(({ phase, title, description }) => ({ phase, title, description })),
-      };
-      await onSave(finalData, file);
+        end_date:               form.end_date || null,
+        schedule:               validSchedule.map(({ date, time, event, note }) => ({ date, time, event, note })),
+        roadmap:                validRoadmap.map(({ phase, title, description }) => ({ phase, title, description })),
+      }, file);
     } finally {
       setSaving(false);
     }
   }
 
-  // ── Section completion indicators ──
   const sectionComplete = {
-    basic:      !!(form.title?.trim() && form.prize_pool),
-    content:    !!(form.briefing?.trim()),
-    schedule:   scheduleRows.filter(r => r.event?.trim()).length > 0,
-    roadmap:    roadmapRows.filter(r => r.title?.trim()).length > 0,
-    reg_config: (form.registration_config?.screenshots || []).length > 0,
+    basics:   !!(form.title?.trim() && form.game),
+    media:    !!(file || form.poster_url),
+    dates:    !!(form.registration_open_date || form.start_date),
+    prize:    !!(form.prize_pool),
+    briefing: !!(form.briefing?.trim()),
+    schedule: scheduleRows.filter(r => r.event?.trim()).length > 0,
+    roadmap:  roadmapRows.filter(r => r.title?.trim()).length > 0,
+    config:   (form.registration_config?.screenshots || []).length > 0,
   };
 
+  const completedCount = Object.values(sectionComplete).filter(Boolean).length;
   const computedStatus = computeTournamentStatus(form);
 
-  const modalSections = [
-    { id: 'basic',      label: 'Basic',    icon: BarChart3   },
-    { id: 'content',    label: 'Briefing', icon: FileText    },
-    { id: 'schedule',   label: 'Schedule', icon: ListOrdered },
-    { id: 'roadmap',    label: 'Roadmap',  icon: Map         },
-    { id: 'reg_config', label: 'Config',   icon: ListOrdered },
-  ];
+  const inputCls = 'w-full bg-[#0a0a0a] border border-[rgba(78,70,56,0.25)] px-3 py-2.5 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#f9d07a] transition-colors placeholder:opacity-30 placeholder:text-[#d1c5b3]';
+  const labelCls = 'font-teko text-[11px] tracking-[0.15em] text-[#d1c5b3] uppercase block mb-1.5 opacity-60';
 
-  const inputCls = 'w-full bg-[#131313] border border-[rgba(78,70,56,0.3)] p-2.5 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#f9d07a] transition-colors font-mono placeholder:opacity-70';
-  const labelCls = 'font-teko text-[13px] tracking-widest text-[#d1c5b3] uppercase block mb-1';
+  if (!isOpen) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={tournament ? 'EDIT TOURNAMENT' : 'CREATE TOURNAMENT'}>
-      {/* Section nav */}
-      <div className="flex gap-1 mb-6 -mx-1">
-        {modalSections.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setSection(id)}
-            className={`relative flex items-center gap-1.5 flex-1 justify-center py-2 font-teko text-[13px] tracking-widest transition-all ${
-              section === id ? 'bg-[#f9d07a] text-[#402d00]' : 'bg-[#1f1f1f] text-[#d1c5b3] opacity-70 hover:opacity-100'
-            }`}
-          >
-            <Icon size={11} /> {label}
-            {sectionComplete[id] && section !== id && (
-              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-400 rounded-full" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* ── BASIC ── */}
-      {section === 'basic' && (
-        <div className="space-y-5">
-          {/* Poster */}
-          <div className="flex gap-4">
-            <div className="w-24 h-32 bg-[#0e0e0e] border border-[rgba(78,70,56,0.3)] flex-shrink-0 flex items-center justify-center overflow-hidden">
-              {file ? (
-                <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover" />
-              ) : form.poster_url ? (
-                <img src={form.poster_url} alt="Poster" className="w-full h-full object-cover" />
-              ) : (
-                <BarChart3 className="text-[#d1c5b3] opacity-20" size={28} />
-              )}
-            </div>
-            <div className="flex-1 space-y-2">
-              <label className={labelCls}>Event Poster</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => setFile(e.target.files[0])}
-                className="w-full text-[10px] text-[#d1c5b3] file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-[#1f1f1f] file:text-[#f9d07a] file:font-teko text-[14px] file:text-[9px] file:cursor-pointer hover:file:bg-[#2a2a2a]"
-              />
-              <p className="text-[9px] text-[#d1c5b3] opacity-70">Recommended: 16:9 or 3:4 ratio</p>
-            </div>
-          </div>
-
-          <GhostInput
-            label="Tournament Title"
-            value={form.title}
-            onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="e.g. ZENITH OPEN S1"
-            required
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className={labelCls}>Game</label>
-              <select
-                value={form.game}
-                onChange={(e) => setForm((f) => ({ ...f, game: e.target.value }))}
-                className={inputCls}
-              >
-                <option>PUBG Mobile</option>
-                <option>Warzone</option>
-                <option>Free Fire</option>
-                <option>Valorant</option>
-                <option>Other</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className={labelCls}>Max Teams</label>
-                <div className="flex items-center gap-2 mb-1">
-                  <input
-                    type="checkbox"
-                    id="unlimitedTeams"
-                    checked={form.max_teams === '' || form.max_teams === null}
-                    onChange={(e) => setForm((f) => ({ ...f, max_teams: e.target.checked ? '' : 64 }))}
-                    className="accent-[#dbb462]"
-                  />
-                  <label htmlFor="unlimitedTeams" className="font-teko text-[12px] text-[#dbb462] cursor-pointer tracking-widest uppercase">
-                    Unset (Unlimited)
-                  </label>
-                </div>
-              </div>
-              <input
-                type="number"
-                value={form.max_teams === null ? '' : form.max_teams}
-                onChange={(e) => setForm((f) => ({ ...f, max_teams: e.target.value }))}
-                disabled={form.max_teams === '' || form.max_teams === null}
-                className={inputCls + (form.max_teams === '' || form.max_teams === null ? ' opacity-70 cursor-not-allowed' : '')}
-                placeholder="Unlimited"
-              />
-            </div>
-          </div>
-
-          <GhostInput
-            label="Prize Pool (PKR)"
-            type="number"
-            value={form.prize_pool}
-            onChange={(e) => setForm((f) => ({ ...f, prize_pool: e.target.value }))}
-            placeholder="50000"
-          />
-
-          {/* ── Dates & Auto Status ── */}
-          <div className="bg-[#0e0e0e] border border-[rgba(78,70,56,0.2)] p-4 space-y-3">
-            <div className="flex items-center justify-between mb-3">
-              <span className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-70">AUTO-COMPUTED STATUS</span>
-              <span className={`font-teko text-[13px] tracking-widest px-3 py-1 border ${
-                computedStatus === 'registrations_open'    ? 'text-emerald-400 border-emerald-500/30' :
-                computedStatus === 'in_progress' ? 'text-blue-400 border-blue-500/30' :
-                computedStatus === 'registrations_closed' ? 'text-red-400 border-red-500/30' :
-                computedStatus === 'completed' ? 'text-[#9a8f7f] border-[rgba(78,70,56,0.3)]' :
-                'text-[#f9d07a] border-[#f9d07a]/30'
-              }`}>
-                {computedStatus.replace('_', ' ').toUpperCase()}
-              </span>
-            </div>
-
-            <div className="space-y-1">
-              <label className={labelCls}>Registration Opens</label>
-              <input
-                type="datetime-local"
-                value={form.registration_open_date}
-                onChange={(e) => setForm((f) => ({ ...f, registration_open_date: e.target.value }))}
-                className={inputCls}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className={labelCls}>Registration Deadline</label>
-              <input
-                type="datetime-local"
-                value={form.registration_deadline}
-                onChange={(e) => setForm((f) => ({ ...f, registration_deadline: e.target.value }))}
-                className={inputCls}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className={labelCls}>Tournament Start Date</label>
-              <input
-                type="date"
-                value={form.start_date}
-                onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-                className={inputCls}
-              />
-            </div>
-
-            {/* Completed toggle */}
-            <div className="flex items-center justify-between pt-2 border-t border-[rgba(78,70,56,0.15)]">
-              <span className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-70">
-                MARK AS COMPLETED
-              </span>
-              <button
-                onClick={() => setForm((f) => ({ ...f, is_completed: !f.is_completed }))}
-                className={`transition-colors ${form.is_completed ? 'text-[#f9d07a]' : 'text-[#4e4638]'}`}
-              >
-                {form.is_completed
-                  ? <ToggleRight size={28} />
-                  : <ToggleLeft size={28} />
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── BRIEFING ── */}
-      {section === 'content' && (
-        <div className="space-y-4">
-          <div className="space-y-1">
-            <label className={labelCls}>Short Description (shown on tournament cards)</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="Brief one-liner about the tournament..."
-              rows={2}
-              className="w-full bg-[#131313] border border-[rgba(78,70,56,0.3)] p-3 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#f9d07a] transition-colors resize-none"
-            />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between mb-1">
-              <label className={labelCls + ' mb-0'}>Full Briefing (shown in Overview tab)</label>
-              <div className="flex items-center gap-3">
-                <span className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-40">
-                  {(form.briefing || '').length} chars
-                </span>
-                <button
-                  type="button"
-                  onClick={autoFillBriefing}
-                  className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/30 text-[#dbb462] px-3 py-1 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase"
-                >
-                  <FileText size={11} /> AUTO-FILL TEMPLATE
-                </button>
-              </div>
-            </div>
-            <textarea
-              value={form.briefing}
-              onChange={(e) => setForm((f) => ({ ...f, briefing: e.target.value }))}
-              placeholder="Detailed tournament rules, format, eligibility, etc. — or click AUTO-FILL TEMPLATE above."
-              rows={12}
-              className="w-full bg-[#131313] border border-[rgba(78,70,56,0.3)] p-3 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#f9d07a] transition-colors resize-none leading-relaxed"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* ── SCHEDULE ── */}
-      {section === 'schedule' && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-60">
-              Events in chronological order — displayed on the Schedule tab.
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/90 backdrop-blur-sm p-3 md:p-6">
+      <div
+        className="w-full max-w-5xl bg-[#0e0e0e] border border-[rgba(78,70,56,0.3)] flex flex-col md:flex-row overflow-hidden"
+        style={{ maxHeight: 'calc(100vh - 3rem)' }}
+      >
+        {/* ── Sidebar ── */}
+        <aside className="md:w-52 flex-shrink-0 bg-[#0a0a0a] border-b md:border-b-0 md:border-r border-[rgba(78,70,56,0.15)] flex flex-col">
+          <div className="px-6 py-5 border-b border-[rgba(78,70,56,0.1)]">
+            <p className="font-teko text-[10px] tracking-[0.2em] text-[#dbb462] opacity-50 uppercase mb-0.5">
+              {tournament ? 'EDITING' : 'NEW TOURNAMENT'}
             </p>
-            <button
-              type="button"
-              onClick={autoFillSchedule}
-              className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/30 text-[#dbb462] px-3 py-1.5 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase whitespace-nowrap"
-            >
-              <Calendar size={11} /> AUTO-GENERATE
+            <h2 className="font-bebas text-lg text-white tracking-widest leading-tight line-clamp-2 min-h-[1.4rem]">
+              {form.title || <span className="opacity-20">UNTITLED</span>}
+            </h2>
+            <div className="mt-3 flex items-center gap-2">
+              <div className="flex-1 h-px bg-[#1f1f1f] overflow-hidden">
+                <div
+                  className="h-full zenith-gradient transition-all duration-500"
+                  style={{ width: `${(completedCount / MODAL_SECTIONS.length) * 100}%` }}
+                />
+              </div>
+              <span className="font-teko text-[10px] text-[#dbb462] opacity-40 tracking-widest whitespace-nowrap">
+                {completedCount}/{MODAL_SECTIONS.length}
+              </span>
+            </div>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto py-1 no-scrollbar">
+            {MODAL_SECTIONS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setSection(id)}
+                className={`w-full flex items-center gap-3 px-5 py-3 font-teko text-[12px] tracking-widest transition-all text-left relative ${
+                  section === id
+                    ? 'bg-[#191919] text-[#f9d07a] border-l-2 border-[#f9d07a]'
+                    : 'text-[#d1c5b3] opacity-40 hover:opacity-80 hover:bg-[#111]'
+                }`}
+              >
+                <Icon size={13} className="shrink-0" />
+                {label}
+                {sectionComplete[id] && section !== id && (
+                  <span className="ml-auto w-1.5 h-1.5 bg-emerald-400 rounded-full shrink-0" />
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <div className="p-4 border-t border-[rgba(78,70,56,0.15)]">
+            <GradientButton className="w-full" onClick={handleSave} disabled={saving}>
+              {saving ? 'SAVING...' : (tournament ? 'UPDATE' : 'PUBLISH')}
+            </GradientButton>
+          </div>
+        </aside>
+
+        {/* ── Content ── */}
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* Content header */}
+          <div className="flex items-center justify-between px-8 py-4 border-b border-[rgba(78,70,56,0.1)] flex-shrink-0">
+            <div className="flex items-center gap-3">
+              {(() => { const s = MODAL_SECTIONS.find(x => x.id === section); const Icon = s?.icon; return Icon ? <Icon size={15} className="text-[#dbb462] opacity-60" /> : null; })()}
+              <h3 className="font-bebas text-xl tracking-widest text-white">
+                {MODAL_SECTIONS.find(s => s.id === section)?.label}
+              </h3>
+            </div>
+            <button onClick={onClose} className="text-[#d1c5b3] opacity-30 hover:opacity-100 transition-opacity">
+              <X size={18} />
             </button>
           </div>
 
-          {scheduleRows.length === 0 && (
-            <div className="text-center py-8 bg-[#0e0e0e]">
-              <p className="font-teko text-[13px] text-[#d1c5b3] opacity-40 tracking-widest">
-                NO EVENTS YET — ADD MANUALLY OR CLICK AUTO-GENERATE
-              </p>
-            </div>
-          )}
+          {/* Scrollable section content */}
+          <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
 
-          <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
-            {scheduleRows.map((row, i) => (
-              <div key={row.id} className="grid grid-cols-[auto_1fr_1fr_2fr_auto] gap-2 items-center">
-                <span className="font-bebas text-base text-[#dbb462]/30 w-5 text-center">{i + 1}</span>
-                <input
-                  type="date"
-                  value={row.date}
-                  onChange={(e) => updSched(row.id, 'date', e.target.value)}
-                  className={inputCls}
-                />
-                <input
-                  type="time"
-                  value={row.time}
-                  onChange={(e) => updSched(row.id, 'time', e.target.value)}
-                  className={inputCls}
-                />
-                <input
-                  type="text"
-                  placeholder="Event name (e.g. Group Stage Day 1)"
-                  value={row.event}
-                  onChange={(e) => updSched(row.id, 'event', e.target.value)}
-                  className={inputCls}
-                />
-                <button onClick={() => delSched(row.id)} className="text-[#ffb4ab] hover:opacity-70 p-1">
-                  <X size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          <button
-            onClick={addScheduleRow}
-            className="flex items-center gap-2 border border-dashed border-[rgba(78,70,56,0.4)] px-4 py-3 w-full font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-70 hover:opacity-100 hover:bg-[#1f1f1f] transition-all"
-          >
-            <Plus size={14} /> ADD EVENT
-          </button>
-        </div>
-      )}
-
-      {/* ── ROADMAP ── */}
-      {section === 'roadmap' && (
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-60">
-              Define tournament phases — or apply a preset:
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(ROADMAP_PRESETS).map(([key, preset]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => applyRoadmapPreset(key)}
-                  className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/20 text-[#dbb462] px-3 py-1.5 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase"
-                >
-                  <Map size={11} /> {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {roadmapRows.length === 0 && (
-            <div className="text-center py-8 bg-[#0e0e0e]">
-              <p className="font-teko text-[13px] text-[#d1c5b3] opacity-40 tracking-widest">
-                NO PHASES YET — APPLY A PRESET OR ADD MANUALLY
-              </p>
-            </div>
-          )}
-
-          <div className="space-y-2 max-h-72 overflow-y-auto no-scrollbar">
-            {roadmapRows.map((row, i) => (
-              <div key={row.id} className="bg-[#0e0e0e] border border-[rgba(78,70,56,0.15)] p-3 group relative">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-bebas text-sm text-[#dbb462]/40 w-4">{i + 1}</span>
+            {/* ── BASICS ── */}
+            {section === 'basics' && (
+              <div className="space-y-5">
+                <div>
+                  <label className={labelCls}>Tournament Title <span className="text-red-400 opacity-100">*</span></label>
                   <input
                     type="text"
-                    placeholder="Phase label (e.g. Group Stage)"
-                    value={row.phase}
-                    onChange={(e) => updRoad(row.id, 'phase', e.target.value)}
-                    className="flex-1 bg-transparent border-b border-[rgba(78,70,56,0.3)] py-1 text-xs text-[#dbb462] focus:outline-none focus:border-[#f9d07a] font-teko tracking-widest placeholder:opacity-40 uppercase"
-                  />
-                  <button
-                    onClick={() => delRoad(row.id)}
-                    className="text-[#ffb4ab] opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1 ml-auto"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-                <div className="grid grid-cols-[1fr_2fr] gap-2 pl-6">
-                  <input
-                    type="text"
-                    placeholder="Stage title"
-                    value={row.title}
-                    onChange={(e) => updRoad(row.id, 'title', e.target.value)}
-                    className={inputCls + ' text-xs'}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Short description"
-                    value={row.description}
-                    onChange={(e) => updRoad(row.id, 'description', e.target.value)}
-                    className={inputCls + ' text-xs'}
+                    value={form.title}
+                    onChange={e => set('title', e.target.value)}
+                    placeholder="e.g. ZENITH OPEN SEASON 2"
+                    autoFocus
+                    className={inputCls + ' font-bebas text-xl tracking-wider'}
                   />
                 </div>
-              </div>
-            ))}
-          </div>
 
-          <button
-            onClick={addRoadmapRow}
-            className="flex items-center gap-2 border border-dashed border-[rgba(78,70,56,0.4)] px-4 py-3 w-full font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-70 hover:opacity-100 hover:bg-[#1f1f1f] transition-all"
-          >
-            <Plus size={14} /> ADD PHASE
-          </button>
-        </div>
-      )}
-
-      {/* ── REGISTRATION CONFIG ── */}
-      {section === 'reg_config' && (
-        <div className="space-y-6">
-          <div>
-            <h4 className={labelCls}>Screenshot Verification</h4>
-            <p className="text-[10px] text-[#d1c5b3] opacity-60 mb-4 leading-relaxed">
-              Require users to upload proof (e.g., Discord join, YouTube sub, In-game profile) during registration.
-            </p>
-
-            <div className="space-y-3">
-              {(form.registration_config?.screenshots || []).map((ss, idx) => (
-                <div key={idx} className="bg-[#0e0e0e] border border-[rgba(78,70,56,0.2)] p-4 flex gap-4 items-end">
-                  <div className="flex-1 space-y-1">
-                    <label className="font-teko text-[12px] text-[#dbb462]/60 uppercase tracking-widest">Requirement Label</label>
-                    <input
-                      type="text"
-                      value={ss.label}
-                      onChange={(e) => {
-                        const newSS = [...form.registration_config.screenshots];
-                        newSS[idx].label = e.target.value;
-                        setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Game</label>
+                    <select
+                      value={form.game}
+                      onChange={e => {
+                        const g = e.target.value;
+                        const modes = GAME_MODES[g] || ['Team'];
+                        const fmt = modes[0];
+                        setForm(f => ({ ...f, game: g, format: fmt, team_size: TEAM_SIZE_BY_FORMAT[fmt] || 4 }));
                       }}
-                      placeholder="e.g. Subscribe to Zenith YT"
+                      className={inputCls}
+                    >
+                      {Object.keys(GAME_MODES).map(g => <option key={g}>{g}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Format / Mode</label>
+                    <select
+                      value={form.format}
+                      onChange={e => {
+                        const fmt = e.target.value;
+                        setForm(f => ({ ...f, format: fmt, team_size: TEAM_SIZE_BY_FORMAT[fmt] || f.team_size }));
+                      }}
+                      className={inputCls}
+                    >
+                      {(GAME_MODES[form.game] || ['Team', 'Duo', 'Solo', 'Custom']).map(m => (
+                        <option key={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className={labelCls}>Players per Team</label>
+                    <input
+                      type="number" min={1} max={10}
+                      value={form.team_size}
+                      onChange={e => set('team_size', e.target.value)}
                       className={inputCls}
                     />
                   </div>
-                  <div className="flex flex-col items-center gap-1">
-                    <label className="font-teko text-[12px] text-[#dbb462]/60 uppercase tracking-widest">Required</label>
-                    <button
-                      onClick={() => {
-                        const newSS = [...form.registration_config.screenshots];
-                        newSS[idx].required = !newSS[idx].required;
-                        setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
-                      }}
-                      className={ss.required ? 'text-[#dbb462]' : 'text-white/20'}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className={labelCls + ' mb-0'}>Max Teams</label>
+                      <label className="flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.max_teams === '' || form.max_teams === null}
+                          onChange={e => set('max_teams', e.target.checked ? '' : 64)}
+                          className="accent-[#dbb462] w-3 h-3"
+                        />
+                        <span className="font-teko text-[10px] text-[#dbb462] tracking-widest uppercase opacity-70">∞ Unlimited</span>
+                      </label>
+                    </div>
+                    <input
+                      type="number"
+                      value={form.max_teams === null ? '' : form.max_teams}
+                      onChange={e => set('max_teams', e.target.value)}
+                      disabled={form.max_teams === '' || form.max_teams === null}
+                      placeholder="64"
+                      className={inputCls + ((form.max_teams === '' || form.max_teams === null) ? ' opacity-20 cursor-not-allowed' : '')}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Region</label>
+                    <select
+                      value={form.region || 'Pakistan'}
+                      onChange={e => set('region', e.target.value)}
+                      className={inputCls}
                     >
-                      {ss.required ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
-                    </button>
+                      <option>Pakistan</option>
+                      <option>Open / International</option>
+                      <option>South Asia</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Short Description <span className="opacity-40 normal-case tracking-normal">(shown on tournament cards)</span></label>
+                  <textarea
+                    value={form.description}
+                    onChange={e => set('description', e.target.value)}
+                    placeholder="One-liner about the tournament..."
+                    rows={2}
+                    className={inputCls + ' resize-none'}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ── MEDIA ── */}
+            {section === 'media' && (
+              <div className="space-y-7">
+                <div>
+                  <label className={labelCls}>Event Poster</label>
+                  <div className="flex gap-6 items-start">
+                    <div className="w-32 h-44 bg-[#0a0a0a] border border-[rgba(78,70,56,0.25)] flex-shrink-0 flex items-center justify-center overflow-hidden">
+                      {file ? (
+                        <img src={URL.createObjectURL(file)} alt="Preview" className="w-full h-full object-cover" />
+                      ) : form.poster_url ? (
+                        <img src={form.poster_url} alt="Poster" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-center p-4">
+                          <Trophy size={28} className="text-[#dbb462] opacity-10 mx-auto mb-2" />
+                          <p className="font-teko text-[9px] text-[#d1c5b3] opacity-20 tracking-widest">NO POSTER</p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <label className={labelCls}>Upload New File</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={e => setFile(e.target.files[0])}
+                          className="w-full text-[11px] text-[#d1c5b3] file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-[#1f1f1f] file:text-[#f9d07a] file:font-teko file:text-[10px] file:tracking-widest file:cursor-pointer hover:file:bg-[#2a2a2a] file:transition-colors"
+                        />
+                        <p className="font-teko text-[10px] text-[#d1c5b3] opacity-30 mt-1.5 tracking-widest">3:4 portrait ratio recommended · Max 5MB</p>
+                      </div>
+                      {file && (
+                        <button
+                          onClick={() => setFile(null)}
+                          className="font-teko text-[11px] tracking-widest text-red-400 opacity-50 hover:opacity-100 transition-opacity"
+                        >
+                          ✕ Remove selected file
+                        </button>
+                      )}
+                      <div>
+                        <label className={labelCls}>Or paste existing URL</label>
+                        <input
+                          type="url"
+                          value={form.poster_url}
+                          onChange={e => set('poster_url', e.target.value)}
+                          placeholder="https://..."
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Live Stream URL <span className="opacity-40 normal-case tracking-normal">(YouTube / Twitch)</span></label>
+                  <input
+                    type="url"
+                    value={form.stream_url}
+                    onChange={e => set('stream_url', e.target.value)}
+                    placeholder="https://youtube.com/live/..."
+                    className={inputCls}
+                  />
+                  <p className="font-teko text-[10px] text-[#d1c5b3] opacity-30 mt-1.5 tracking-widest">
+                    Shown as a "Watch Live" button when the tournament is in progress.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* ── DATES ── */}
+            {section === 'dates' && (
+              <div className="space-y-5">
+                <div className="flex items-center justify-between bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] px-5 py-3">
+                  <span className="font-teko text-[11px] tracking-[0.15em] text-[#d1c5b3] opacity-50 uppercase">Auto-computed status</span>
+                  <span className={`font-teko text-[12px] tracking-widest px-3 py-0.5 border uppercase ${
+                    computedStatus === 'registrations_open'   ? 'text-emerald-400 border-emerald-500/30' :
+                    computedStatus === 'in_progress'          ? 'text-blue-400 border-blue-500/30' :
+                    computedStatus === 'registrations_closed' ? 'text-orange-400 border-orange-500/30' :
+                    computedStatus === 'completed'            ? 'text-[#9a8f7f] border-[rgba(78,70,56,0.3)]' :
+                    'text-[#f9d07a] border-[#f9d07a]/30'
+                  }`}>
+                    {computedStatus.replace(/_/g, ' ')}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Registration Opens <span className="text-[#dbb462] opacity-60">(PKT)</span></label>
+                    <input
+                      type="datetime-local"
+                      value={form.registration_open_date}
+                      onChange={e => set('registration_open_date', e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Registration Deadline <span className="text-[#dbb462] opacity-60">(PKT)</span></label>
+                    <input
+                      type="datetime-local"
+                      value={form.registration_deadline}
+                      onChange={e => set('registration_deadline', e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Tournament Start Date</label>
+                    <input
+                      type="date"
+                      value={form.start_date}
+                      onChange={e => set('start_date', e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Tournament End Date</label>
+                    <input
+                      type="date"
+                      value={form.end_date}
+                      onChange={e => set('end_date', e.target.value)}
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+
+                {form.registration_open_date && form.registration_deadline && form.start_date && (() => {
+                  const oTs = new Date(fromPKT(form.registration_open_date));
+                  const dTs = new Date(fromPKT(form.registration_deadline));
+                  const sTs = new Date(form.start_date);
+                  const ok  = oTs < dTs && dTs <= sTs;
+                  return (
+                    <div className={`flex items-center gap-2 px-4 py-2.5 ${ok ? 'bg-emerald-900/10 border border-emerald-500/15' : 'bg-red-900/10 border border-red-500/20'}`}>
+                      {ok ? <CheckCircle2 size={13} className="text-emerald-400 shrink-0" /> : <XCircle size={13} className="text-red-400 shrink-0" />}
+                      <span className={`font-teko text-[11px] tracking-widest ${ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {ok ? 'Date order valid: Open → Deadline → Start' : 'Invalid order: Open must be before Deadline, Deadline must be before Start'}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                <div className="flex items-center justify-between bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] px-5 py-4">
+                  <div>
+                    <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] uppercase">Mark as Completed</p>
+                    <p className="font-teko text-[10px] tracking-widest text-[#d1c5b3] opacity-30 mt-0.5">Forces status to "completed" regardless of dates</p>
                   </div>
                   <button
-                    onClick={() => {
-                      const newSS = form.registration_config.screenshots.filter((_, i) => i !== idx);
-                      setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
-                    }}
-                    className="text-red-400 opacity-60 hover:opacity-100 p-2"
+                    onClick={() => set('is_completed', !form.is_completed)}
+                    className={`transition-colors ${form.is_completed ? 'text-[#f9d07a]' : 'text-[#4e4638]'}`}
                   >
-                    <Trash2 size={16} />
+                    {form.is_completed ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                   </button>
                 </div>
-              ))}
+              </div>
+            )}
 
-              {(form.registration_config?.screenshots || []).length < 4 && (
+            {/* ── PRIZE ── */}
+            {section === 'prize' && (
+              <div className="space-y-6">
+                <div>
+                  <label className={labelCls}>Total Prize Pool (PKR)</label>
+                  <input
+                    type="number"
+                    value={form.prize_pool}
+                    onChange={e => set('prize_pool', e.target.value)}
+                    placeholder="50000"
+                    className={inputCls + ' font-bebas text-2xl tracking-wider text-[#f9d07a]'}
+                  />
+                  {form.prize_pool && (
+                    <p className="font-bebas text-sm text-[#dbb462] opacity-50 mt-1 tracking-widest">
+                      PKR {Number(form.prize_pool).toLocaleString('en-PK')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] p-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className={labelCls + ' mb-0'}>Prize Breakdown</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const total = Number(form.prize_pool) || 0;
+                        if (!total) { toast.error('Set the total prize pool first'); return; }
+                        setForm(f => ({ ...f, prize_breakdown: {
+                          first:  Math.round(total * 0.50),
+                          second: Math.round(total * 0.30),
+                          third:  Math.round(total * 0.20),
+                        }}));
+                        toast.success('50/30/20 split applied');
+                      }}
+                      className="font-teko text-[10px] tracking-widest text-[#dbb462] opacity-50 hover:opacity-100 border border-[#dbb462]/20 px-2 py-1 transition-opacity uppercase"
+                    >
+                      Auto 50/30/20
+                    </button>
+                  </div>
+                  {[
+                    { key: 'first',  label: '1st Place', color: 'text-[#f9d07a]'  },
+                    { key: 'second', label: '2nd Place', color: 'text-[#c0c0c0]'  },
+                    { key: 'third',  label: '3rd Place', color: 'text-[#cd7f32]'  },
+                  ].map(({ key, label, color }) => (
+                    <div key={key} className="flex items-center gap-4">
+                      <span className={`font-teko text-[13px] tracking-widest w-20 shrink-0 ${color}`}>{label}</span>
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-teko text-[11px] text-[#d1c5b3] opacity-40 pointer-events-none">PKR</span>
+                        <input
+                          type="number"
+                          value={form.prize_breakdown[key] ?? ''}
+                          onChange={e => setForm(f => ({ ...f, prize_breakdown: { ...f.prize_breakdown, [key]: e.target.value } }))}
+                          placeholder="0"
+                          className={inputCls + ' pl-12'}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {(() => {
+                    const pb = form.prize_breakdown;
+                    const sum = (Number(pb.first) || 0) + (Number(pb.second) || 0) + (Number(pb.third) || 0);
+                    if (!sum) return null;
+                    const total = Number(form.prize_pool) || 0;
+                    const ok = total > 0 && sum === total;
+                    return (
+                      <div className="flex items-center gap-2 pt-3 border-t border-[rgba(78,70,56,0.1)]">
+                        {ok ? <CheckCircle2 size={12} className="text-emerald-400" /> : <XCircle size={12} className="text-orange-400" />}
+                        <span className={`font-teko text-[11px] tracking-widest ${ok ? 'text-emerald-400' : 'text-orange-400'}`}>
+                          Breakdown total: PKR {sum.toLocaleString('en-PK')} {ok ? '— matches prize pool' : `— differs from PKR ${total.toLocaleString('en-PK')}`}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                <div>
+                  <label className={labelCls}>Entry Fee (PKR) <span className="opacity-40 normal-case tracking-normal">— 0 = free to enter</span></label>
+                  <input
+                    type="number" min={0}
+                    value={form.entry_fee}
+                    onChange={e => set('entry_fee', e.target.value)}
+                    placeholder="0"
+                    className={inputCls}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelCls}>Discord Server Invite</label>
+                  <input
+                    type="url"
+                    value={form.discord_link}
+                    onChange={e => set('discord_link', e.target.value)}
+                    placeholder="https://discord.gg/..."
+                    className={inputCls}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ── BRIEFING ── */}
+            {section === 'briefing' && (
+              <div className="space-y-5">
+                <div>
+                  <label className={labelCls}>Short Description <span className="opacity-40 normal-case tracking-normal">(card preview)</span></label>
+                  <textarea
+                    value={form.description}
+                    onChange={e => set('description', e.target.value)}
+                    placeholder="One-liner shown on tournament cards..."
+                    rows={2}
+                    className={inputCls + ' resize-none'}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className={labelCls + ' mb-0'}>Full Briefing</label>
+                    <div className="flex items-center gap-3">
+                      <span className="font-teko text-[10px] tracking-widest text-[#d1c5b3] opacity-25">{(form.briefing || '').length} chars</span>
+                      <button
+                        type="button"
+                        onClick={autoFillBriefing}
+                        className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/20 text-[#dbb462] px-3 py-1.5 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase"
+                      >
+                        <FileText size={11} /> AUTO-FILL
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={form.briefing}
+                    onChange={e => set('briefing', e.target.value)}
+                    placeholder="Full tournament rules, format, eligibility — or click AUTO-FILL above."
+                    rows={15}
+                    className={inputCls + ' resize-none leading-relaxed font-mono text-xs'}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* ── SCHEDULE ── */}
+            {section === 'schedule' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-40">
+                    Displayed on the Schedule tab in chronological order.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={autoFillSchedule}
+                    className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/20 text-[#dbb462] px-3 py-1.5 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase whitespace-nowrap"
+                  >
+                    <Calendar size={11} /> AUTO-GENERATE
+                  </button>
+                </div>
+
+                {scheduleRows.length === 0 ? (
+                  <div className="text-center py-10 bg-[#0a0a0a] border border-dashed border-[rgba(78,70,56,0.15)]">
+                    <p className="font-teko text-[11px] text-[#d1c5b3] opacity-25 tracking-widest">
+                      NO EVENTS — ADD MANUALLY OR CLICK AUTO-GENERATE
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {scheduleRows.map((row, i) => (
+                      <div key={row.id} className="bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] p-3">
+                        <div className="grid grid-cols-[auto_1fr_1fr_2fr_auto] gap-2 items-center">
+                          <span className="font-bebas text-base text-[#dbb462]/20 w-5 text-center">{i + 1}</span>
+                          <input type="date"  value={row.date}  onChange={e => updSched(row.id, 'date', e.target.value)}  className={inputCls + ' text-xs'} />
+                          <input type="time"  value={row.time}  onChange={e => updSched(row.id, 'time', e.target.value)}  className={inputCls + ' text-xs'} />
+                          <input type="text"  placeholder="Event name" value={row.event} onChange={e => updSched(row.id, 'event', e.target.value)} className={inputCls + ' text-xs'} />
+                          <button onClick={() => delSched(row.id)} className="text-red-400 opacity-30 hover:opacity-100 p-1 transition-opacity">
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <div className="pl-7 mt-1.5">
+                          <input
+                            type="text"
+                            placeholder="Note (optional)"
+                            value={row.note || ''}
+                            onChange={e => updSched(row.id, 'note', e.target.value)}
+                            className="w-full bg-transparent border-b border-[rgba(78,70,56,0.1)] py-1 text-[11px] text-[#d1c5b3] opacity-50 focus:outline-none focus:opacity-80 focus:border-[#dbb462]/30 placeholder:opacity-30 transition-all"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <button
-                  onClick={() => {
-                    const newSS = [...(form.registration_config?.screenshots || []), { label: '', required: true }];
-                    setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
-                  }}
-                  className="w-full py-4 border border-dashed border-[#dbb462]/20 text-[#dbb462]/40 hover:text-[#dbb462] hover:bg-[#dbb462]/5 font-teko text-[13px] tracking-[0.2em] transition-all uppercase"
+                  onClick={addScheduleRow}
+                  className="flex items-center gap-2 border border-dashed border-[rgba(78,70,56,0.25)] px-4 py-3 w-full font-teko text-[12px] tracking-widest text-[#d1c5b3] opacity-40 hover:opacity-100 hover:bg-[#111] transition-all"
                 >
-                  + Add Screenshot Requirement
+                  <Plus size={13} /> ADD EVENT
                 </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+              </div>
+            )}
 
-      {/* Save button */}
-      <GradientButton className="w-full mt-6" onClick={handleSave} disabled={saving}>
-        {saving ? 'SAVING...' : (tournament ? 'UPDATE TOURNAMENT' : 'CREATE TOURNAMENT')}
-      </GradientButton>
-    </Modal>
+            {/* ── ROADMAP ── */}
+            {section === 'roadmap' && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-40">Presets:</span>
+                  {Object.entries(ROADMAP_PRESETS).map(([key, preset]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => applyRoadmapPreset(key)}
+                      className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/20 text-[#dbb462] px-3 py-1.5 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase"
+                >
+                  <Map size={11} /> {preset.label}
+                </button>
+                  ))}
+                </div>
+
+                {roadmapRows.length === 0 ? (
+                  <div className="text-center py-10 bg-[#0a0a0a] border border-dashed border-[rgba(78,70,56,0.15)]">
+                    <p className="font-teko text-[11px] text-[#d1c5b3] opacity-25 tracking-widest">
+                      NO PHASES — APPLY A PRESET OR ADD MANUALLY
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {roadmapRows.map((row, i) => (
+                      <div key={row.id} className="bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] p-4 group">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="font-bebas text-sm text-[#dbb462]/20 w-5 text-center">{i + 1}</span>
+                          <input
+                            type="text"
+                            placeholder="Phase label (e.g. GROUP STAGE)"
+                            value={row.phase}
+                            onChange={e => updRoad(row.id, 'phase', e.target.value)}
+                            className="flex-1 bg-transparent border-b border-[rgba(78,70,56,0.2)] py-1 text-[12px] text-[#dbb462] focus:outline-none focus:border-[#f9d07a] font-teko tracking-[0.15em] placeholder:opacity-30 uppercase"
+                          />
+                          <button
+                            onClick={() => delRoad(row.id)}
+                            className="text-red-400 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity p-1"
+                          >
+                            <X size={13} />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-[1fr_2fr] gap-3 pl-7">
+                          <input
+                            type="text"
+                            placeholder="Stage title"
+                            value={row.title}
+                            onChange={e => updRoad(row.id, 'title', e.target.value)}
+                            className={inputCls + ' text-xs'}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Short description"
+                            value={row.description}
+                            onChange={e => updRoad(row.id, 'description', e.target.value)}
+                            className={inputCls + ' text-xs'}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  onClick={addRoadmapRow}
+                  className="flex items-center gap-2 border border-dashed border-[rgba(78,70,56,0.25)] px-4 py-3 w-full font-teko text-[12px] tracking-widest text-[#d1c5b3] opacity-40 hover:opacity-100 hover:bg-[#111] transition-all"
+                >
+                  <Plus size={13} /> ADD PHASE
+                </button>
+              </div>
+            )}
+
+            {/* ── CONFIG ── */}
+            {section === 'config' && (
+              <div className="space-y-5">
+                <p className={labelCls}>Screenshot Verification Requirements</p>
+                <p className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-30 -mt-3">
+                  Require teams to upload proof screenshots during registration (e.g. Discord join, YouTube subscribe).
+                </p>
+                <div className="space-y-3">
+                  {(form.registration_config?.screenshots || []).map((ss, idx) => (
+                    <div key={idx} className="bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] p-4 flex gap-4 items-end">
+                      <div className="flex-1">
+                        <label className={labelCls}>Requirement #{idx + 1}</label>
+                        <input
+                          type="text"
+                          value={ss.label}
+                          onChange={e => {
+                            const newSS = [...form.registration_config.screenshots];
+                            newSS[idx] = { ...newSS[idx], label: e.target.value };
+                            setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
+                          }}
+                          placeholder="e.g. Subscribe to Zenith Esports YT"
+                          className={inputCls}
+                        />
+                      </div>
+                      <div className="flex flex-col items-center gap-1 shrink-0">
+                        <label className={labelCls + ' text-center'}>Required</label>
+                        <button
+                          onClick={() => {
+                            const newSS = [...form.registration_config.screenshots];
+                            newSS[idx] = { ...newSS[idx], required: !newSS[idx].required };
+                            setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
+                          }}
+                          className={ss.required ? 'text-[#dbb462]' : 'text-white/20'}
+                        >
+                          {ss.required ? <ToggleRight size={26} /> : <ToggleLeft size={26} />}
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const newSS = form.registration_config.screenshots.filter((_, i) => i !== idx);
+                          setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
+                        }}
+                        className="text-red-400 opacity-30 hover:opacity-100 p-2 transition-opacity"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  ))}
+                  {(form.registration_config?.screenshots || []).length < 4 && (
+                    <button
+                      onClick={() => {
+                        const newSS = [...(form.registration_config?.screenshots || []), { label: '', required: true }];
+                        setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
+                      }}
+                      className="w-full py-4 border border-dashed border-[#dbb462]/15 text-[#dbb462]/30 hover:text-[#dbb462] hover:bg-[#dbb462]/5 font-teko text-[12px] tracking-[0.2em] transition-all uppercase"
+                    >
+                      + Add Screenshot Requirement
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>{/* end scrollable */}
+        </div>{/* end content */}
+      </div>{/* end modal box */}
+    </div>
   );
 }
 
