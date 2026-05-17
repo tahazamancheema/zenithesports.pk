@@ -7,8 +7,12 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
   const [userDoc, setUserDoc] = useState(null);
   const [loading, setLoading] = useState(true);
-  const profileUidRef = useRef(null);
-  const mountedRef   = useRef(true);
+  const profileUidRef  = useRef(null);
+  const mountedRef     = useRef(true);
+  const userDocRef     = useRef(null);   // mirrors userDoc so closures always see fresh value
+  const lastActivityRef = useRef(Date.now());
+
+  const INACTIVITY_LIMIT = 60 * 60 * 1000; // 1 hour
 
   // ── fetch profile row ──────────────────────────────────────────────────────
   async function fetchProfile(uid) {
@@ -34,8 +38,10 @@ export function AuthProvider({ children }) {
   const refreshProfile = async () => {
     if (!profileUidRef.current) return;
     const doc = await fetchProfile(profileUidRef.current);
-    if (mountedRef.current) setUserDoc(doc);
+    if (mountedRef.current) { userDocRef.current = doc; setUserDoc(doc); }
   };
+
+  const setUserDocSynced = (doc) => { userDocRef.current = doc; setUserDoc(doc); };
 
   useEffect(() => {
     mountedRef.current = true;
@@ -63,10 +69,10 @@ export function AuthProvider({ children }) {
         if (currentUser) {
           setUser(currentUser);
           const doc = await fetchProfile(currentUser.id);
-          if (mountedRef.current) setUserDoc(doc);
+          if (mountedRef.current) setUserDocSynced(doc);
         } else {
           setUser(null);
-          setUserDoc(null);
+          setUserDocSynced(null);
         }
       } catch (err) {
         console.warn('[auth] init error:', err.message);
@@ -96,10 +102,10 @@ export function AuthProvider({ children }) {
         if (incomingUid) {
           setUser(session.user);
           const doc = await fetchProfile(incomingUid);
-          if (mountedRef.current) setUserDoc(doc);
+          if (mountedRef.current) setUserDocSynced(doc);
         } else {
           setUser(null);
-          setUserDoc(null);
+          setUserDocSynced(null);
         }
 
         clearTimeout(safetyTimer);
@@ -122,14 +128,19 @@ export function AuthProvider({ children }) {
           if (uid) {
             setUser(session.user);
             const doc = await fetchProfile(uid);
-            if (mountedRef.current) setUserDoc(doc);
+            if (mountedRef.current) setUserDocSynced(doc);
           } else {
             setUser(null);
-            setUserDoc(null);
+            setUserDocSynced(null);
           }
         } else if (uid && session?.user) {
-          // Same user — just refresh the token object, no DB call needed
+          // Same user — refresh token object, and recover profile if it was lost
+          // (e.g. tab opened before initial fetch completed → isAdmin was false)
           setUser(session.user);
+          if (!userDocRef.current) {
+            const doc = await fetchProfile(uid);
+            if (mountedRef.current) setUserDocSynced(doc);
+          }
         }
       } catch (err) {
         console.warn('[auth] revalidate:', err.message);
@@ -145,13 +156,27 @@ export function AuthProvider({ children }) {
       if (mountedRef.current) revalidateSession();
     };
 
+    // ── Phase 4: Inactivity auto-logout ──────────────────────────────────────
+    const ACTIVITY_EVENTS = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+    const updateActivity = () => { lastActivityRef.current = Date.now(); };
+    ACTIVITY_EVENTS.forEach(e => window.addEventListener(e, updateActivity, { passive: true }));
+
+    const inactivityTimer = setInterval(() => {
+      if (!mountedRef.current || !profileUidRef.current) return;
+      if (Date.now() - lastActivityRef.current >= INACTIVITY_LIMIT) {
+        supabase.auth.signOut();
+      }
+    }, 60 * 1000);
+
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       mountedRef.current = false;
       clearTimeout(safetyTimer);
+      clearInterval(inactivityTimer);
       subscription.unsubscribe();
+      ACTIVITY_EVENTS.forEach(e => window.removeEventListener(e, updateActivity));
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
     };

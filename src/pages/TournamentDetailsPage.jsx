@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ChevronLeft, Trophy, Users, Clock, Calendar, Map, ListOrdered, BookOpen, MessageCircle, ArrowRight, Shield, ChevronRight } from 'lucide-react';
+import { ChevronLeft, Trophy, Users, Clock, Calendar, Map, ListOrdered, BookOpen, MessageCircle, ArrowRight, Shield, ChevronRight, BarChart2, Plus, Edit2, Trash2, X, Check, GripVertical } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { supabase } from '../supabase/config';
 import { computeTournamentStatus } from '../utils/tournamentStatus';
 import { useAuth } from '../hooks/useAuth';
@@ -14,12 +15,17 @@ const TABS = [
   { id: 'schedule',  label: 'SCHEDULE',  icon: ListOrdered },
   { id: 'roadmap',   label: 'ROADMAP',   icon: Map },
   { id: 'teams',     label: 'TEAMS',     icon: Users },
+  { id: 'results',   label: 'RESULTS',   icon: BarChart2 },
 ];
+
+const EMPTY_ROW = () => ({ rank: '', team: '', kills: '', points: '', total: '' });
+const STAGE_OPTIONS = ['Group Stage', 'Quarter Final', 'Semi Final', 'Final', 'Play-offs', 'Custom'];
 
 export default function TournamentDetailsPage() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [resultModal, setResultModal] = useState({ open: false, data: null });
 
   // Use the robust real-time hook for tournament data
   const { 
@@ -29,11 +35,19 @@ export default function TournamentDetailsPage() {
   } = useSupabaseDB('tournaments', null, [['id', 'eq', id]]);
 
   // Use the robust real-time hook for registrations
-  const { 
-    data: registrations, 
-    loading: rLoading, 
-    error: rError 
+  const {
+    data: registrations,
+    loading: rLoading,
+    error: rError
   } = useSupabaseDB('registrations', null, [['tournament_id', 'eq', id]]);
+
+  // Results
+  const {
+    data: results,
+    add: addResult,
+    update: updateResult,
+    remove: removeResult,
+  } = useSupabaseDB('tournament_results', { field: 'created_at', direction: 'asc' }, [['tournament_id', 'eq', id]]);
 
   const tournament = tList?.[0] || null;
   const loading = tLoading && !tournament;
@@ -87,6 +101,31 @@ export default function TournamentDetailsPage() {
     if (tab.id === 'roadmap')  return roadmap.length > 0;
     return true;
   });
+
+  async function handleDeleteResult(resultId) {
+    if (!confirm('Delete this group result?')) return;
+    try {
+      await removeResult(resultId);
+      toast.success('Group result deleted');
+    } catch (err) {
+      toast.error(err.message);
+    }
+  }
+
+  async function handleSaveResult({ id: rid, group_name, stage, rows }) {
+    try {
+      if (rid) {
+        await updateResult(rid, { group_name, stage, rows, updated_at: new Date().toISOString() });
+        toast.success('Result updated');
+      } else {
+        await addResult({ tournament_id: id, group_name, stage, rows });
+        toast.success('Result published');
+      }
+      setResultModal({ open: false, data: null });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  }
 
   const prizeFormatted = prize_pool ? `PKR ${Number(prize_pool).toLocaleString('en-PK')}` : 'TBA';
 
@@ -233,6 +272,128 @@ export default function TournamentDetailsPage() {
                           <p className="font-body text-[#d1c5b3] opacity-70 text-base leading-relaxed max-w-xl group-hover:opacity-100 transition-opacity">{p.description}</p>
                         )}
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* RESULTS */}
+          {activeTab === 'results' && (
+            <section key="results" style={{ animation: 'fadeIn 0.4s ease-out both' }}>
+              <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-8 h-[2px] bg-[#dbb462]" />
+                  <h2 className="font-bebas text-4xl md:text-5xl text-[#f2f2f2] uppercase">RESULTS</h2>
+                  {results.length > 0 && (
+                    <span className="font-teko text-[14px] tracking-[0.2em] text-[#d1c5b3] opacity-30 uppercase ml-2">({results.length} group{results.length !== 1 ? 's' : ''})</span>
+                  )}
+                </div>
+                {isAdmin && (
+                  <button
+                    onClick={() => setResultModal({ open: true, data: null })}
+                    className="flex items-center gap-2 btn-obsidian-primary px-5 py-2.5 font-teko text-[15px] tracking-[0.15em] uppercase"
+                  >
+                    <Plus size={15} /> ADD GROUP
+                  </button>
+                )}
+              </div>
+
+              {results.length === 0 ? (
+                <div className="bg-[#0e0e0e] border border-white/[0.06] p-12 text-center">
+                  <BarChart2 size={36} className="text-[#dbb462] opacity-[0.12] mx-auto mb-4" />
+                  <p className="font-teko text-[18px] tracking-[0.2em] text-white/20 uppercase">
+                    {isAdmin ? 'No results published yet. Click ADD GROUP to start.' : 'Results will appear here once the admin publishes them.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-10">
+                  {results.map((group) => (
+                    <div key={group.id} className="bg-[#0e0e0e] border border-white/[0.06] overflow-hidden">
+                      {/* Group Header */}
+                      <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#111]">
+                        <div className="flex items-center gap-4">
+                          <div className="w-1 h-6 zenith-gradient flex-shrink-0" />
+                          <div>
+                            <p className="font-bebas text-2xl text-white tracking-wide uppercase leading-none">{group.group_name}</p>
+                            <p className="font-teko text-[12px] tracking-[0.2em] text-[#dbb462] opacity-70 uppercase mt-0.5">{group.stage}</p>
+                          </div>
+                        </div>
+                        {isAdmin && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setResultModal({ open: true, data: group })}
+                              className="w-8 h-8 bg-white/5 border border-white/10 flex items-center justify-center text-[#d1c5b3] hover:text-[#dbb462] hover:border-[#dbb462]/30 transition-all"
+                              title="Edit"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteResult(group.id)}
+                              className="w-8 h-8 bg-white/5 border border-white/10 flex items-center justify-center text-[#d1c5b3] hover:text-[#ffb4ab] hover:border-[#ffb4ab]/30 transition-all"
+                              title="Delete"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Leaderboard Table */}
+                      {(!group.rows || group.rows.length === 0) ? (
+                        <p className="font-teko text-[14px] tracking-[0.2em] text-white/20 uppercase p-6">No rows added.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[480px]">
+                            <thead>
+                              <tr className="border-b border-white/[0.06]">
+                                <th className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase text-center px-4 py-3 w-12">#</th>
+                                <th className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase text-left px-4 py-3">TEAM</th>
+                                <th className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase text-center px-4 py-3">KILLS</th>
+                                <th className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase text-center px-4 py-3">PLACEMENT</th>
+                                <th className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase text-center px-4 py-3">TOTAL</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {group.rows.map((row, i) => (
+                                <tr
+                                  key={i}
+                                  className={`border-b border-white/[0.03] transition-colors ${i === 0 ? 'bg-[#dbb462]/[0.05]' : 'hover:bg-white/[0.02]'}`}
+                                >
+                                  <td className="text-center px-4 py-3.5">
+                                    {i === 0 ? (
+                                      <span className="font-bebas text-lg text-[#dbb462]">1ST</span>
+                                    ) : i === 1 ? (
+                                      <span className="font-bebas text-lg text-[#c0c0c0]">2ND</span>
+                                    ) : i === 2 ? (
+                                      <span className="font-bebas text-lg text-[#cd7f32]">3RD</span>
+                                    ) : (
+                                      <span className="font-bebas text-lg text-white/30">{row.rank || i + 1}</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3.5">
+                                    <span className={`font-bebas text-xl tracking-wide uppercase ${i === 0 ? 'text-[#dbb462]' : 'text-white/80'}`}>
+                                      {row.team}
+                                    </span>
+                                  </td>
+                                  <td className="text-center px-4 py-3.5">
+                                    <span className="font-teko text-[17px] text-white/70">{row.kills ?? '—'}</span>
+                                  </td>
+                                  <td className="text-center px-4 py-3.5">
+                                    <span className="font-teko text-[17px] text-white/70">{row.points ?? '—'}</span>
+                                  </td>
+                                  <td className="text-center px-4 py-3.5">
+                                    <span className={`font-bebas text-xl ${i === 0 ? 'text-[#dbb462]' : 'text-white/90'}`}>
+                                      {row.total ?? '—'}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -417,6 +578,15 @@ export default function TournamentDetailsPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Result Group Modal (admin only) ── */}
+      {resultModal.open && (
+        <ResultGroupModal
+          initial={resultModal.data}
+          onSave={handleSaveResult}
+          onClose={() => setResultModal({ open: false, data: null })}
+        />
+      )}
     </div>
   );
 }
@@ -464,6 +634,188 @@ function SpecCell({ icon: Icon, label, value, gold }) {
         <span className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-60 uppercase">{label}</span>
       </div>
       <p className={`font-bebas text-xl leading-none ${gold ? 'text-[#dbb462]' : 'text-[#f2f2f2]'}`}>{value}</p>
+    </div>
+  );
+}
+
+/* ── ResultGroupModal ── */
+function ResultGroupModal({ initial, onSave, onClose }) {
+  const isEdit = !!initial?.id;
+  const [groupName, setGroupName] = useState(initial?.group_name || '');
+  const [stage, setStage] = useState(initial?.stage || 'Group Stage');
+  const [rows, setRows] = useState(
+    initial?.rows?.length ? initial.rows.map(r => ({ ...r })) : [EMPTY_ROW()]
+  );
+  const [saving, setSaving] = useState(false);
+
+  const updateRow = (i, field, val) => {
+    setRows(prev => {
+      const next = prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r);
+      if (field === 'kills' || field === 'points') {
+        const k = parseFloat(field === 'kills' ? val : next[i].kills) || 0;
+        const p = parseFloat(field === 'points' ? val : next[i].points) || 0;
+        next[i].total = k + p || '';
+      }
+      return next;
+    });
+  };
+
+  const addRow = () => setRows(prev => [...prev, EMPTY_ROW()]);
+  const removeRow = (i) => setRows(prev => prev.filter((_, idx) => idx !== i));
+
+  const moveRow = (i, dir) => {
+    setRows(prev => {
+      const next = [...prev];
+      const swap = i + dir;
+      if (swap < 0 || swap >= next.length) return prev;
+      [next[i], next[swap]] = [next[swap], next[i]];
+      return next;
+    });
+  };
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!groupName.trim()) return toast.error('Group name is required');
+    const cleanRows = rows
+      .filter(r => r.team?.toString().trim())
+      .map((r, i) => ({ rank: i + 1, team: r.team.trim(), kills: Number(r.kills) || 0, points: Number(r.points) || 0, total: Number(r.total) || 0 }));
+    setSaving(true);
+    await onSave({ id: initial?.id, group_name: groupName.trim(), stage, rows: cleanRows });
+    setSaving(false);
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+      <div className="w-full max-w-2xl bg-[#111] border border-white/[0.08] flex flex-col max-h-[90vh]" style={{ animation: 'fadeIn 0.25s ease-out both' }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.06] flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-6 zenith-gradient" />
+            <h2 className="font-bebas text-2xl text-white uppercase tracking-wide">
+              {isEdit ? 'EDIT GROUP RESULT' : 'ADD GROUP RESULT'}
+            </h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center text-white/40 hover:text-white transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          {/* Meta fields */}
+          <div className="px-6 pt-5 pb-4 flex gap-4 flex-shrink-0">
+            <div className="flex-1">
+              <label className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-50 uppercase block mb-2">GROUP NAME *</label>
+              <input
+                value={groupName}
+                onChange={e => setGroupName(e.target.value)}
+                placeholder="e.g. Group A"
+                className="w-full bg-[#1a1a1a] border border-white/[0.08] px-4 py-2.5 font-teko text-[17px] text-white focus:outline-none focus:border-[#dbb462]/40 placeholder-white/20 uppercase tracking-wide"
+              />
+            </div>
+            <div className="w-44">
+              <label className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-50 uppercase block mb-2">STAGE</label>
+              <select
+                value={stage}
+                onChange={e => setStage(e.target.value)}
+                className="w-full bg-[#1a1a1a] border border-white/[0.08] px-4 py-2.5 font-teko text-[17px] text-white focus:outline-none focus:border-[#dbb462]/40 appearance-none cursor-pointer"
+              >
+                {STAGE_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Column headers */}
+          <div className="px-6 flex-shrink-0">
+            <div className="grid grid-cols-[28px_1fr_70px_80px_70px_28px] gap-2 pb-1">
+              <div />
+              <span className="font-teko text-[10px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase">TEAM</span>
+              <span className="font-teko text-[10px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase text-center">KILLS</span>
+              <span className="font-teko text-[10px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase text-center">PLACEMENT</span>
+              <span className="font-teko text-[10px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase text-center">TOTAL</span>
+              <div />
+            </div>
+          </div>
+
+          {/* Rows */}
+          <div className="px-6 overflow-y-auto flex-1 space-y-1.5 pb-2">
+            {rows.map((row, i) => (
+              <div key={i} className="grid grid-cols-[28px_1fr_70px_80px_70px_28px] gap-2 items-center group">
+                {/* Rank indicator */}
+                <span className="font-bebas text-base text-white/20 text-center">{i + 1}</span>
+
+                {/* Team name */}
+                <input
+                  value={row.team}
+                  onChange={e => updateRow(i, 'team', e.target.value)}
+                  placeholder="Team name"
+                  className="bg-[#1a1a1a] border border-white/[0.06] px-3 py-2 font-teko text-[16px] text-white focus:outline-none focus:border-[#dbb462]/30 placeholder-white/15 w-full"
+                />
+
+                {/* Kills */}
+                <input
+                  type="number"
+                  min="0"
+                  value={row.kills}
+                  onChange={e => updateRow(i, 'kills', e.target.value)}
+                  placeholder="0"
+                  className="bg-[#1a1a1a] border border-white/[0.06] px-2 py-2 font-teko text-[16px] text-white focus:outline-none focus:border-[#dbb462]/30 text-center w-full"
+                />
+
+                {/* Placement pts */}
+                <input
+                  type="number"
+                  min="0"
+                  value={row.points}
+                  onChange={e => updateRow(i, 'points', e.target.value)}
+                  placeholder="0"
+                  className="bg-[#1a1a1a] border border-white/[0.06] px-2 py-2 font-teko text-[16px] text-white focus:outline-none focus:border-[#dbb462]/30 text-center w-full"
+                />
+
+                {/* Total (auto-calculated, still editable) */}
+                <input
+                  type="number"
+                  min="0"
+                  value={row.total}
+                  onChange={e => updateRow(i, 'total', e.target.value)}
+                  placeholder="0"
+                  className="bg-[#1a1a1a] border border-[#dbb462]/10 px-2 py-2 font-bebas text-[17px] text-[#dbb462] focus:outline-none focus:border-[#dbb462]/40 text-center w-full"
+                />
+
+                {/* Delete row */}
+                <button
+                  type="button"
+                  onClick={() => removeRow(i)}
+                  className="w-6 h-6 flex items-center justify-center text-white/20 hover:text-[#ffb4ab] transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {/* Add row */}
+          <div className="px-6 pt-3 pb-4 flex-shrink-0">
+            <button
+              type="button"
+              onClick={addRow}
+              className="flex items-center gap-2 text-[#dbb462] opacity-60 hover:opacity-100 transition-opacity font-teko text-[14px] tracking-[0.15em] uppercase"
+            >
+              <Plus size={14} /> ADD ROW
+            </button>
+          </div>
+
+          {/* Footer actions */}
+          <div className="px-6 py-4 border-t border-white/[0.06] flex gap-3 justify-end flex-shrink-0">
+            <button type="button" onClick={onClose} className="btn-obsidian-ghost px-6 py-2.5 font-teko text-[15px] tracking-[0.15em] uppercase">
+              CANCEL
+            </button>
+            <button type="submit" disabled={saving} className="btn-obsidian-primary px-8 py-2.5 font-teko text-[15px] tracking-[0.15em] uppercase disabled:opacity-50">
+              {saving ? 'SAVING...' : isEdit ? 'UPDATE' : 'PUBLISH'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
