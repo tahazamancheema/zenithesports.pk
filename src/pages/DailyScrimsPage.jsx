@@ -18,7 +18,7 @@ const SESSIONS = [
 const ADMINS = [
   { name: 'ADMIN 01', phone: '03390715753', wa: '923390715753' },
   { name: 'ADMIN 02', phone: '03140679418', wa: '923140679418' },
-  { name: 'ADMIN 03', phone: '923715902051', wa: '923715902051' },
+  { name: 'ADMIN 03', phone: '03715902051', wa: '923715902051' },
 ];
 
 const MAPS = ['Erangel', 'Miramar', 'Erangel', 'Rondo'];
