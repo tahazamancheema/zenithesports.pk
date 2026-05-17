@@ -969,20 +969,59 @@ function TournamentGroupsModal({ tournament, registrations, allRegistrations, up
 // ─────────────────────────────────────────────────────────────
 // Tournament Create/Edit Modal
 // ─────────────────────────────────────────────────────────────
-function TournamentModal({ isOpen, onClose, tournament, onSave }) {
-  const emptyForm = {
-    start_date: '',
-    poster_url: '',
-    is_completed: false,
-    registration_config: { screenshots: [] },
-  };
 
-  const [form, setForm] = useState(emptyForm);
+const ROADMAP_PRESETS = {
+  standard: {
+    label: 'Standard (4 stages)',
+    rows: [
+      { phase: 'Group Stage',    title: 'Group Stage',    description: 'Teams divided into groups. Top performers per group advance to knockouts.' },
+      { phase: 'Quarter Finals', title: 'Quarter Finals', description: 'Group leaders face off in best-of-series knockout matches.' },
+      { phase: 'Semi Finals',    title: 'Semi Finals',    description: 'QF winners battle for a spot in the Grand Final.' },
+      { phase: 'Grand Final',    title: 'Grand Final',    description: 'The top teams compete for the championship title and prize pool.' },
+    ],
+  },
+  compact: {
+    label: 'Compact (2 stages)',
+    rows: [
+      { phase: 'Group Stage', title: 'Group Stage', description: 'All teams compete in groups. Top 3 from each group qualify for the Final.' },
+      { phase: 'Grand Final', title: 'Grand Final', description: 'Qualified teams battle in the Grand Final for glory and the prize pool.' },
+    ],
+  },
+  full: {
+    label: 'Full Circuit (5 stages)',
+    rows: [
+      { phase: 'Open Qualifier', title: 'Open Qualifier',  description: 'Open registration rounds — all registered teams compete for qualification.' },
+      { phase: 'Group Stage',    title: 'Group Stage',     description: 'Qualifiers sorted into balanced groups.' },
+      { phase: 'Quarter Finals', title: 'Quarter Finals',  description: 'Top group teams advance to knockout QFs.' },
+      { phase: 'Semi Finals',    title: 'Semi Finals',     description: 'QF winners move to Semi Finals.' },
+      { phase: 'Grand Final',    title: 'Grand Final',     description: 'Grand Final — the ultimate battle for the championship.' },
+    ],
+  },
+};
+
+const EMPTY_FORM = {
+  title: '',
+  description: '',
+  briefing: '',
+  game: 'PUBG Mobile',
+  max_teams: 64,
+  prize_pool: '',
+  registration_open_date: '',
+  registration_deadline: '',
+  start_date: '',
+  poster_url: '',
+  is_completed: false,
+  registration_config: { screenshots: [] },
+};
+
+function TournamentModal({ isOpen, onClose, tournament, onSave }) {
+
+  const [form, setForm] = useState(EMPTY_FORM);
   const [scheduleRows, setScheduleRows] = useState([]);
   const [roadmapRows, setRoadmapRows] = useState([]);
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [section, setSection] = useState('basic'); // basic | content | schedule | roadmap
+  const [section, setSection] = useState('basic');
 
   const parseJSON = (val) => {
     if (!val) return [];
@@ -990,96 +1029,162 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
     try { return JSON.parse(val); } catch { return []; }
   };
 
-  /** Converts UTC string from DB to PKT string for datetime-local input */
   const toPKT = (dateStr) => {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
     try {
       return new Intl.DateTimeFormat('sv-SE', {
         timeZone: 'Asia/Karachi',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(d).replace(' ', 'T');
-    } catch (e) {
-      return '';
-    }
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit',
+      }).format(new Date(dateStr)).replace(' ', 'T');
+    } catch { return ''; }
   };
 
-  /** Appends PKT offset to input value for saving to DB */
-  const fromPKT = (val) => {
-    if (!val) return null;
-    return `${val}:00+05:00`;
-  };
+  const fromPKT = (val) => val ? `${val}:00+05:00` : null;
 
   React.useEffect(() => {
-    if (tournament) {
-      setForm({
-        title:                    tournament.title || '',
-        description:              tournament.description || '',
-        briefing:                 tournament.briefing || '',
-        game:                     tournament.game || 'PUBG Mobile',
-        max_teams:                tournament.max_teams === null ? '' : tournament.max_teams,
-        prize_pool:               tournament.prize_pool || '',
-        registration_open_date:   toPKT(tournament.registration_open_date),
-        registration_deadline:    toPKT(tournament.registration_deadline),
-        start_date:               tournament.start_date
-          ? new Date(tournament.start_date).toISOString().slice(0, 10) : '',
-        poster_url:               tournament.poster_url || '',
-        is_completed:             tournament.is_completed || false,
-        registration_config:      tournament.registration_config || { screenshots: [] },
-      });
-      setScheduleRows(
-        parseJSON(tournament.schedule).map((r) => ({ ...r, id: Math.random() }))
-      );
-      setRoadmapRows(
-        parseJSON(tournament.roadmap).map((r) => ({ ...r, id: Math.random() }))
-      );
-    } else {
-      setForm(emptyForm);
-      setScheduleRows([]);
-      setRoadmapRows([]);
+    if (isOpen) {
+      if (tournament) {
+        setForm({
+          title:                  tournament.title || '',
+          description:            tournament.description || '',
+          briefing:               tournament.briefing || '',
+          game:                   tournament.game || 'PUBG Mobile',
+          max_teams:              tournament.max_teams === null ? '' : (tournament.max_teams ?? 64),
+          prize_pool:             tournament.prize_pool || '',
+          registration_open_date: toPKT(tournament.registration_open_date),
+          registration_deadline:  toPKT(tournament.registration_deadline),
+          start_date:             tournament.start_date ? new Date(tournament.start_date).toISOString().slice(0, 10) : '',
+          poster_url:             tournament.poster_url || '',
+          is_completed:           tournament.is_completed || false,
+          registration_config:    tournament.registration_config || { screenshots: [] },
+        });
+        setScheduleRows(parseJSON(tournament.schedule).map((r) => ({ ...r, id: Math.random() })));
+        setRoadmapRows(parseJSON(tournament.roadmap).map((r) => ({ ...r, id: Math.random() })));
+      } else {
+        setForm({ ...EMPTY_FORM });
+        setScheduleRows([]);
+        setRoadmapRows([]);
+      }
+      setFile(null);
+      setSection('basic');
     }
-    setFile(null);
-    setSection('basic');
   }, [tournament, isOpen]);
 
   // ── Schedule helpers ──
-  function addScheduleRow() {
-    setScheduleRows((p) => [...p, { id: Math.random(), date: '', time: '', event: '' }]);
-  }
-  function updSched(id, field, value) {
-    setScheduleRows((p) => p.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
-  }
-  function delSched(id) {
-    setScheduleRows((p) => p.filter((r) => r.id !== id));
-  }
+  const addScheduleRow = () => setScheduleRows((p) => [...p, { id: Math.random(), date: '', time: '', event: '' }]);
+  const updSched = (id, field, value) => setScheduleRows((p) => p.map((r) => r.id === id ? { ...r, [field]: value } : r));
+  const delSched = (id) => setScheduleRows((p) => p.filter((r) => r.id !== id));
 
   // ── Roadmap helpers ──
-  function addRoadmapRow() {
-    setRoadmapRows((p) => [...p, { id: Math.random(), phase: '', title: '', description: '' }]);
+  const addRoadmapRow = () => setRoadmapRows((p) => [...p, { id: Math.random(), phase: '', title: '', description: '' }]);
+  const updRoad = (id, field, value) => setRoadmapRows((p) => p.map((r) => r.id === id ? { ...r, [field]: value } : r));
+  const delRoad = (id) => setRoadmapRows((p) => p.filter((r) => r.id !== id));
+
+  // ── Auto-generators ──
+  function autoFillBriefing() {
+    const title    = form.title?.trim() || 'ZENITH OPEN';
+    const game     = form.game || 'PUBG Mobile';
+    const prize    = form.prize_pool ? `PKR ${Number(form.prize_pool).toLocaleString('en-PK')}` : 'TBA';
+    const slots    = form.max_teams ? `${form.max_teams} teams` : 'unlimited teams';
+    const deadline = form.registration_deadline
+      ? new Date(fromPKT(form.registration_deadline)).toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' })
+      : 'TBA';
+    const startStr = form.start_date
+      ? new Date(form.start_date).toLocaleDateString('en-PK', { day: 'numeric', month: 'long', year: 'numeric' })
+      : 'TBA';
+
+    setForm(f => ({
+      ...f,
+      briefing: `Welcome to ${title} — an official ${game} tournament hosted by Zenith Esports Pakistan.
+
+TOURNAMENT FORMAT
+• Mode: Battle Royale (Squad — 4 players per team)
+• Total Slots: ${slots}
+• Format: Group Stage → Knockout Rounds → Grand Final
+• Scoring: Standard PUBG Mobile scoring (Placement Points + Kill Points)
+
+PRIZE POOL
+Total Prize Pool: ${prize}
+Prize distribution will be announced after bracket finalization.
+
+KEY DATES
+• Registration Deadline: ${deadline}
+• Tournament Start: ${startStr}
+
+ELIGIBILITY & RULES
+1. All players must be registered with their correct PUBG Mobile Character IDs.
+2. No roster changes are allowed after the registration deadline.
+3. Players must be online and ready 15 minutes before each scheduled match.
+4. No cheating, hacking, or use of any unauthorized third-party software.
+5. Misconduct, toxicity, or unsportsmanlike behavior will result in disqualification.
+6. All disputes are subject to the final decision of Zenith Esports administration.
+
+For queries, reach out via WhatsApp or our official Discord server.
+Good luck, and may the best team win!`,
+    }));
+    toast.success('Briefing template applied');
   }
-  function updRoad(id, field, value) {
-    setRoadmapRows((p) => p.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
+
+  function applyRoadmapPreset(key) {
+    const preset = ROADMAP_PRESETS[key];
+    if (!preset) return;
+    setRoadmapRows(preset.rows.map(r => ({ ...r, id: Math.random() })));
+    toast.success(`"${preset.label}" roadmap applied`);
   }
-  function delRoad(id) {
-    setRoadmapRows((p) => p.filter((r) => r.id !== id));
+
+  function autoFillSchedule() {
+    if (!form.start_date) { toast.error('Set the Tournament Start Date first (Basic tab)'); return; }
+    const base = new Date(form.start_date);
+    const offsetDate = (d, days) => {
+      const n = new Date(d); n.setDate(n.getDate() + days);
+      return n.toISOString().slice(0, 10);
+    };
+    const rows = [
+      { date: form.start_date,      time: '18:00', event: 'Group Stage — Day 1' },
+      { date: offsetDate(base, 1),  time: '18:00', event: 'Group Stage — Day 2' },
+      { date: offsetDate(base, 2),  time: '18:00', event: 'Quarter Finals' },
+      { date: offsetDate(base, 3),  time: '18:00', event: 'Semi Finals' },
+      { date: offsetDate(base, 4),  time: '20:00', event: 'Grand Finals' },
+    ];
+    setScheduleRows(rows.map(r => ({ ...r, id: Math.random() })));
+    toast.success('Schedule template generated from start date');
   }
 
   async function handleSave() {
-    if (!form.title.trim()) { toast.error('Title required'); return; }
+    if (!form.title.trim()) { toast.error('Tournament title is required'); return; }
+    if (form.title.trim().length < 3) { toast.error('Title must be at least 3 characters'); return; }
+
+    // ── Date ordering validation ──
+    const openTs     = form.registration_open_date ? new Date(fromPKT(form.registration_open_date)) : null;
+    const deadlineTs = form.registration_deadline  ? new Date(fromPKT(form.registration_deadline))  : null;
+    const startTs    = form.start_date             ? new Date(form.start_date)                       : null;
+
+    if (openTs && deadlineTs && openTs >= deadlineTs) {
+      toast.error('Registration deadline must be after the open date'); return;
+    }
+    if (deadlineTs && startTs && deadlineTs > startTs) {
+      toast.error('Tournament start date must be on or after the registration deadline'); return;
+    }
+
+    const parsedMaxTeams = (form.max_teams === '' || form.max_teams === null) ? null : parseInt(form.max_teams, 10);
+    if (parsedMaxTeams !== null && (isNaN(parsedMaxTeams) || parsedMaxTeams < 2)) {
+      toast.error('Max teams must be at least 2'); return;
+    }
+
+    // ── Warn about empty schedule/roadmap rows ──
+    const validSchedule = scheduleRows.filter(r => r.event?.trim());
+    const validRoadmap  = roadmapRows.filter(r => r.title?.trim());
+
     setSaving(true);
     try {
-      const parsedMaxTeams = form.max_teams === '' || form.max_teams === null ? null : parseInt(form.max_teams, 10);
       const finalData = {
         ...form,
-        max_teams: parsedMaxTeams,
+        max_teams:              parsedMaxTeams,
         registration_open_date: fromPKT(form.registration_open_date),
         registration_deadline:  fromPKT(form.registration_deadline),
-        schedule: scheduleRows.map(({ date, time, event }) => ({ date, time, event })),
-        roadmap:  roadmapRows.map(({ phase, title, description }) => ({ phase, title, description })),
+        schedule: validSchedule.map(({ date, time, event }) => ({ date, time, event })),
+        roadmap:  validRoadmap.map(({ phase, title, description }) => ({ phase, title, description })),
       };
       await onSave(finalData, file);
     } finally {
@@ -1087,15 +1192,23 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
     }
   }
 
+  // ── Section completion indicators ──
+  const sectionComplete = {
+    basic:      !!(form.title?.trim() && form.prize_pool),
+    content:    !!(form.briefing?.trim()),
+    schedule:   scheduleRows.filter(r => r.event?.trim()).length > 0,
+    roadmap:    roadmapRows.filter(r => r.title?.trim()).length > 0,
+    reg_config: (form.registration_config?.screenshots || []).length > 0,
+  };
+
   const computedStatus = computeTournamentStatus(form);
 
-  // Section tabs inside modal
   const modalSections = [
-    { id: 'basic',    label: 'Basic',    icon: BarChart3 },
-    { id: 'content',  label: 'Briefing', icon: FileText },
-    { id: 'schedule', label: 'Schedule', icon: ListOrdered },
-    { id: 'roadmap',  label: 'Roadmap',  icon: Map },
-    { id: 'reg_config', label: 'Config', icon: ListOrdered },
+    { id: 'basic',      label: 'Basic',    icon: BarChart3   },
+    { id: 'content',    label: 'Briefing', icon: FileText    },
+    { id: 'schedule',   label: 'Schedule', icon: ListOrdered },
+    { id: 'roadmap',    label: 'Roadmap',  icon: Map         },
+    { id: 'reg_config', label: 'Config',   icon: ListOrdered },
   ];
 
   const inputCls = 'w-full bg-[#131313] border border-[rgba(78,70,56,0.3)] p-2.5 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#f9d07a] transition-colors font-mono placeholder:opacity-70';
@@ -1109,11 +1222,14 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
           <button
             key={id}
             onClick={() => setSection(id)}
-            className={`flex items-center gap-1.5 flex-1 justify-center py-2 font-teko text-[13px] tracking-widest transition-all ${
+            className={`relative flex items-center gap-1.5 flex-1 justify-center py-2 font-teko text-[13px] tracking-widest transition-all ${
               section === id ? 'bg-[#f9d07a] text-[#402d00]' : 'bg-[#1f1f1f] text-[#d1c5b3] opacity-70 hover:opacity-100'
             }`}
           >
             <Icon size={11} /> {label}
+            {sectionComplete[id] && section !== id && (
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            )}
           </button>
         ))}
       </div>
@@ -1268,7 +1384,7 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
       {section === 'content' && (
         <div className="space-y-4">
           <div className="space-y-1">
-            <label className={labelCls}>Short Description (shown on cards)</label>
+            <label className={labelCls}>Short Description (shown on tournament cards)</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -1278,12 +1394,26 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
             />
           </div>
           <div className="space-y-1">
-            <label className={labelCls}>Full Briefing (shown in Overview tab)</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className={labelCls + ' mb-0'}>Full Briefing (shown in Overview tab)</label>
+              <div className="flex items-center gap-3">
+                <span className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-40">
+                  {(form.briefing || '').length} chars
+                </span>
+                <button
+                  type="button"
+                  onClick={autoFillBriefing}
+                  className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/30 text-[#dbb462] px-3 py-1 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase"
+                >
+                  <FileText size={11} /> AUTO-FILL TEMPLATE
+                </button>
+              </div>
+            </div>
             <textarea
               value={form.briefing}
               onChange={(e) => setForm((f) => ({ ...f, briefing: e.target.value }))}
-              placeholder="Detailed tournament rules, format, eligibility, etc."
-              rows={10}
+              placeholder="Detailed tournament rules, format, eligibility, etc. — or click AUTO-FILL TEMPLATE above."
+              rows={12}
               className="w-full bg-[#131313] border border-[rgba(78,70,56,0.3)] p-3 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#f9d07a] transition-colors resize-none leading-relaxed"
             />
           </div>
@@ -1293,19 +1423,31 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
       {/* ── SCHEDULE ── */}
       {section === 'schedule' && (
         <div className="space-y-3">
-          <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-60">
-            Add events in chronological order. They will be displayed on the Schedule tab.
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-60">
+              Events in chronological order — displayed on the Schedule tab.
+            </p>
+            <button
+              type="button"
+              onClick={autoFillSchedule}
+              className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/30 text-[#dbb462] px-3 py-1.5 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase whitespace-nowrap"
+            >
+              <Calendar size={11} /> AUTO-GENERATE
+            </button>
+          </div>
 
           {scheduleRows.length === 0 && (
             <div className="text-center py-8 bg-[#0e0e0e]">
-              <p className="font-teko text-[13px] text-[#d1c5b3] opacity-70 tracking-widest">NO EVENTS YET</p>
+              <p className="font-teko text-[13px] text-[#d1c5b3] opacity-40 tracking-widest">
+                NO EVENTS YET — ADD MANUALLY OR CLICK AUTO-GENERATE
+              </p>
             </div>
           )}
 
           <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
-            {scheduleRows.map((row) => (
-              <div key={row.id} className="grid grid-cols-[1fr_1fr_2fr_auto] gap-2 items-center">
+            {scheduleRows.map((row, i) => (
+              <div key={row.id} className="grid grid-cols-[auto_1fr_1fr_2fr_auto] gap-2 items-center">
+                <span className="font-bebas text-base text-[#dbb462]/30 w-5 text-center">{i + 1}</span>
                 <input
                   type="date"
                   value={row.date}
@@ -1320,7 +1462,7 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
                 />
                 <input
                   type="text"
-                  placeholder="Event title (e.g. Group Stage Day 1)"
+                  placeholder="Event name (e.g. Group Stage Day 1)"
                   value={row.event}
                   onChange={(e) => updSched(row.id, 'event', e.target.value)}
                   className={inputCls}
@@ -1344,43 +1486,67 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
       {/* ── ROADMAP ── */}
       {section === 'roadmap' && (
         <div className="space-y-3">
-          <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-60">
-            Define the tournament phases (e.g., Qualifiers, Quarter Finals).
-          </p>
+          <div className="space-y-2">
+            <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-60">
+              Define tournament phases — or apply a preset:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ROADMAP_PRESETS).map(([key, preset]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => applyRoadmapPreset(key)}
+                  className="flex items-center gap-1.5 bg-[#dbb462]/10 border border-[#dbb462]/20 text-[#dbb462] px-3 py-1.5 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/20 transition-colors uppercase"
+                >
+                  <Map size={11} /> {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {roadmapRows.length === 0 && (
             <div className="text-center py-8 bg-[#0e0e0e]">
-              <p className="font-teko text-[13px] text-[#d1c5b3] opacity-70 tracking-widest">NO ROADMAP PHASES YET</p>
+              <p className="font-teko text-[13px] text-[#d1c5b3] opacity-40 tracking-widest">
+                NO PHASES YET — APPLY A PRESET OR ADD MANUALLY
+              </p>
             </div>
           )}
 
-          <div className="space-y-2 max-h-64 overflow-y-auto no-scrollbar">
-            {roadmapRows.map((row) => (
-              <div key={row.id} className="grid grid-cols-[1fr_2fr_3fr_auto] gap-2 items-center">
-                <input
-                  type="text"
-                  placeholder="Phase (e.g. QF)"
-                  value={row.phase}
-                  onChange={(e) => updRoad(row.id, 'phase', e.target.value)}
-                  className={inputCls}
-                />
-                <input
-                  type="text"
-                  placeholder="Title"
-                  value={row.title}
-                  onChange={(e) => updRoad(row.id, 'title', e.target.value)}
-                  className={inputCls}
-                />
-                <input
-                  type="text"
-                  placeholder="Description"
-                  value={row.description}
-                  onChange={(e) => updRoad(row.id, 'description', e.target.value)}
-                  className={inputCls}
-                />
-                <button onClick={() => delRoad(row.id)} className="text-[#ffb4ab] hover:opacity-70 p-1">
-                  <X size={16} />
-                </button>
+          <div className="space-y-2 max-h-72 overflow-y-auto no-scrollbar">
+            {roadmapRows.map((row, i) => (
+              <div key={row.id} className="bg-[#0e0e0e] border border-[rgba(78,70,56,0.15)] p-3 group relative">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-bebas text-sm text-[#dbb462]/40 w-4">{i + 1}</span>
+                  <input
+                    type="text"
+                    placeholder="Phase label (e.g. Group Stage)"
+                    value={row.phase}
+                    onChange={(e) => updRoad(row.id, 'phase', e.target.value)}
+                    className="flex-1 bg-transparent border-b border-[rgba(78,70,56,0.3)] py-1 text-xs text-[#dbb462] focus:outline-none focus:border-[#f9d07a] font-teko tracking-widest placeholder:opacity-40 uppercase"
+                  />
+                  <button
+                    onClick={() => delRoad(row.id)}
+                    className="text-[#ffb4ab] opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-1 ml-auto"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="grid grid-cols-[1fr_2fr] gap-2 pl-6">
+                  <input
+                    type="text"
+                    placeholder="Stage title"
+                    value={row.title}
+                    onChange={(e) => updRoad(row.id, 'title', e.target.value)}
+                    className={inputCls + ' text-xs'}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Short description"
+                    value={row.description}
+                    onChange={(e) => updRoad(row.id, 'description', e.target.value)}
+                    className={inputCls + ' text-xs'}
+                  />
+                </div>
               </div>
             ))}
           </div>
