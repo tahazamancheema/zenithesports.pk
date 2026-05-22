@@ -57,7 +57,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] pt-24 px-6 md:px-12 flex justify-center items-center">
+      <div className="min-h-screen bg-[#0a0a0a] pt-28 px-6 md:px-12 flex justify-center items-center">
         <div className="flex flex-col items-center gap-4 animate-pulse">
           <div className="w-16 h-[2px] zenith-gradient" />
           <span className="font-bebas text-3xl text-[#dbb462] tracking-widest">LOADING PROFILE</span>
@@ -119,7 +119,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pt-24 pb-24 animate-page-enter relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] pt-28 pb-24 animate-page-enter relative overflow-hidden">
       {/* Ambient glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-[#dbb462]/[0.04] blur-[120px] pointer-events-none" />
 

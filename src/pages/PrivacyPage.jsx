@@ -4,7 +4,7 @@ const LAST_UPDATED = 'April 16, 2026';
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-[#131313] pt-20 animate-page-enter">
+    <div className="min-h-screen bg-[#131313] pt-28 animate-page-enter">
 
       {/* Hero */}
       <section className="py-20 px-6 md:px-12 bg-[#1b1b1b]">

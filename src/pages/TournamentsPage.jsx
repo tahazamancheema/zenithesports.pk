@@ -72,7 +72,7 @@ export default function TournamentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pt-20 animate-page-enter overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] pt-28 animate-page-enter overflow-x-hidden">
 
       {/* ── Hero ── */}
       <section className="relative py-28 md:py-40 px-6 lg:px-16 bg-[#0e0e0e] overflow-hidden border-b border-white/[0.04]">
@@ -110,7 +110,7 @@ export default function TournamentsPage() {
       </div>
 
       {/* ── Filter Bar ── */}
-      <div className="sticky top-16 md:top-20 z-30 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/[0.04]">
+      <div className="sticky top-24 md:top-28 z-30 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="container mx-auto max-w-7xl px-6 lg:px-16">
           <div className="flex items-center justify-between py-4 gap-6 overflow-x-auto no-scrollbar">
             <div className="flex gap-[1px] bg-white/[0.04]">

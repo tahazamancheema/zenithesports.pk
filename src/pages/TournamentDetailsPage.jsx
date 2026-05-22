@@ -130,7 +130,7 @@ export default function TournamentDetailsPage() {
   const prizeFormatted = prize_pool ? `PKR ${Number(prize_pool).toLocaleString('en-PK')}` : 'TBA';
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pt-20 md:pt-24 pb-20">
+    <div className="min-h-screen bg-[#0a0a0a] pt-28 md:pt-32 pb-20">
 
       {/* ═══ Hero Banner ═══ */}
       <div className="w-full relative border-b border-white/[0.04] overflow-hidden">

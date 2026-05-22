@@ -55,7 +55,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#131313] pt-20 animate-page-enter">
+    <div className="min-h-screen bg-[#131313] pt-28 animate-page-enter">
 
       {/* Hero */}
       <section className="py-24 px-6 md:px-12 bg-[#1b1b1b] relative overflow-hidden">

@@ -111,11 +111,11 @@ export default function AdminDashboard() {
   if (!isAdmin) return null;
 
   return (
-    <div className="min-h-screen bg-[#131313] pt-20">
+    <div className="min-h-screen bg-[#131313] pt-28">
       <div className="flex animate-page-enter">
 
         {/* ── Sidebar ── */}
-        <aside className="hidden md:flex flex-col w-64 bg-[#131313] border-r border-[rgba(78,70,56,0.15)] min-h-[calc(100vh-5rem)] shrink-0">
+        <aside className="hidden md:flex flex-col w-64 bg-[#131313] border-r border-[rgba(78,70,56,0.15)] min-h-[calc(100vh-7rem)] shrink-0">
           <div className="p-8">
             <h2 className="font-bebas text-2xl font-bold text-[#dbb462] tracking-widest">ZENITH DASHBOARD</h2>
             <p className="font-teko text-[12px] tracking-widest text-[#d1c5b3] opacity-60 mt-1">ADMIN OVERVIEW</p>
@@ -157,20 +157,47 @@ export default function AdminDashboard() {
         </aside>
 
         {/* ── Main ── */}
-        <main className="flex-1 p-8 lg:p-12 overflow-auto">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+        <main className="flex-1 overflow-auto">
+
+          {/* ── Mobile Tab Bar ── */}
+          <div className="md:hidden sticky top-28 z-20 bg-[#0f0f0f] border-b border-[rgba(78,70,56,0.2)]">
+            <div className="flex">
+              {[
+                { id: 'overview',    icon: TrendingUp, label: 'Overview' },
+                { id: 'tournaments', icon: BarChart3,  label: 'Tournaments' },
+              ].map(({ id, icon: Icon, label }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-3 font-teko text-[13px] tracking-widest uppercase transition-all border-b-2 ${
+                    activeTab === id
+                      ? 'text-[#f9d07a] border-[#f9d07a] bg-[#1a1a1a]'
+                      : 'text-[#d1c5b3] opacity-50 border-transparent'
+                  }`}
+                >
+                  <Icon size={14} />
+                  {label}
+                </button>
+              ))}
+              <button
+                onClick={() => setTournamentModal({ open: true, data: null })}
+                className="px-4 py-3 font-teko text-[13px] tracking-widest uppercase flex items-center gap-1.5 bg-[#dbb462] text-[#402d00] shrink-0"
+              >
+                <Plus size={14} />
+                NEW
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 md:p-8 lg:p-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
             <div>
-              <h1 className="font-bebas text-5xl md:text-6xl font-black italic tracking-wider uppercase">
+              <h1 className="font-bebas text-4xl md:text-6xl font-black italic tracking-wider uppercase">
                 ZENITH ADMIN
               </h1>
               <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-70 mt-2">
                 REAL-TIME MANAGEMENT & GRID LOGISTICS
               </p>
-            </div>
-            <div className="flex md:hidden">
-              <GradientButton onClick={() => setTournamentModal({ open: true, data: null })} icon={Plus}>
-                CREATE
-              </GradientButton>
             </div>
           </div>
 
@@ -233,6 +260,7 @@ export default function AdminDashboard() {
             />
             </div>
           )}
+          </div>{/* end padding wrapper */}
         </main>
       </div>
 
@@ -2116,7 +2144,7 @@ function RegistrationModal({ isOpen, onClose, registration, tournament, onSave }
 // ─────────────────────────────────────────────────────────────
 function LoadingScreen() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#131313] pt-20">
+    <div className="min-h-screen flex items-center justify-center bg-[#131313] pt-28">
       <div className="font-bebas text-4xl font-bold italic text-[#dbb462] animate-pulse">LOADING...</div>
     </div>
   );

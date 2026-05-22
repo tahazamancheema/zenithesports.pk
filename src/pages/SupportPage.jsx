@@ -259,7 +259,7 @@ export default function SupportPage() {
   const [activeTopic, setActiveTopic] = useState(null);
 
   return (
-    <div className="min-h-screen bg-[#131313] pt-20 animate-page-enter">
+    <div className="min-h-screen bg-[#131313] pt-28 animate-page-enter">
 
       {/* Topic Drawer */}
       {activeTopic && (
