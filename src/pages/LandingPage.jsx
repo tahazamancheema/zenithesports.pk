@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { supabase } from '../supabase/config';
 import {
   ChevronRight, Shield, Tv, GitBranch, Banknote, ArrowRight,
   Trophy, Youtube, Instagram, MessageCircle, Zap, Target, Flame,
@@ -11,7 +12,6 @@ import { useTournaments } from '../hooks/useTournaments';
 import { useSupabaseDB } from '../hooks/useSupabaseDB';
 import { usePlatformStats } from '../hooks/usePlatformStats';
 import { useAuth } from '../hooks/useAuth';
-import RegistrationCountdown from '../components/RegistrationCountdown';
 import StatusBadge from '../components/ui/StatusBadge';
 
 export default function LandingPage() {
@@ -29,6 +29,21 @@ export default function LandingPage() {
     });
     return { regCounts: counts, userRegStatuses: statuses };
   }, [allRegistrations, user?.id]);
+
+  // Direct query for the current user's own registration on the featured tournament.
+  // useSupabaseDB('registrations') only surfaces approved rows for non-admins (RLS),
+  // so we must query directly to reliably detect pending/reapplied statuses.
+  const [myRegStatus, setMyRegStatus] = useState(null);
+  useEffect(() => {
+    if (!user?.id || !currentTournament?.id) { setMyRegStatus(null); return; }
+    supabase
+      .from('registrations')
+      .select('status')
+      .eq('user_id', user.id)
+      .eq('tournament_id', currentTournament.id)
+      .maybeSingle()
+      .then(({ data }) => setMyRegStatus(data?.status ?? null));
+  }, [user?.id, currentTournament?.id]);
 
   const maxTeams    = currentTournament?.max_teams;
   const isUnlimited = !maxTeams || maxTeams === 0;
@@ -176,157 +191,184 @@ export default function LandingPage() {
           FEATURED / ONGOING TOURNAMENT
           ═══════════════════════════════════════════ */}
       {currentTournament && (
-        <section className="relative bg-[#080808] overflow-hidden">
-          {/* Poster as dimmed full-bleed background */}
+        <section className="relative bg-[#080808] overflow-hidden border-t border-white/[0.04]">
+
+          {/* Atmospheric poster wash */}
           {currentTournament.poster_url && (
-            <div className="absolute inset-0">
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
               <img
                 src={currentTournament.poster_url}
-                className="w-full h-full object-cover scale-110"
-                style={{ filter: 'brightness(0.08) saturate(0.3) blur(2px)' }}
                 alt=""
+                className="w-full h-full object-cover scale-[1.1]"
+                style={{ filter: 'brightness(0.06) saturate(0.15) blur(22px)' }}
               />
             </div>
           )}
-          {/* Gradient overlays */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#080808] via-transparent to-[#080808]" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#080808] via-[#080808]/70 to-[#080808]/30" />
-          {/* Gold glow */}
-          <div className="absolute top-0 right-1/4 w-[600px] h-[400px] bg-[#dbb462]/[0.04] blur-[120px] pointer-events-none rounded-full" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#080808] via-[#080808]/90 to-[#080808]/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#080808] via-transparent to-[#080808] pointer-events-none" />
+          <div className="absolute top-1/2 -translate-y-1/2 left-1/4 w-[600px] h-[600px] bg-[#dbb462]/[0.04] blur-[150px] pointer-events-none rounded-full" />
 
-          <div className="container mx-auto max-w-7xl px-6 lg:px-16 py-20 lg:py-32 relative z-10">
-
-            {/* Section label */}
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-8 h-[2px] bg-[#dbb462]" />
-              <div className="flex items-center gap-3">
+          {/* Top label bar */}
+          <div className="relative z-10 border-b border-white/[0.04] bg-[#080808]/70 backdrop-blur-sm">
+            <div className="container mx-auto max-w-7xl px-6 lg:px-16 flex items-center justify-between py-3 gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-6 h-[1.5px] bg-[#dbb462]" />
                 {isLive && (
-                  <div className="flex items-center gap-2 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span className="font-teko text-[12px] tracking-[0.25em] text-emerald-400 uppercase">LIVE NOW</span>
+                  <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/25 px-3 py-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                    <span className="font-teko text-[11px] tracking-[0.3em] text-emerald-400 uppercase">Live Now</span>
                   </div>
                 )}
-                <span className="font-teko text-[16px] tracking-[0.25em] text-[#dbb462] uppercase font-medium">
+                <span className="font-teko text-[13px] tracking-[0.28em] text-[#dbb462] uppercase">
                   {isLive ? 'Ongoing Tournament' : 'Featured Tournament'}
                 </span>
               </div>
+              <Link
+                to={`/tournaments/${currentTournament.id}`}
+                className="hidden sm:flex items-center gap-1.5 font-teko text-[12px] tracking-[0.2em] text-[#d1c5b3] opacity-30 hover:opacity-70 uppercase transition-opacity"
+              >
+                Full Details <ChevronRight size={12} />
+              </Link>
             </div>
+          </div>
 
-            {/* Tournament title */}
-            <h2
-              className="font-bebas tracking-tight leading-[0.82] uppercase zenith-gradient-text mb-12 lg:mb-16"
-              style={{ fontSize: 'clamp(3rem,9vw,8rem)' }}
-            >
-              {currentTournament.title}
-            </h2>
+          {/* Main split-screen layout */}
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 min-h-[580px] lg:min-h-[680px]">
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
+            {/* LEFT — Info panel */}
+            <div className="flex flex-col justify-center px-6 lg:px-16 py-14 lg:py-20 gap-7">
 
-              {/* Poster Column */}
-              <div className="lg:col-span-4 group">
-                <div className="relative aspect-[4/5] overflow-hidden border border-white/[0.06] bg-[#111]">
-                  {currentTournament.poster_url ? (
-                    <img
-                      src={currentTournament.poster_url}
-                      alt={currentTournament.title}
-                      className="w-full h-full object-cover transition-transform duration-[4s] group-hover:scale-110"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <img src="/logo.png" className="w-1/2 opacity-10" alt="" />
-                    </div>
-                  )}
-                  {/* Gradient bottom */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#080808]/90 via-transparent to-transparent" />
-                  {/* Status badge */}
-                  <div className="absolute bottom-5 left-5">
-                    <StatusBadge status={currentTournament.status} />
-                  </div>
-                  {/* Corner accents */}
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-[#dbb462]/50" />
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-[#dbb462]/50" />
-                </div>
+              {/* Status */}
+              <StatusBadge status={currentTournament.status} />
+
+              {/* Title */}
+              <h2
+                className="font-bebas uppercase zenith-gradient-text leading-[0.82] tracking-tight"
+                style={{ fontSize: 'clamp(2.8rem, 7vw, 6rem)', textShadow: '0 0 80px rgba(219,180,98,0.18)' }}
+              >
+                {currentTournament.title}
+              </h2>
+
+              {/* Description */}
+              {currentTournament.description && (
+                <p className="font-rajdhani text-[#d1c5b3] text-[17px] opacity-40 leading-relaxed max-w-lg font-medium">
+                  {currentTournament.description}
+                </p>
+              )}
+
+              {/* HUD metrics row */}
+              <div className="flex flex-wrap gap-[1px] bg-white/[0.05]">
+                <HUDStat label="Prize Pool" value={prizeFormatted || 'TBA'} gold />
+                <HUDStat label="Slots" value={isUnlimited ? '∞ Open' : `${maxTeams} Teams`} />
+                <HUDStat label="Format" value={currentTournament.format || 'Squad'} />
+                <HUDStat label="Region" value={currentTournament.region || 'Pakistan'} />
               </div>
 
-              {/* Info Column */}
-              <div className="lg:col-span-8 flex flex-col gap-8">
-
-                {/* Description */}
-                <p className="font-rajdhani text-[#d1c5b3] text-lg opacity-50 leading-relaxed font-medium max-w-2xl">
-                  {currentTournament.description || 'The next evolution of competitive PUBG Mobile. Secure your team\'s slot and prepare for battle.'}
-                </p>
-
-                {/* Key metrics */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-[1px] bg-white/[0.04]">
-                  <MetricBox label="PRIZE POOL"  value={prizeFormatted || 'TBA'} gold />
-                  <MetricBox label="TEAM SLOTS"  value={isUnlimited ? 'UNLIMITED' : `${maxTeams} TEAMS`} />
-                  <MetricBox label="FORMAT"      value={currentTournament.format || 'Squad'} />
-                  <MetricBox label="REGION"      value={currentTournament.region || 'Pakistan'} />
+              {/* Capacity fill (non-unlimited only) */}
+              {!isUnlimited && (
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="font-teko text-[12px] tracking-[0.22em] text-[#dbb462] uppercase">
+                      {approvedCount} / {maxTeams} Teams Registered
+                    </span>
+                    <span className="font-teko text-[12px] tracking-[0.2em] text-[#d1c5b3] opacity-30 uppercase">
+                      {Math.round(fillPct)}% Full
+                    </span>
+                  </div>
+                  <div className="h-[2px] bg-white/[0.06] relative overflow-hidden">
+                    <div
+                      className="absolute left-0 inset-y-0 zenith-gradient transition-all duration-1000 ease-out"
+                      style={{ width: `${fillPct}%` }}
+                    />
+                  </div>
                 </div>
+              )}
 
-                {/* Capacity */}
-                {!isUnlimited && (
-                  <div>
-                    <div className="flex justify-between font-teko text-[13px] tracking-[0.2em] uppercase mb-2">
-                      <span className="text-[#dbb462]">{approvedCount} Teams Verified</span>
-                      <span className="text-[#d1c5b3] opacity-40">{Math.round(fillPct)}% Capacity</span>
-                    </div>
-                    <div className="h-[3px] bg-white/[0.06] relative overflow-hidden">
-                      <div
-                        className="absolute left-0 inset-y-0 zenith-gradient transition-all duration-1000 ease-out"
-                        style={{ width: `${fillPct}%` }}
-                      />
-                      <div
-                        className="absolute inset-y-0 w-[2px] bg-white/60 transition-all duration-1000"
-                        style={{ left: `${fillPct}%` }}
-                      />
-                    </div>
+              {/* Deadline chip (open tournaments) */}
+              {isOpen && currentTournament.registration_deadline && (
+                <div className="flex items-center gap-3">
+                  <div className="w-4 h-[1px] bg-[#dbb462]/40" />
+                  <span className="font-teko text-[12px] tracking-[0.22em] text-[#d1c5b3] opacity-35 uppercase">Closes</span>
+                  <span className="font-teko text-[13px] tracking-[0.18em] text-[#dbb462] uppercase">
+                    {new Date(currentTournament.registration_deadline).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                </div>
+              )}
+
+              {/* CTA row */}
+              <div className="flex flex-wrap gap-4 pt-1">
+                {(myRegStatus && myRegStatus !== 'rejected') ? (
+                  <div className={`px-8 py-4 font-bebas text-[19px] tracking-widest uppercase border text-center ${
+                    myRegStatus === 'approved'
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                      : myRegStatus === 'reapplied'
+                      ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                      : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500'
+                  }`}>
+                    {myRegStatus === 'approved' ? '✓ APPROVED'
+                     : myRegStatus === 'reapplied' ? 'RE-APPLIED'
+                     : '✓ SUBMITTED'}
+                  </div>
+                ) : isOpen ? (
+                  <Link
+                    to={user ? `/register/${currentTournament.id}` : '/auth'}
+                    className="btn-obsidian-primary font-bebas text-[19px] px-10 py-4 tracking-[0.2em] uppercase inline-flex items-center gap-3"
+                  >
+                    REGISTER TEAM <ArrowRight size={18} strokeWidth={2.5} />
+                  </Link>
+                ) : (
+                  <div className="px-8 py-4 bg-white/[0.03] border border-white/[0.05] text-[#d1c5b3]/20 font-bebas text-[19px] tracking-widest uppercase">
+                    REGISTRATION CLOSED
                   </div>
                 )}
-
-                {/* Countdown */}
-                <div className="bg-[#0e0e0e] border border-white/[0.06] p-6 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#dbb462] via-[#dbb462]/40 to-transparent" />
-                  <RegistrationCountdown
-                    openDate={currentTournament.registration_open_date}
-                    deadlineDate={currentTournament.registration_deadline}
-                  />
-                </div>
-
-                {/* CTAs */}
-                <div className="flex flex-col sm:flex-row gap-4">
-                  {(userRegStatuses[currentTournament.id] && userRegStatuses[currentTournament.id] !== 'rejected') ? (
-                    <div className={`flex-1 sm:flex-none min-w-[220px] text-center font-bebas text-[22px] py-5 tracking-widest uppercase border ${
-                      userRegStatuses[currentTournament.id] === 'approved'
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                        : userRegStatuses[currentTournament.id] === 'reapplied'
-                        ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
-                        : 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500'
-                    }`}>
-                      {userRegStatuses[currentTournament.id] === 'approved' ? '✓ APPROVED'
-                       : userRegStatuses[currentTournament.id] === 'reapplied' ? 'RE-APPLIED'
-                       : 'PENDING REVIEW'}
-                    </div>
-                  ) : isOpen ? (
-                    <Link
-                      to={user ? `/register/${currentTournament.id}` : '/auth'}
-                      className="btn-obsidian-primary flex-1 sm:flex-none min-w-[220px] py-5 font-bebas text-[22px] tracking-[0.2em] text-center uppercase"
-                    >
-                      REGISTER TEAM <ArrowRight size={20} className="inline ml-2" />
-                    </Link>
-                  ) : (
-                    <div className="flex-1 sm:flex-none min-w-[220px] text-center bg-white/[0.04] text-[#d1c5b3]/30 font-bebas text-[22px] py-5 tracking-widest uppercase">
-                      REGISTRATION CLOSED
-                    </div>
-                  )}
-                  <Link
-                    to={`/tournaments/${currentTournament.id}`}
-                    className="btn-obsidian-ghost flex-1 sm:flex-none py-5 font-bebas text-[22px] tracking-widest uppercase text-center inline-flex items-center justify-center gap-2"
-                  >
-                    VIEW DETAILS <ChevronRight size={20} />
-                  </Link>
-                </div>
+                <Link
+                  to={`/tournaments/${currentTournament.id}`}
+                  className="btn-obsidian-ghost font-bebas text-[19px] px-8 py-4 tracking-widest uppercase inline-flex items-center gap-2"
+                >
+                  VIEW DETAILS <ChevronRight size={18} />
+                </Link>
               </div>
+            </div>
+
+            {/* RIGHT — Poster, edge-to-edge, desktop only */}
+            <div className="relative hidden lg:block overflow-hidden">
+              {/* Left-edge blend into info panel */}
+              <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#080808] to-transparent z-10 pointer-events-none" />
+              {/* Top/bottom blends */}
+              <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-[#080808] to-transparent z-10 pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-[#080808] to-transparent z-10 pointer-events-none" />
+
+              {currentTournament.poster_url ? (
+                <img
+                  src={currentTournament.poster_url}
+                  alt={currentTournament.title}
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-[#0d0d0d] flex items-center justify-center">
+                  <img src="/logo.png" className="w-1/3 opacity-[0.06]" alt="" />
+                </div>
+              )}
+
+              {/* Decorative tournament ordinal */}
+              <div className="absolute bottom-10 right-10 z-20 select-none pointer-events-none">
+                <span className="font-bebas text-[120px] leading-none text-white/[0.035]">01</span>
+              </div>
+            </div>
+
+            {/* Mobile poster strip (below info on small screens) */}
+            <div className="lg:hidden relative h-[260px] overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#080808] to-transparent z-10 pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#080808] to-transparent z-10 pointer-events-none" />
+              {currentTournament.poster_url ? (
+                <img
+                  src={currentTournament.poster_url}
+                  alt={currentTournament.title}
+                  className="w-full h-full object-cover object-top"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#0d0d0d]" />
+              )}
             </div>
           </div>
         </section>
@@ -574,6 +616,18 @@ function MetricBox({ label, value, gold }) {
     <div className="bg-[#0e0e0e] p-5 group hover:bg-[#141414] transition-all duration-300">
       <p className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 mb-2 uppercase">{label}</p>
       <p className={`font-bebas text-2xl leading-none tracking-tight ${gold ? 'text-[#dbb462]' : 'text-[#f2f2f2]'}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function HUDStat({ label, value, gold }) {
+  return (
+    <div className="bg-[#0c0c0c] px-5 py-4 flex-1 min-w-[90px] group hover:bg-[#141414] transition-colors duration-200 relative overflow-hidden">
+      <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-[#dbb462] scale-x-0 group-hover:scale-x-100 transition-transform duration-400 origin-left" />
+      <p className="font-teko text-[10px] tracking-[0.28em] text-[#d1c5b3] opacity-30 uppercase mb-1.5">{label}</p>
+      <p className={`font-bebas text-[21px] leading-none tracking-tight ${gold ? 'text-[#dbb462]' : 'text-[#f2f2f2]'}`}>
         {value}
       </p>
     </div>
