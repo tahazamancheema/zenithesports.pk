@@ -15,19 +15,19 @@ const NAV_LINKS = [
 ];
 
 const TICKER_STATIC = [
-  { text: 'ZENITH ESPORTS',          gold: false },
-  { text: 'PUBG MOBILE',             gold: false },
-  { text: 'PAKISTAN',                gold: false },
-  { text: 'EST. 2021',               gold: false },
-  { text: 'FAIR PLAY CERTIFIED',     gold: false },
-  { text: 'ALL MATCHES MONITORED',   gold: false },
-  { text: 'SQUAD · DUO · SOLO',      gold: false },
-  { text: 'COMPETITIVE CIRCUIT',     gold: false },
+  { text: 'WELCOME TO ZENITH ESPORTS', gold: false },
+  { text: 'FORGED IN OBSIDIAN',        gold: false },
+  { text: 'PUBG MOBILE · PAKISTAN',    gold: false },
+  { text: 'EST. 2021',                 gold: false },
+  { text: 'FAIR PLAY CERTIFIED',       gold: false },
+  { text: 'ALL MATCHES MONITORED',     gold: false },
+  { text: 'SQUAD · DUO · SOLO',        gold: false },
+  { text: 'COMPETITIVE CIRCUIT',       gold: false },
 ];
 
 export default function Navbar() {
   const { user, userDoc, isAdmin } = useAuth();
-  const { openRegistrations } = useTournaments();
+  const { openRegistrations, currentTournament } = useTournaments();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -60,19 +60,26 @@ export default function Navbar() {
     user?.email?.split('@')[0] ||
     'PLAYER';
 
+  const isLive = currentTournament?.status === 'in_progress';
+
   const firstOpen = openRegistrations[0];
   const deadline = firstOpen?.registration_deadline
     ? new Date(firstOpen.registration_deadline).toLocaleDateString('en-PK', { day: 'numeric', month: 'short' })
     : null;
 
-  const tickerItems = firstOpen
-    ? [
-        { text: 'REGISTRATIONS OPEN', gold: true, pulse: true },
-        { text: firstOpen.title.toUpperCase(), gold: false },
-        ...(deadline ? [{ text: `CLOSES ${deadline}`, gold: true }] : []),
-        ...TICKER_STATIC,
-      ]
-    : TICKER_STATIC;
+  const dynamicItems = [
+    ...(isLive ? [
+      { text: 'NOW LIVE', gold: true, pulse: true },
+      { text: currentTournament.title.toUpperCase(), gold: false },
+    ] : []),
+    ...(firstOpen && !isLive ? [
+      { text: 'REGISTRATIONS OPEN', gold: true, pulse: true },
+      { text: firstOpen.title.toUpperCase(), gold: false },
+      ...(deadline ? [{ text: `CLOSES ${deadline}`, gold: true }] : []),
+    ] : []),
+  ];
+
+  const tickerItems = [...dynamicItems, ...TICKER_STATIC];
 
   return (
     <header className="fixed top-0 w-full z-50">
