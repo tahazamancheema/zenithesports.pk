@@ -19,10 +19,6 @@ const TICKER_STATIC = [
   { text: 'FORGED IN OBSIDIAN',        gold: false },
   { text: 'PUBG MOBILE · PAKISTAN',    gold: false },
   { text: 'EST. 2021',                 gold: false },
-  { text: 'FAIR PLAY CERTIFIED',       gold: false },
-  { text: 'ALL MATCHES MONITORED',     gold: false },
-  { text: 'SQUAD · DUO · SOLO',        gold: false },
-  { text: 'COMPETITIVE CIRCUIT',       gold: false },
 ];
 
 export default function Navbar() {
