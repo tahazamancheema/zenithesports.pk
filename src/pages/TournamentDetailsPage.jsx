@@ -178,7 +178,7 @@ export default function TournamentDetailsPage() {
       </div>
 
       {/* ═══ Tab Bar ═══ */}
-      <div className="sticky top-16 md:top-20 z-30 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/[0.04]">
+      <div className="sticky top-24 md:top-28 z-30 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-6 lg:px-16 flex gap-0 overflow-x-auto no-scrollbar">
           {visibleTabs.map(({ id: tabId, label, icon: Icon }) => (
             <button
@@ -404,33 +404,92 @@ export default function TournamentDetailsPage() {
           {/* TEAMS */}
           {activeTab === 'teams' && (() => {
             const approvedTeams = registrations.filter(r => r.status === 'approved');
+            const rankMeta = [
+              { color: 'text-[#f9d07a]', bg: 'bg-[#f9d07a]/10', border: 'border-[#f9d07a]/25', label: '1ST' },
+              { color: 'text-[#c0c0c0]', bg: 'bg-white/[0.04]', border: 'border-white/[0.08]',  label: '2ND' },
+              { color: 'text-[#cd7f32]', bg: 'bg-white/[0.03]', border: 'border-white/[0.06]',  label: '3RD' },
+            ];
             return (
               <section key="teams" style={{ animation: 'fadeIn 0.4s ease-out both' }}>
-                <SectionHeader title="REGISTERED TEAMS" count={approvedTeams.length} />
+                <div className="flex items-center justify-between mb-8">
+                  <SectionHeader title="REGISTERED TEAMS" count={approvedTeams.length} />
+                  {approvedTeams.length > 0 && (
+                    <span className="font-teko text-[12px] tracking-[0.2em] text-[#d1c5b3] opacity-30 uppercase">
+                      {max_teams ? `${max_teams - approvedTeams.length} SLOTS REMAINING` : 'OPEN SLOTS'}
+                    </span>
+                  )}
+                </div>
                 {approvedTeams.length === 0 ? (
-                  <p className="font-teko text-[18px] text-white/20 tracking-[0.2em] uppercase">No verified teams yet.</p>
+                  <div className="bg-[#0e0e0e] border border-white/[0.06] py-16 flex flex-col items-center gap-4">
+                    <Users size={40} className="text-[#dbb462] opacity-[0.08]" />
+                    <p className="font-teko text-[18px] text-white/20 tracking-[0.2em] uppercase">No verified teams yet</p>
+                  </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-[1px] bg-white/[0.04]">
-                    {approvedTeams.map((r, i) => (
-                      <div key={r.id} className="bg-[#0e0e0e] p-5 flex items-center gap-5 group hover:bg-[#111] transition-all duration-300 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-[2px] bg-[#dbb462] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-                        <span className="font-bebas text-3xl text-[#dbb462] opacity-10 w-8 flex-shrink-0 group-hover:opacity-30 transition-opacity">
-                          {String(i + 1).padStart(2, '0')}
-                        </span>
-                        {r.logo_url ? (
-                          <img src={r.logo_url} alt="" className="w-10 h-10 object-cover border border-white/[0.06]" />
-                        ) : (
-                          <div className="w-10 h-10 bg-[#1a1a1a] flex items-center justify-center font-bebas text-xl text-[#dbb462] border border-white/[0.06]">
-                            {r.team_name?.[0]}
+                  <div className="space-y-[1px] bg-white/[0.03]">
+                    {/* Header row */}
+                    <div className="bg-[#0a0a0a] grid grid-cols-[48px_1fr_auto] md:grid-cols-[48px_1fr_120px_auto] gap-4 px-5 py-3 border-b border-white/[0.04]">
+                      <span className="font-teko text-[10px] tracking-[0.28em] text-[#d1c5b3] opacity-30 uppercase text-center">#</span>
+                      <span className="font-teko text-[10px] tracking-[0.28em] text-[#d1c5b3] opacity-30 uppercase">TEAM</span>
+                      <span className="font-teko text-[10px] tracking-[0.28em] text-[#d1c5b3] opacity-30 uppercase hidden md:block">CITY</span>
+                      <span className="font-teko text-[10px] tracking-[0.28em] text-[#d1c5b3] opacity-30 uppercase">STATUS</span>
+                    </div>
+                    {approvedTeams.map((r, i) => {
+                      const meta = rankMeta[i] || { color: 'text-[#d1c5b3]', bg: 'bg-[#0e0e0e]', border: 'border-transparent', label: String(i + 1).padStart(2, '0') };
+                      const isTop3 = i < 3;
+                      return (
+                        <div
+                          key={r.id}
+                          className={`grid grid-cols-[48px_1fr_auto] md:grid-cols-[48px_1fr_120px_auto] gap-4 px-5 py-4 items-center transition-all duration-300 group relative overflow-hidden
+                            ${isTop3 ? meta.bg : 'bg-[#0e0e0e] hover:bg-[#111]'}`}
+                        >
+                          {/* Top-line accent for top 3 */}
+                          {isTop3 && (
+                            <div className={`absolute top-0 left-0 right-0 h-[1px] ${i === 0 ? 'bg-[#f9d07a]/30' : i === 1 ? 'bg-white/10' : 'bg-[#cd7f32]/20'}`} />
+                          )}
+                          {!isTop3 && (
+                            <div className="absolute top-0 left-0 right-0 h-[1px] bg-[#dbb462] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left opacity-30" />
+                          )}
+
+                          {/* Rank */}
+                          <div className="flex justify-center">
+                            <span className={`font-bebas text-xl leading-none tracking-wide ${isTop3 ? meta.color : 'text-white/20 group-hover:text-white/40 transition-colors'}`}>
+                              {isTop3 ? meta.label : String(i + 1).padStart(2, '0')}
+                            </span>
                           </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="font-bebas text-2xl truncate leading-none mb-1 text-white/80 group-hover:text-white transition-colors uppercase">{r.team_name}</p>
-                          {r.city && <p className="font-teko text-[13px] tracking-[0.15em] text-[#d1c5b3] opacity-60 uppercase truncate leading-none">{r.city}</p>}
+
+                          {/* Team identity */}
+                          <div className="flex items-center gap-3 min-w-0">
+                            {r.logo_url ? (
+                              <img src={r.logo_url} alt="" className={`w-9 h-9 object-cover flex-shrink-0 border ${isTop3 ? meta.border : 'border-white/[0.06]'}`} />
+                            ) : (
+                              <div className={`w-9 h-9 flex-shrink-0 flex items-center justify-center font-bebas text-lg border ${isTop3 ? `${meta.border} ${meta.color}` : 'border-white/[0.06] text-[#dbb462]'} bg-[#111]`}>
+                                {r.team_name?.[0]?.toUpperCase()}
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className={`font-bebas text-xl truncate leading-none uppercase ${isTop3 ? meta.color : 'text-white/75 group-hover:text-white transition-colors'}`}>
+                                {r.team_name}
+                              </p>
+                              {r.city && (
+                                <p className="font-teko text-[11px] tracking-[0.15em] text-[#d1c5b3] opacity-40 uppercase mt-0.5 md:hidden">{r.city}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* City (desktop) */}
+                          <div className="hidden md:block">
+                            {r.city ? (
+                              <span className="font-teko text-[13px] tracking-[0.15em] text-[#d1c5b3] opacity-45 uppercase">{r.city}</span>
+                            ) : (
+                              <span className="text-white/10">—</span>
+                            )}
+                          </div>
+
+                          {/* Status */}
+                          <StatusBadge status={r.status} />
                         </div>
-                        <StatusBadge status={r.status} />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>

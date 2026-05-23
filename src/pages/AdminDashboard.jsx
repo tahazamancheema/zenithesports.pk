@@ -1040,6 +1040,20 @@ const ROADMAP_PRESETS = {
   },
 };
 
+const DESCRIPTION_PRESETS = [
+  'The next evolution of competitive PUBG Mobile. Secure your slot and prepare for battle.',
+  'Pakistan\'s most rigorous squad tournament. Only verified teams. Only the best rise.',
+  'Full prize pool distribution across top teams. Register now before slots fill up.',
+  'Squad vs Squad. Group Stage → Knockout → Grand Finals. One champion stands.',
+];
+
+const SOCIAL_PRESETS = [
+  { label: 'Subscribe to YouTube', icon: '▶', template: (url) => `Subscribe to our YouTube channel${url ? ` (${url})` : ''} and upload a screenshot` },
+  { label: 'Follow on Instagram',  icon: '📷', template: (url) => `Follow us on Instagram${url ? ` (@${url.split('/').pop()})` : ''} and upload a screenshot` },
+  { label: 'Join WhatsApp Group',  icon: '💬', template: () => 'Join the WhatsApp community group and upload a screenshot' },
+  { label: 'Join Discord Server',  icon: '🎮', template: (url) => `Join our Discord server${url ? ` (${url})` : ''} and upload a screenshot` },
+];
+
 const EMPTY_FORM = {
   title: '',
   description: '',
@@ -1050,10 +1064,13 @@ const EMPTY_FORM = {
   region: 'Pakistan',
   max_teams: 64,
   prize_pool: '',
-  prize_breakdown: { first: '', second: '', third: '' },
+  prize_breakdown: { first: '', second: '', third: '', fourth: '', fifth: '' },
+  prize_distributed_to: 3,
   entry_fee: 0,
   discord_link: '',
   stream_url: '',
+  youtube_url: '',
+  instagram_url: '',
   registration_open_date: '',
   registration_deadline: '',
   start_date: '',
@@ -1117,10 +1134,13 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
         region:                 tournament.region || 'Pakistan',
         max_teams:              tournament.max_teams === null ? '' : (tournament.max_teams ?? 64),
         prize_pool:             tournament.prize_pool || '',
-        prize_breakdown:        (pb && typeof pb === 'object' && !Array.isArray(pb)) ? pb : { first: '', second: '', third: '' },
+        prize_breakdown:        (pb && typeof pb === 'object' && !Array.isArray(pb)) ? { first: '', second: '', third: '', fourth: '', fifth: '', ...pb } : { first: '', second: '', third: '', fourth: '', fifth: '' },
+        prize_distributed_to:   tournament.prize_distributed_to ?? 3,
         entry_fee:              tournament.entry_fee ?? 0,
         discord_link:           tournament.discord_link || '',
         stream_url:             tournament.stream_url || '',
+        youtube_url:            tournament.youtube_url || '',
+        instagram_url:          tournament.instagram_url || '',
         registration_open_date: toPKT(tournament.registration_open_date),
         registration_deadline:  toPKT(tournament.registration_deadline),
         start_date:             tournament.start_date ? new Date(tournament.start_date).toISOString().slice(0, 10) : '',
@@ -1132,7 +1152,7 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
       setScheduleRows(parseJSON(tournament.schedule).map(r => ({ ...r, id: Math.random() })));
       setRoadmapRows(parseJSON(tournament.roadmap).map(r => ({ ...r, id: Math.random() })));
     } else {
-      setForm({ ...EMPTY_FORM, prize_breakdown: { first: '', second: '', third: '' } });
+      setForm({ ...EMPTY_FORM, prize_breakdown: { first: '', second: '', third: '', fourth: '', fifth: '' } });
       setScheduleRows([]);
       setRoadmapRows([]);
     }
@@ -1287,8 +1307,8 @@ Good luck, and may the best team win!`);
         className="w-full max-w-5xl bg-[#0e0e0e] border border-[rgba(78,70,56,0.3)] flex flex-col md:flex-row overflow-hidden"
         style={{ maxHeight: 'calc(100vh - 3rem)' }}
       >
-        {/* ── Sidebar ── */}
-        <aside className="md:w-52 flex-shrink-0 bg-[#0a0a0a] border-b md:border-b-0 md:border-r border-[rgba(78,70,56,0.15)] flex flex-col">
+        {/* ── Sidebar (desktop) ── */}
+        <aside className="hidden md:flex md:w-52 flex-shrink-0 bg-[#0a0a0a] border-r border-[rgba(78,70,56,0.15)] flex-col">
           <div className="px-6 py-5 border-b border-[rgba(78,70,56,0.1)]">
             <p className="font-teko text-[10px] tracking-[0.2em] text-[#dbb462] opacity-50 uppercase mb-0.5">
               {tournament ? 'EDITING' : 'NEW TOURNAMENT'}
@@ -1298,43 +1318,48 @@ Good luck, and may the best team win!`);
             </h2>
             <div className="mt-3 flex items-center gap-2">
               <div className="flex-1 h-px bg-[#1f1f1f] overflow-hidden">
-                <div
-                  className="h-full zenith-gradient transition-all duration-500"
-                  style={{ width: `${(completedCount / MODAL_SECTIONS.length) * 100}%` }}
-                />
+                <div className="h-full zenith-gradient transition-all duration-500" style={{ width: `${(completedCount / MODAL_SECTIONS.length) * 100}%` }} />
               </div>
-              <span className="font-teko text-[10px] text-[#dbb462] opacity-40 tracking-widest whitespace-nowrap">
-                {completedCount}/{MODAL_SECTIONS.length}
-              </span>
+              <span className="font-teko text-[10px] text-[#dbb462] opacity-40 tracking-widest whitespace-nowrap">{completedCount}/{MODAL_SECTIONS.length}</span>
             </div>
           </div>
-
           <nav className="flex-1 overflow-y-auto py-1 no-scrollbar">
             {MODAL_SECTIONS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => setSection(id)}
                 className={`w-full flex items-center gap-3 px-5 py-3 font-teko text-[12px] tracking-widest transition-all text-left relative ${
-                  section === id
-                    ? 'bg-[#191919] text-[#f9d07a] border-l-2 border-[#f9d07a]'
-                    : 'text-[#d1c5b3] opacity-40 hover:opacity-80 hover:bg-[#111]'
+                  section === id ? 'bg-[#191919] text-[#f9d07a] border-l-2 border-[#f9d07a]' : 'text-[#d1c5b3] opacity-40 hover:opacity-80 hover:bg-[#111]'
                 }`}
               >
                 <Icon size={13} className="shrink-0" />
                 {label}
-                {sectionComplete[id] && section !== id && (
-                  <span className="ml-auto w-1.5 h-1.5 bg-emerald-400 rounded-full shrink-0" />
-                )}
+                {sectionComplete[id] && section !== id && <span className="ml-auto w-1.5 h-1.5 bg-emerald-400 rounded-full shrink-0" />}
               </button>
             ))}
           </nav>
-
           <div className="p-4 border-t border-[rgba(78,70,56,0.15)]">
             <GradientButton className="w-full" onClick={handleSave} disabled={saving}>
               {saving ? 'SAVING...' : (tournament ? 'UPDATE' : 'PUBLISH')}
             </GradientButton>
           </div>
         </aside>
+
+        {/* ── Mobile Section Dropdown ── */}
+        <div className="md:hidden flex items-center gap-2 px-4 py-3 bg-[#0a0a0a] border-b border-[rgba(78,70,56,0.15)] flex-shrink-0">
+          <select
+            value={section}
+            onChange={e => setSection(e.target.value)}
+            className="flex-1 bg-[#111] border border-[rgba(78,70,56,0.25)] px-3 py-2 font-teko text-[13px] tracking-widest text-[#f9d07a] uppercase focus:outline-none focus:border-[#dbb462]/50"
+          >
+            {MODAL_SECTIONS.map(({ id, label }) => (
+              <option key={id} value={id}>{label}{sectionComplete[id] ? ' ✓' : ''}</option>
+            ))}
+          </select>
+          <GradientButton onClick={handleSave} disabled={saving} className="px-4 py-2 text-[12px]">
+            {saving ? '...' : (tournament ? 'UPDATE' : 'SAVE')}
+          </GradientButton>
+        </div>
 
         {/* ── Content ── */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -1450,6 +1475,18 @@ Good luck, and may the best team win!`);
 
                 <div>
                   <label className={labelCls}>Short Description <span className="opacity-40 normal-case tracking-normal">(shown on tournament cards)</span></label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {DESCRIPTION_PRESETS.map((preset, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => set('description', preset)}
+                        className="font-teko text-[10px] tracking-widest text-[#dbb462] bg-[#dbb462]/8 border border-[#dbb462]/15 px-2 py-1 hover:bg-[#dbb462]/18 transition-colors uppercase"
+                      >
+                        PRESET {i + 1}
+                      </button>
+                    ))}
+                  </div>
                   <textarea
                     value={form.description}
                     onChange={e => set('description', e.target.value)}
@@ -1635,30 +1672,52 @@ Good luck, and may the best team win!`);
                 </div>
 
                 <div className="bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] p-5 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className={labelCls + ' mb-0'}>Prize Breakdown</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const total = Number(form.prize_pool) || 0;
-                        if (!total) { toast.error('Set the total prize pool first'); return; }
-                        setForm(f => ({ ...f, prize_breakdown: {
-                          first:  Math.round(total * 0.50),
-                          second: Math.round(total * 0.30),
-                          third:  Math.round(total * 0.20),
-                        }}));
-                        toast.success('50/30/20 split applied');
-                      }}
-                      className="font-teko text-[10px] tracking-widest text-[#dbb462] opacity-50 hover:opacity-100 border border-[#dbb462]/20 px-2 py-1 transition-opacity uppercase"
-                    >
-                      Auto 50/30/20
-                    </button>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <p className={labelCls + ' mb-0'}>Prize Breakdown</p>
+                      <div className="flex items-center gap-2">
+                        <label className="font-teko text-[10px] tracking-widest text-[#d1c5b3] opacity-40 uppercase">Top</label>
+                        <select
+                          value={form.prize_distributed_to || 3}
+                          onChange={e => set('prize_distributed_to', Number(e.target.value))}
+                          className="bg-[#111] border border-[rgba(78,70,56,0.25)] px-2 py-0.5 font-teko text-[12px] text-[#dbb462] tracking-widest focus:outline-none"
+                        >
+                          {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} team{n>1?'s':''}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {[
+                        { label: '50/30/20', splits: [0.50, 0.30, 0.20, 0, 0] },
+                        { label: '60/30/10', splits: [0.60, 0.30, 0.10, 0, 0] },
+                        { label: '40/25/20/10/5', splits: [0.40, 0.25, 0.20, 0.10, 0.05] },
+                      ].map(({ label, splits }) => (
+                        <button
+                          key={label}
+                          type="button"
+                          onClick={() => {
+                            const total = Number(form.prize_pool) || 0;
+                            if (!total) { toast.error('Set the total prize pool first'); return; }
+                            const keys = ['first','second','third','fourth','fifth'];
+                            const pb = {};
+                            keys.forEach((k, i) => { pb[k] = splits[i] ? Math.round(total * splits[i]) : ''; });
+                            setForm(f => ({ ...f, prize_breakdown: pb, prize_distributed_to: splits.filter(Boolean).length }));
+                            toast.success(`${label} split applied`);
+                          }}
+                          className="font-teko text-[10px] tracking-widest text-[#dbb462] opacity-50 hover:opacity-100 border border-[#dbb462]/20 px-2 py-1 transition-opacity uppercase"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   {[
-                    { key: 'first',  label: '1st Place', color: 'text-[#f9d07a]'  },
-                    { key: 'second', label: '2nd Place', color: 'text-[#c0c0c0]'  },
-                    { key: 'third',  label: '3rd Place', color: 'text-[#cd7f32]'  },
-                  ].map(({ key, label, color }) => (
+                    { key: 'first',  label: '1st Place', color: 'text-[#f9d07a]',  pos: 1 },
+                    { key: 'second', label: '2nd Place', color: 'text-[#c0c0c0]',  pos: 2 },
+                    { key: 'third',  label: '3rd Place', color: 'text-[#cd7f32]',  pos: 3 },
+                    { key: 'fourth', label: '4th Place', color: 'text-[#d1c5b3]',  pos: 4 },
+                    { key: 'fifth',  label: '5th Place', color: 'text-[#d1c5b3]',  pos: 5 },
+                  ].filter(({ pos }) => pos <= (form.prize_distributed_to || 3)).map(({ key, label, color }) => (
                     <div key={key} className="flex items-center gap-4">
                       <span className={`font-teko text-[13px] tracking-widest w-20 shrink-0 ${color}`}>{label}</span>
                       <div className="relative flex-1">
@@ -1675,7 +1734,8 @@ Good luck, and may the best team win!`);
                   ))}
                   {(() => {
                     const pb = form.prize_breakdown;
-                    const sum = (Number(pb.first) || 0) + (Number(pb.second) || 0) + (Number(pb.third) || 0);
+                    const keys = ['first','second','third','fourth','fifth'].slice(0, form.prize_distributed_to || 3);
+                    const sum = keys.reduce((acc, k) => acc + (Number(pb[k]) || 0), 0);
                     if (!sum) return null;
                     const total = Number(form.prize_pool) || 0;
                     const ok = total > 0 && sum === total;
@@ -1683,7 +1743,7 @@ Good luck, and may the best team win!`);
                       <div className="flex items-center gap-2 pt-3 border-t border-[rgba(78,70,56,0.1)]">
                         {ok ? <CheckCircle2 size={12} className="text-emerald-400" /> : <XCircle size={12} className="text-orange-400" />}
                         <span className={`font-teko text-[11px] tracking-widest ${ok ? 'text-emerald-400' : 'text-orange-400'}`}>
-                          Breakdown total: PKR {sum.toLocaleString('en-PK')} {ok ? '— matches prize pool' : `— differs from PKR ${total.toLocaleString('en-PK')}`}
+                          Breakdown total: PKR {sum.toLocaleString('en-PK')} {ok ? '— matches prize pool ✓' : `— differs from PKR ${total.toLocaleString('en-PK')}`}
                         </span>
                       </div>
                     );
@@ -1885,63 +1945,124 @@ Good luck, and may the best team win!`);
 
             {/* ── CONFIG ── */}
             {section === 'config' && (
-              <div className="space-y-5">
-                <p className={labelCls}>Screenshot Verification Requirements</p>
-                <p className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-30 -mt-3">
-                  Require teams to upload proof screenshots during registration (e.g. Discord join, YouTube subscribe).
-                </p>
-                <div className="space-y-3">
-                  {(form.registration_config?.screenshots || []).map((ss, idx) => (
-                    <div key={idx} className="bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] p-4 flex gap-4 items-end">
-                      <div className="flex-1">
-                        <label className={labelCls}>Requirement #{idx + 1}</label>
-                        <input
-                          type="text"
-                          value={ss.label}
-                          onChange={e => {
-                            const newSS = [...form.registration_config.screenshots];
-                            newSS[idx] = { ...newSS[idx], label: e.target.value };
-                            setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
-                          }}
-                          placeholder="e.g. Subscribe to Zenith Esports YT"
-                          className={inputCls}
-                        />
-                      </div>
-                      <div className="flex flex-col items-center gap-1 shrink-0">
-                        <label className={labelCls + ' text-center'}>Required</label>
+              <div className="space-y-6">
+
+                {/* Social links */}
+                <div>
+                  <p className={labelCls}>Social Channel Links</p>
+                  <p className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-30 mb-3">
+                    Add links so presets auto-fill screenshot requirements below.
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className={labelCls}>YouTube Channel URL</label>
+                      <input
+                        type="url"
+                        value={form.youtube_url || ''}
+                        onChange={e => set('youtube_url', e.target.value)}
+                        placeholder="https://youtube.com/@zenithesports"
+                        className={inputCls}
+                      />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Instagram Profile URL</label>
+                      <input
+                        type="url"
+                        value={form.instagram_url || ''}
+                        onChange={e => set('instagram_url', e.target.value)}
+                        placeholder="https://instagram.com/zenithesports.pk"
+                        className={inputCls}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick-add presets */}
+                <div>
+                  <p className={labelCls}>Quick-Add Requirements</p>
+                  <div className="flex flex-wrap gap-2">
+                    {SOCIAL_PRESETS.map((preset, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          const url = i === 0 ? form.youtube_url : i === 1 ? form.instagram_url : i === 3 ? form.discord_link : '';
+                          const label = preset.template(url);
+                          const newSS = [...(form.registration_config?.screenshots || []), { label, required: true }];
+                          if (newSS.length > 6) { toast.error('Maximum 6 requirements allowed'); return; }
+                          setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
+                          toast.success(`"${preset.label}" requirement added`);
+                        }}
+                        className="flex items-center gap-1.5 bg-[#dbb462]/8 border border-[#dbb462]/15 text-[#dbb462] px-3 py-1.5 font-teko text-[11px] tracking-widest hover:bg-[#dbb462]/18 transition-colors uppercase"
+                      >
+                        {preset.icon} {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Screenshot requirements list */}
+                <div>
+                  <p className={labelCls}>Screenshot Verification Requirements</p>
+                  <p className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-30 mb-3">
+                    Teams must upload these screenshots during registration.
+                  </p>
+                  <div className="space-y-3">
+                    {(form.registration_config?.screenshots || []).map((ss, idx) => (
+                      <div key={idx} className="bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] p-4 flex gap-3 items-end">
+                        <div className="flex-1">
+                          <label className={labelCls}>Requirement #{idx + 1}</label>
+                          <input
+                            type="text"
+                            value={ss.label}
+                            onChange={e => {
+                              const newSS = [...form.registration_config.screenshots];
+                              newSS[idx] = { ...newSS[idx], label: e.target.value };
+                              setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
+                            }}
+                            placeholder="e.g. Subscribe to Zenith Esports YouTube"
+                            className={inputCls}
+                          />
+                        </div>
+                        <div className="flex flex-col items-center gap-1 shrink-0">
+                          <label className={labelCls + ' text-center'}>Req'd</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newSS = [...form.registration_config.screenshots];
+                              newSS[idx] = { ...newSS[idx], required: !newSS[idx].required };
+                              setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
+                            }}
+                            className={ss.required ? 'text-[#dbb462]' : 'text-white/20'}
+                          >
+                            {ss.required ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
+                          </button>
+                        </div>
                         <button
+                          type="button"
                           onClick={() => {
-                            const newSS = [...form.registration_config.screenshots];
-                            newSS[idx] = { ...newSS[idx], required: !newSS[idx].required };
+                            const newSS = form.registration_config.screenshots.filter((_, i) => i !== idx);
                             setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
                           }}
-                          className={ss.required ? 'text-[#dbb462]' : 'text-white/20'}
+                          className="text-red-400 opacity-30 hover:opacity-100 p-1.5 transition-opacity shrink-0"
                         >
-                          {ss.required ? <ToggleRight size={26} /> : <ToggleLeft size={26} />}
+                          <Trash2 size={14} />
                         </button>
                       </div>
+                    ))}
+                    {(form.registration_config?.screenshots || []).length < 6 && (
                       <button
+                        type="button"
                         onClick={() => {
-                          const newSS = form.registration_config.screenshots.filter((_, i) => i !== idx);
+                          const newSS = [...(form.registration_config?.screenshots || []), { label: '', required: true }];
                           setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
                         }}
-                        className="text-red-400 opacity-30 hover:opacity-100 p-2 transition-opacity"
+                        className="w-full py-3 border border-dashed border-[#dbb462]/15 text-[#dbb462]/30 hover:text-[#dbb462] hover:bg-[#dbb462]/5 font-teko text-[12px] tracking-[0.2em] transition-all uppercase"
                       >
-                        <Trash2 size={15} />
+                        + Add Custom Requirement
                       </button>
-                    </div>
-                  ))}
-                  {(form.registration_config?.screenshots || []).length < 4 && (
-                    <button
-                      onClick={() => {
-                        const newSS = [...(form.registration_config?.screenshots || []), { label: '', required: true }];
-                        setForm(f => ({ ...f, registration_config: { ...f.registration_config, screenshots: newSS } }));
-                      }}
-                      className="w-full py-4 border border-dashed border-[#dbb462]/15 text-[#dbb462]/30 hover:text-[#dbb462] hover:bg-[#dbb462]/5 font-teko text-[12px] tracking-[0.2em] transition-all uppercase"
-                    >
-                      + Add Screenshot Requirement
-                    </button>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             )}

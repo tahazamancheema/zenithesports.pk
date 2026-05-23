@@ -73,7 +73,7 @@ export default function AuthPage() {
 
   return (
     <>
-    <div className="min-h-screen flex items-center justify-center p-6 bg-[#0a0a0a] relative overflow-hidden">
+    <div className="min-h-screen flex items-start md:items-center justify-center pt-28 pb-8 px-4 md:p-6 bg-[#0a0a0a] relative overflow-hidden">
       <StaticBackground variant="mesh" />
 
       {/* Decorative Brand Text */}

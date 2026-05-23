@@ -68,99 +68,115 @@ export default function LandingPage() {
         <div className="absolute inset-0 z-0">
           <img
             src="/image-3.webp"
-            className="w-full h-full object-cover object-center opacity-40 scale-105"
-            style={{ filter: 'saturate(0.6) contrast(1.05) brightness(0.85)' }}
+            className="w-full h-full object-cover object-center scale-[1.04]"
+            style={{ filter: 'saturate(0.55) contrast(1.1) brightness(0.7)', opacity: 0.45 }}
             alt=""
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/80 to-[#0a0a0a]/30" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a]/90 via-[#0a0a0a]/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/75 to-[#0a0a0a]/20" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a]/95 via-[#0a0a0a]/50 to-transparent" />
         </div>
 
+        {/* Grid overlay */}
+        <div className="absolute inset-0 opacity-[0.018] pointer-events-none z-[1]" style={{
+          backgroundImage: 'linear-gradient(rgba(219,180,98,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(219,180,98,0.6) 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+        }} />
+
         {/* Atmospheric glows */}
-        <div className="absolute top-[-80px] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-[#dbb462]/[0.07] blur-[180px] pointer-events-none z-[1] rounded-full" />
-        <div className="absolute top-1/3 right-0 w-[500px] h-[500px] bg-[#c49a3a]/[0.06] blur-[130px] pointer-events-none z-[1] rounded-full" />
+        <div className="absolute top-0 left-1/4 w-[700px] h-[500px] bg-[#dbb462]/[0.08] blur-[200px] pointer-events-none z-[1] rounded-full" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-[#c49a3a]/[0.05] blur-[150px] pointer-events-none z-[1] rounded-full" />
 
-        {/* Scanline */}
-        <div className="absolute inset-0 scanline opacity-[0.03] pointer-events-none z-[3]" />
-
-        {/* Frame accents */}
+        {/* Corner frame accents */}
         <div className="absolute inset-0 z-[2] pointer-events-none">
-          <div className="absolute top-36 left-6 lg:left-16 w-10 h-10 border-t-[1.5px] border-l-[1.5px] border-[#dbb462]/25" />
-          <div className="absolute bottom-[22%] right-6 lg:right-16 w-10 h-10 border-b-[1.5px] border-r-[1.5px] border-[#dbb462]/15" />
+          <div className="absolute top-32 left-6 lg:left-16 w-12 h-12 border-t-2 border-l-2 border-[#dbb462]/20" />
+          <div className="absolute top-32 left-6 lg:left-16 w-3 h-3 bg-[#dbb462]/30" style={{ marginTop: '-1.5px', marginLeft: '-1.5px' }} />
+          <div className="absolute bottom-[25%] right-6 lg:right-16 w-12 h-12 border-b-2 border-r-2 border-[#dbb462]/12" />
+          {/* Vertical accent line */}
+          <div className="absolute left-6 lg:left-16 top-40 bottom-[28%] w-[1px] bg-gradient-to-b from-[#dbb462]/20 via-[#dbb462]/5 to-transparent hidden lg:block" />
         </div>
 
         {/* Main Content */}
-        <div className="relative z-10 flex-1 flex flex-col justify-center pt-36 lg:pt-40 pb-10">
+        <div className="relative z-10 flex-1 flex flex-col justify-center pt-36 lg:pt-44 pb-12">
           <div className="container mx-auto max-w-7xl px-6 lg:px-16">
 
-            {/* Badge row */}
-            <div className="flex items-center justify-between mb-10 lg:mb-14">
-              <div className="flex items-center gap-2 bg-[#dbb462]/10 border border-[#dbb462]/25 px-4 py-2 backdrop-blur-sm">
-                <span className="relative w-2 h-2 rounded-full bg-[#dbb462]">
-                  <span className="absolute inset-0 rounded-full bg-[#dbb462] animate-ping opacity-60" />
-                </span>
-                <span className="font-teko text-[#dbb462] text-[13px] tracking-[0.3em] uppercase">
-                  Pakistan · PUBG Mobile · Est. 2021
-                </span>
+            {/* Top badge row */}
+            <div className="flex items-center justify-between mb-10 lg:mb-16">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-[1.5px] bg-[#dbb462]" />
+                <div className="flex items-center gap-2 px-3 py-1.5 border border-[#dbb462]/20 bg-[#dbb462]/[0.06]">
+                  <span className="relative w-1.5 h-1.5 rounded-full bg-[#dbb462] shrink-0">
+                    <span className="absolute inset-0 rounded-full bg-[#dbb462] animate-ping opacity-50" />
+                  </span>
+                  <span className="font-teko text-[#dbb462] text-[12px] tracking-[0.32em] uppercase">Pakistan · PUBG Mobile · Est. 2021</span>
+                </div>
               </div>
-              <div className="hidden lg:flex items-center gap-2 text-[#d1c5b3]/30">
-                <span className="font-teko text-[11px] tracking-[0.3em] uppercase">Scroll</span>
-                <ChevronDown size={12} className="animate-bounce" />
+              <div className="hidden lg:flex flex-col items-end gap-1">
+                <ChevronDown size={14} className="text-[#dbb462]/30 animate-bounce" />
+                <span className="font-teko text-[9px] tracking-[0.4em] text-[#d1c5b3]/20 uppercase">SCROLL</span>
               </div>
             </div>
 
-            {/* Headline */}
-            <div className="mb-10 lg:mb-12">
-              <h1 className="font-bebas uppercase select-none leading-[0.82] tracking-tight">
-                <span className="block text-[clamp(2rem,5vw,4rem)] text-[#d1c5b3]/50 tracking-[0.12em] mb-2">
+            {/* Headline — more structured */}
+            <div className="mb-12 lg:mb-14">
+              <div className="flex items-baseline gap-3 mb-1">
+                <span className="font-teko text-[12px] tracking-[0.4em] text-[#dbb462]/40 uppercase">01 / DEFINE YOUR GAME</span>
+              </div>
+              <h1 className="font-bebas uppercase select-none tracking-tight">
+                <span className="block text-[clamp(5rem,16vw,12rem)] zenith-gradient-text leading-[0.82]"
+                  style={{ textShadow: '0 0 160px rgba(219,180,98,0.2)' }}>
                   FORGE YOUR
                 </span>
-                <span
-                  className="block text-[clamp(5.5rem,17vw,13.5rem)] zenith-gradient-text leading-[0.85]"
-                  style={{ textShadow: '0 0 120px rgba(219,180,98,0.25)' }}
-                >
-                  LEGACY.
-                </span>
-                <span className="block text-[clamp(2rem,5.5vw,4.5rem)] text-[#f2f2f2]/80 tracking-wide mt-2">
-                  DOMINATE THE COMPETITION
+                <span className="block text-[clamp(5rem,16vw,12rem)] text-[#f2f2f2] leading-[0.82]">
+                  LEGACY<span className="text-[#dbb462]">.</span>
                 </span>
               </h1>
+              <div className="mt-5 flex items-center gap-4">
+                <div className="w-16 h-[1px] bg-[#dbb462]/30" />
+                <span className="font-teko text-[13px] tracking-[0.22em] text-[#d1c5b3]/40 uppercase">Pakistan's Premier Competitive Circuit</span>
+              </div>
             </div>
 
             {/* Body + CTAs */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-end">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-end">
               <div>
-                <p className="font-rajdhani text-[#d1c5b3] text-xl leading-relaxed opacity-60 font-medium max-w-xl mb-10">
-                  Pakistan's most rigorous PUBG Mobile tournament platform. Every squad is verified. Every match is tracked. Only the best rise.
+                <p className="font-rajdhani text-[#d1c5b3] text-[19px] leading-relaxed opacity-55 font-medium max-w-lg mb-10">
+                  Every squad verified. Every match tracked. Every champion earned. Pakistan's most rigorous PUBG Mobile platform.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Link
                     to={user ? '/tournaments' : '/auth'}
-                    className="btn-obsidian-primary font-bebas text-[22px] px-12 py-5 tracking-[0.15em] inline-flex items-center gap-3 uppercase"
+                    className="btn-obsidian-primary font-bebas text-[20px] px-10 py-5 tracking-[0.18em] inline-flex items-center gap-3 uppercase"
                   >
-                    {user ? 'ENTER THE ARENA' : 'CLAIM YOUR SPOT'}{' '}
-                    <ArrowRight size={22} strokeWidth={2.5} />
+                    {user ? 'ENTER THE ARENA' : 'CLAIM YOUR SPOT'}
+                    <ArrowRight size={20} strokeWidth={2.5} />
                   </Link>
                   <Link
                     to="/tournaments"
-                    className="btn-obsidian-ghost font-bebas text-[22px] px-10 py-5 tracking-[0.15em] uppercase"
+                    className="btn-obsidian-ghost font-bebas text-[20px] px-9 py-5 tracking-[0.15em] uppercase"
                   >
                     VIEW EVENTS
                   </Link>
                 </div>
               </div>
-              <div className="flex flex-col gap-4 lg:items-end">
+
+              {/* Right: trust signals as a more editorial list */}
+              <div className="hidden lg:flex flex-col gap-0 border-l border-white/[0.04] pl-10">
                 {[
-                  { icon: Shield, text: 'Every player manually ID-verified' },
-                  { icon: Target, text: 'Tournament-grade bracket system' },
-                  { icon: Flame,  text: 'Fast prize settlements guaranteed' },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-3 group">
-                    <div className="w-8 h-8 bg-[#dbb462]/10 border border-[#dbb462]/20 flex items-center justify-center shrink-0 group-hover:bg-[#dbb462]/20 transition-colors">
-                      <Icon size={14} className="text-[#dbb462]" />
+                  { icon: Shield, label: 'Player Verification',  desc: 'Every Character ID manually checked' },
+                  { icon: Target, label: 'Bracket System',       desc: 'Tournament-grade group logic' },
+                  { icon: Flame,  label: 'Prize Distribution',   desc: 'Fast, verified payouts' },
+                  { icon: Star,   label: 'Fair Play Enforced',   desc: 'Zero tolerance for cheating' },
+                ].map(({ icon: Icon, label, desc }, i) => (
+                  <div key={label} className="flex items-start gap-4 py-4 border-b border-white/[0.04] group hover:bg-[#dbb462]/[0.02] transition-colors px-2">
+                    <div className="w-7 h-7 bg-[#dbb462]/8 border border-[#dbb462]/15 flex items-center justify-center shrink-0 mt-0.5 group-hover:border-[#dbb462]/30 transition-colors">
+                      <Icon size={13} className="text-[#dbb462]" />
                     </div>
-                    <span className="font-teko text-[15px] tracking-[0.12em] text-[#d1c5b3] opacity-50 group-hover:opacity-80 transition-opacity uppercase">
-                      {text}
+                    <div>
+                      <p className="font-teko text-[14px] tracking-[0.15em] text-[#f2f2f2] uppercase leading-none mb-0.5">{label}</p>
+                      <p className="font-teko text-[11px] tracking-[0.12em] text-[#d1c5b3] opacity-35 uppercase">{desc}</p>
+                    </div>
+                    <span className="ml-auto font-teko text-[10px] tracking-widest text-[#dbb462]/20 self-center">
+                      {String(i + 1).padStart(2, '0')}
                     </span>
                   </div>
                 ))}
@@ -170,17 +186,16 @@ export default function LandingPage() {
         </div>
 
         {/* Stats HUD Strip */}
-        <div className="relative z-10 border-t border-[#dbb462]/15 bg-[#0a0a0a]/60 backdrop-blur-xl">
-          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#dbb462]/40 to-transparent" />
+        <div className="relative z-10 border-t border-[#dbb462]/12 bg-[#080808]/80 backdrop-blur-xl">
+          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#dbb462]/35 to-transparent" />
           <div className="container mx-auto max-w-7xl px-6 lg:px-16">
-            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-[#dbb462]/10">
-              <HeroStat value={platformStats.activePlayers} label="Players Reached"    sub="Across all platforms" delay={0}   />
-              <HeroStat value={platformStats.prizePools}    label="Prize Money Paid"   sub="Distributed to winners" delay={80}  />
-              <HeroStat value={platformStats.tournamentsRun} label="Tournaments Run"   sub="Since 2021" delay={160} />
-              <HeroStat value="PAKISTAN" label="Region of Operation" sub="Nationwide circuit" accent delay={240} />
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-[#dbb462]/8">
+              <HeroStat value={platformStats.activePlayers} label="Players Reached"    sub="Across all platforms"   delay={0}   />
+              <HeroStat value={platformStats.prizePools}    label="Prize Money Paid"   sub="Distributed to winners" delay={60}  />
+              <HeroStat value={platformStats.tournamentsRun} label="Tournaments Run"   sub="Since 2021"             delay={120} />
+              <HeroStat value="PAKISTAN" label="Region of Operation" sub="Nationwide circuit"   accent delay={180} />
             </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#dbb462]/15 to-transparent" />
         </div>
       </section>
 
