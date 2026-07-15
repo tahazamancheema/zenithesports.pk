@@ -28,7 +28,7 @@ export default function TournamentsPage() {
     data: allRegistrations, 
     loading: rLoading,
     refetch: rRefetch
-  } = useSupabaseDB('registrations');
+  } = useSupabaseDB('registrations_public');
 
   const [filter, setFilter] = useState('all');
 

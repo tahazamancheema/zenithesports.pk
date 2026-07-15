@@ -5,6 +5,7 @@ import {
   Plus, Edit2, Trash2, BarChart3,
   Eye, X, ToggleLeft, ToggleRight, Clock, Calendar,
   FileText, Map, ListOrdered, Search, RefreshCw, Trophy, TrendingUp,
+  Megaphone, Shield, User,
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../supabase/config';
@@ -17,7 +18,7 @@ import GradientButton from '../components/ui/GradientButton';
 import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import GhostInput from '../components/ui/GhostInput';
-import { uploadFile } from '../utils/storage';
+import { uploadFile, getSignedProofUrl } from '../utils/storage';
 import toast from 'react-hot-toast';
 
 // ─────────────────────────────────────────────────────────────
@@ -35,6 +36,13 @@ export default function AdminDashboard() {
   } = useSupabaseDB('registrations', { field: 'created_at', direction: 'desc' });
 
   const { tournaments, add: addTournament, update: updateTournament, remove: removeTournament } = useTournaments();
+
+  const {
+    data: announcements,
+    add: addAnnouncement,
+    update: updateAnnouncement,
+    remove: removeAnnouncement,
+  } = useSupabaseDB('announcements', { field: 'created_at', direction: 'desc' });
 
   const [activeTab, setActiveTab] = useState('overview');
   // Tournament create/edit modal
@@ -123,8 +131,10 @@ export default function AdminDashboard() {
 
           <nav className="flex-1 space-y-1">
             {[
-              { id: 'overview',     icon: TrendingUp, label: 'Overview' },
-              { id: 'tournaments',  icon: BarChart3,  label: 'Tournaments' },
+              { id: 'overview',      icon: TrendingUp, label: 'Overview' },
+              { id: 'tournaments',   icon: BarChart3,  label: 'Tournaments' },
+              { id: 'announcements', icon: Megaphone,  label: 'Announcements' },
+              { id: 'users',         icon: Users,      label: 'Users' },
             ].map(({ id, icon: Icon, label }) => (
               <button
                 key={id}
@@ -161,15 +171,17 @@ export default function AdminDashboard() {
 
           {/* ── Mobile Tab Bar ── */}
           <div className="md:hidden sticky top-28 z-20 bg-[#0f0f0f] border-b border-[rgba(78,70,56,0.2)]">
-            <div className="flex">
+            <div className="flex overflow-x-auto no-scrollbar">
               {[
-                { id: 'overview',    icon: TrendingUp, label: 'Overview' },
-                { id: 'tournaments', icon: BarChart3,  label: 'Tournaments' },
+                { id: 'overview',      icon: TrendingUp, label: 'Overview' },
+                { id: 'tournaments',   icon: BarChart3,  label: 'Tournaments' },
+                { id: 'announcements', icon: Megaphone,  label: 'News' },
+                { id: 'users',         icon: Users,      label: 'Users' },
               ].map(({ id, icon: Icon, label }) => (
                 <button
                   key={id}
                   onClick={() => setActiveTab(id)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 font-teko text-[13px] tracking-widest uppercase transition-all border-b-2 ${
+                  className={`flex-1 min-w-max flex items-center justify-center gap-2 px-4 py-3 font-teko text-[13px] tracking-widest uppercase transition-all border-b-2 ${
                     activeTab === id
                       ? 'text-[#f9d07a] border-[#f9d07a] bg-[#1a1a1a]'
                       : 'text-[#d1c5b3] opacity-50 border-transparent'
@@ -260,6 +272,19 @@ export default function AdminDashboard() {
             />
             </div>
           )}
+
+          {activeTab === 'announcements' && (
+            <AnnouncementsTab
+              announcements={announcements}
+              onAdd={addAnnouncement}
+              onUpdate={updateAnnouncement}
+              onRemove={removeAnnouncement}
+            />
+          )}
+
+          {activeTab === 'users' && (
+            <UsersTab currentUserId={user?.id} />
+          )}
           </div>{/* end padding wrapper */}
         </main>
       </div>
@@ -346,12 +371,13 @@ export default function AdminDashboard() {
               logoUrl = await uploadFile('ze-logos', file, `logo_${Date.now()}`);
               toast.success('Logo uploaded!', { id: 'upload-logo' });
             }
-            const finalData = { ...data, logo_url: logoUrl };
+            const finalData = { ...data, logo_url: logoUrl, group_id: data.group_id || null };
             if (registrationModal.data) {
               await updateReg(registrationModal.data.id, finalData);
               toast.success('Registration updated!');
             } else {
-              await addReg({ ...finalData, status: finalData.status || 'pending' });
+              // Manually added teams are owned by the admin account (user_id is NOT NULL)
+              await addReg({ ...finalData, user_id: user.id, status: finalData.status || 'pending' });
               toast.success('Registration added!');
             }
             setRegistrationModal({ open: false, data: null, tournamentId: null });
@@ -1066,11 +1092,18 @@ const EMPTY_FORM = {
   prize_pool: '',
   prize_breakdown: { first: '', second: '', third: '', fourth: '', fifth: '' },
   prize_distributed_to: 3,
+  kill_reward: '',
+  mvp_prize: '',
   entry_fee: 0,
   discord_link: '',
   stream_url: '',
   youtube_url: '',
   instagram_url: '',
+  whatsapp_group_link: '',
+  map_pool: [],
+  perspective: 'TPP',
+  skill_tier: 'Open',
+  auto_approve: false,
   registration_open_date: '',
   registration_deadline: '',
   start_date: '',
@@ -1136,11 +1169,18 @@ function TournamentModal({ isOpen, onClose, tournament, onSave }) {
         prize_pool:             tournament.prize_pool || '',
         prize_breakdown:        (pb && typeof pb === 'object' && !Array.isArray(pb)) ? { first: '', second: '', third: '', fourth: '', fifth: '', ...pb } : { first: '', second: '', third: '', fourth: '', fifth: '' },
         prize_distributed_to:   tournament.prize_distributed_to ?? 3,
+        kill_reward:            tournament.kill_reward || '',
+        mvp_prize:              tournament.mvp_prize || '',
         entry_fee:              tournament.entry_fee ?? 0,
         discord_link:           tournament.discord_link || '',
         stream_url:             tournament.stream_url || '',
         youtube_url:            tournament.youtube_url || '',
         instagram_url:          tournament.instagram_url || '',
+        whatsapp_group_link:    tournament.whatsapp_group_link || '',
+        map_pool:               tournament.map_pool || [],
+        perspective:            tournament.perspective || 'TPP',
+        skill_tier:             tournament.skill_tier || 'Open',
+        auto_approve:           tournament.auto_approve || false,
         registration_open_date: toPKT(tournament.registration_open_date),
         registration_deadline:  toPKT(tournament.registration_deadline),
         start_date:             tournament.start_date ? new Date(tournament.start_date).toISOString().slice(0, 10) : '',
@@ -1427,6 +1467,47 @@ Good luck, and may the best team win!`);
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Perspective</label>
+                    <select value={form.perspective} onChange={e => set('perspective', e.target.value)} className={inputCls}>
+                      {['TPP', 'FPP', 'TPP + FPP'].map(p => <option key={p}>{p}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelCls}>Skill Tier</label>
+                    <select value={form.skill_tier} onChange={e => set('skill_tier', e.target.value)} className={inputCls}>
+                      {['Open', 'Amateur', 'Intermediate', 'Pro', 'Elite', 'Invitational'].map(t => <option key={t}>{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Map Pool <span className="opacity-40 normal-case tracking-normal">(select all that apply)</span></label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Erangel', 'Miramar', 'Sanhok', 'Vikendi', 'Livik', 'Karakin', 'Nusa', 'Rondo'].map(map => {
+                      const selected = (form.map_pool || []).includes(map);
+                      return (
+                        <button
+                          key={map}
+                          type="button"
+                          onClick={() => {
+                            const cur = form.map_pool || [];
+                            set('map_pool', selected ? cur.filter(m => m !== map) : [...cur, map]);
+                          }}
+                          className={`font-teko text-[11px] tracking-widest px-3 py-1.5 border transition-colors uppercase ${
+                            selected
+                              ? 'bg-[#dbb462]/15 border-[#dbb462]/40 text-[#dbb462]'
+                              : 'border-[rgba(78,70,56,0.2)] text-[#d1c5b3] opacity-40 hover:opacity-80'
+                          }`}
+                        >
+                          {selected ? '✓ ' : ''}{map}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className={labelCls}>Players per Team</label>
@@ -1521,7 +1602,7 @@ Good luck, and may the best team win!`);
                         <label className={labelCls}>Upload New File</label>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/png,image/jpeg,image/webp"
                           onChange={e => setFile(e.target.files[0])}
                           className="w-full text-[11px] text-[#d1c5b3] file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-[#1f1f1f] file:text-[#f9d07a] file:font-teko file:text-[10px] file:tracking-widest file:cursor-pointer hover:file:bg-[#2a2a2a] file:transition-colors"
                         />
@@ -1677,13 +1758,14 @@ Good luck, and may the best team win!`);
                       <p className={labelCls + ' mb-0'}>Prize Breakdown</p>
                       <div className="flex items-center gap-2">
                         <label className="font-teko text-[10px] tracking-widest text-[#d1c5b3] opacity-40 uppercase">Top</label>
-                        <select
+                        <input
+                          type="number"
+                          min={1}
                           value={form.prize_distributed_to || 3}
-                          onChange={e => set('prize_distributed_to', Number(e.target.value))}
-                          className="bg-[#111] border border-[rgba(78,70,56,0.25)] px-2 py-0.5 font-teko text-[12px] text-[#dbb462] tracking-widest focus:outline-none"
-                        >
-                          {[1,2,3,4,5].map(n => <option key={n} value={n}>{n} team{n>1?'s':''}</option>)}
-                        </select>
+                          onChange={e => set('prize_distributed_to', Math.max(1, Number(e.target.value) || 1))}
+                          className="w-16 bg-[#111] border border-[rgba(78,70,56,0.25)] px-2 py-0.5 font-teko text-[12px] text-[#dbb462] tracking-widest focus:outline-none"
+                        />
+                        <label className="font-teko text-[10px] tracking-widest text-[#d1c5b3] opacity-40 uppercase">teams</label>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -1711,30 +1793,33 @@ Good luck, and may the best team win!`);
                       ))}
                     </div>
                   </div>
-                  {[
-                    { key: 'first',  label: '1st Place', color: 'text-[#f9d07a]',  pos: 1 },
-                    { key: 'second', label: '2nd Place', color: 'text-[#c0c0c0]',  pos: 2 },
-                    { key: 'third',  label: '3rd Place', color: 'text-[#cd7f32]',  pos: 3 },
-                    { key: 'fourth', label: '4th Place', color: 'text-[#d1c5b3]',  pos: 4 },
-                    { key: 'fifth',  label: '5th Place', color: 'text-[#d1c5b3]',  pos: 5 },
-                  ].filter(({ pos }) => pos <= (form.prize_distributed_to || 3)).map(({ key, label, color }) => (
-                    <div key={key} className="flex items-center gap-4">
-                      <span className={`font-teko text-[13px] tracking-widest w-20 shrink-0 ${color}`}>{label}</span>
-                      <div className="relative flex-1">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-teko text-[11px] text-[#d1c5b3] opacity-40 pointer-events-none">PKR</span>
-                        <input
-                          type="number"
-                          value={form.prize_breakdown[key] ?? ''}
-                          onChange={e => setForm(f => ({ ...f, prize_breakdown: { ...f.prize_breakdown, [key]: e.target.value } }))}
-                          placeholder="0"
-                          className={inputCls + ' pl-12'}
-                        />
+                  {Array.from({ length: form.prize_distributed_to || 3 }, (_, i) => {
+                    const pos = i + 1;
+                    const NAMED = ['first','second','third','fourth','fifth'];
+                    const key = pos <= 5 ? NAMED[i] : `pos${pos}`;
+                    const suffix = pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th';
+                    const color = pos === 1 ? 'text-[#f9d07a]' : pos === 2 ? 'text-[#c0c0c0]' : pos === 3 ? 'text-[#cd7f32]' : 'text-[#d1c5b3]';
+                    return (
+                      <div key={key} className="flex items-center gap-4">
+                        <span className={`font-teko text-[13px] tracking-widest w-20 shrink-0 ${color}`}>{pos}{suffix} Place</span>
+                        <div className="relative flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 font-teko text-[11px] text-[#d1c5b3] opacity-40 pointer-events-none">PKR</span>
+                          <input
+                            type="number"
+                            value={form.prize_breakdown[key] ?? ''}
+                            onChange={e => setForm(f => ({ ...f, prize_breakdown: { ...f.prize_breakdown, [key]: e.target.value } }))}
+                            placeholder="0"
+                            className={inputCls + ' pl-12'}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {(() => {
+                    const n = form.prize_distributed_to || 3;
+                    const NAMED = ['first','second','third','fourth','fifth'];
+                    const keys = Array.from({ length: n }, (_, i) => i < 5 ? NAMED[i] : `pos${i+1}`);
                     const pb = form.prize_breakdown;
-                    const keys = ['first','second','third','fourth','fifth'].slice(0, form.prize_distributed_to || 3);
                     const sum = keys.reduce((acc, k) => acc + (Number(pb[k]) || 0), 0);
                     if (!sum) return null;
                     const total = Number(form.prize_pool) || 0;
@@ -1759,6 +1844,35 @@ Good luck, and may the best team win!`);
                     placeholder="0"
                     className={inputCls}
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className={labelCls}>Kill Reward (PKR per kill) <span className="opacity-40 normal-case tracking-normal">— 0 = none</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-teko text-[11px] text-[#d1c5b3] opacity-40 pointer-events-none">PKR</span>
+                      <input
+                        type="number" min={0}
+                        value={form.kill_reward}
+                        onChange={e => set('kill_reward', e.target.value)}
+                        placeholder="0"
+                        className={inputCls + ' pl-12'}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={labelCls}>MVP Prize (PKR) <span className="opacity-40 normal-case tracking-normal">— 0 = none</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-teko text-[11px] text-[#d1c5b3] opacity-40 pointer-events-none">PKR</span>
+                      <input
+                        type="number" min={0}
+                        value={form.mvp_prize}
+                        onChange={e => set('mvp_prize', e.target.value)}
+                        placeholder="0"
+                        className={inputCls + ' pl-12'}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -1946,6 +2060,32 @@ Good luck, and may the best team win!`);
             {/* ── CONFIG ── */}
             {section === 'config' && (
               <div className="space-y-6">
+
+                {/* Registration behaviour */}
+                <div className="flex items-center justify-between bg-[#0a0a0a] border border-[rgba(78,70,56,0.15)] px-5 py-4">
+                  <div>
+                    <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] uppercase">Auto-Approve Registrations</p>
+                    <p className="font-teko text-[10px] tracking-widest text-[#d1c5b3] opacity-30 mt-0.5">Instantly approve every submitted registration</p>
+                  </div>
+                  <button
+                    onClick={() => set('auto_approve', !form.auto_approve)}
+                    className={`transition-colors ${form.auto_approve ? 'text-[#f9d07a]' : 'text-[#4e4638]'}`}
+                  >
+                    {form.auto_approve ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
+                  </button>
+                </div>
+
+                {/* WhatsApp group link */}
+                <div>
+                  <label className={labelCls}>WhatsApp Group Link <span className="opacity-40 normal-case tracking-normal">(shared with approved teams)</span></label>
+                  <input
+                    type="url"
+                    value={form.whatsapp_group_link}
+                    onChange={e => set('whatsapp_group_link', e.target.value)}
+                    placeholder="https://chat.whatsapp.com/..."
+                    className={inputCls}
+                  />
+                </div>
 
                 {/* Social links */}
                 <div>
@@ -2176,7 +2316,7 @@ function RegistrationModal({ isOpen, onClose, registration, tournament, onSave }
             <label className={labelCls}>Team Logo</label>
             <input
               type="file"
-              accept="image/*"
+              accept="image/png,image/jpeg,image/webp"
               onChange={(e) => setFile(e.target.files[0])}
               className="w-full text-[10px] text-[#d1c5b3] file:mr-3 file:py-1.5 file:px-3 file:border-0 file:bg-[#1f1f1f] file:text-[#f9d07a] file:font-teko text-[14px] file:text-[9px] file:cursor-pointer"
             />
@@ -2234,19 +2374,8 @@ function RegistrationModal({ isOpen, onClose, registration, tournament, onSave }
           <div className="space-y-2 pt-4 border-t border-white/10">
             <label className={labelCls}>Verification Proofs (Screenshots)</label>
             <div className="grid grid-cols-2 gap-4">
-              {registration.screenshot_urls.filter(Boolean).map((url, i) => (
-                <a 
-                  key={i} 
-                  href={url} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="group relative aspect-video bg-[#1a1a1a] border border-white/5 overflow-hidden flex items-center justify-center"
-                >
-                   <img src={url} alt={`Proof ${i+1}`} className="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-opacity" />
-                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60">
-                      <span className="font-teko text-[13px] text-[#f9d07a] tracking-widest uppercase border border-[#f9d07a]/30 px-3 py-1">View Full</span>
-                   </div>
-                </a>
+              {registration.screenshot_urls.filter(Boolean).map((entry, i) => (
+                <ProofThumb key={i} entry={entry} index={i} />
               ))}
             </div>
           </div>
@@ -2257,6 +2386,253 @@ function RegistrationModal({ isOpen, onClose, registration, tournament, onSave }
         </GradientButton>
       </div>
     </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Announcements Tab
+// ─────────────────────────────────────────────────────────────
+function AnnouncementsTab({ announcements, onAdd, onUpdate, onRemove }) {
+  const [form, setForm] = useState({ title: '', body: '', is_gold: false });
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const resetForm = () => { setForm({ title: '', body: '', is_gold: false }); setEditingId(null); };
+
+  async function handleSubmit() {
+    if (!form.title.trim()) return toast.error('Announcement title is required');
+    setSaving(true);
+    try {
+      if (editingId) {
+        await onUpdate(editingId, { title: form.title.trim(), body: form.body.trim() || null, is_gold: form.is_gold, updated_at: new Date().toISOString() });
+        toast.success('Announcement updated');
+      } else {
+        await onAdd({ title: form.title.trim(), body: form.body.trim() || null, is_gold: form.is_gold, is_active: true });
+        toast.success('Announcement published');
+      }
+      resetForm();
+    } catch (err) {
+      toast.error(`Failed: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleActive(a) {
+    try {
+      await onUpdate(a.id, { is_active: !a.is_active });
+      toast.success(a.is_active ? 'Announcement hidden' : 'Announcement published');
+    } catch (err) {
+      toast.error(`Failed: ${err.message}`);
+    }
+  }
+
+  async function handleDelete(a) {
+    if (!confirm(`Delete announcement "${a.title}"?`)) return;
+    try {
+      await onRemove(a.id);
+      toast.success('Announcement deleted');
+      if (editingId === a.id) resetForm();
+    } catch (err) {
+      toast.error(`Failed: ${err.message}`);
+    }
+  }
+
+  const inputCls = 'w-full bg-[#131313] border border-[rgba(78,70,56,0.3)] p-3 text-sm text-[#e2e2e2] focus:outline-none focus:border-[#f9d07a] transition-colors font-body';
+  const labelCls = 'font-teko text-[13px] tracking-widest text-[#d1c5b3] uppercase block mb-1';
+
+  return (
+    <div className="space-y-8 animate-page-enter max-w-5xl">
+      {/* Composer */}
+      <div className="bg-[#1b1b1b] border border-[rgba(78,70,56,0.2)] p-6 space-y-4">
+        <h3 className="font-bebas text-2xl text-[#f9d07a] tracking-widest uppercase flex items-center gap-2">
+          <Megaphone size={18} /> {editingId ? 'Edit Announcement' : 'New Announcement'}
+        </h3>
+        <div>
+          <label className={labelCls}>Title *</label>
+          <input className={inputCls} value={form.title} maxLength={120}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            placeholder="e.g. Winter Championship registrations now open" />
+        </div>
+        <div>
+          <label className={labelCls}>Details (optional)</label>
+          <textarea className={`${inputCls} resize-none`} rows={3} value={form.body} maxLength={500}
+            onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
+            placeholder="Supporting detail shown on the landing page card." />
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <button type="button" onClick={() => setForm(f => ({ ...f, is_gold: !f.is_gold }))}
+            className="flex items-center gap-2 font-teko text-[13px] tracking-widest uppercase text-[#d1c5b3]">
+            {form.is_gold ? <ToggleRight size={28} className="text-[#f9d07a]" /> : <ToggleLeft size={28} className="text-[#4e4638]" />}
+            Highlight (Gold + Ticker Pulse)
+          </button>
+          <div className="flex gap-3">
+            {editingId && (
+              <button onClick={resetForm} className="border border-white/10 px-6 py-2.5 font-teko text-[13px] tracking-widest text-[#d1c5b3] hover:bg-white/5 transition-colors uppercase">
+                Cancel
+              </button>
+            )}
+            <GradientButton onClick={handleSubmit} disabled={saving}>
+              {saving ? 'SAVING...' : editingId ? 'UPDATE' : 'PUBLISH'}
+            </GradientButton>
+          </div>
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="space-y-3">
+        <h3 className="font-bebas text-xl text-white tracking-widest uppercase">Published ({announcements.length})</h3>
+        {announcements.length === 0 ? (
+          <div className="text-center py-10 bg-[#1b1b1b]">
+            <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-40">NO ANNOUNCEMENTS YET</p>
+          </div>
+        ) : announcements.map(a => (
+          <div key={a.id} className={`bg-[#1b1b1b] border border-[rgba(78,70,56,0.15)] p-5 flex items-start justify-between gap-4 ${a.is_gold ? 'border-l-2 border-l-[#f9d07a]' : ''}`}>
+            <div className="min-w-0">
+              <div className="flex items-center gap-3 mb-1 flex-wrap">
+                <p className={`font-bebas text-lg leading-tight ${a.is_gold ? 'text-[#f9d07a]' : 'text-white'}`}>{a.title}</p>
+                <span className={`font-teko text-[11px] tracking-widest px-2 py-0.5 uppercase border ${a.is_active ? 'border-emerald-500/30 text-emerald-400' : 'border-[rgba(78,70,56,0.3)] text-[#d1c5b3] opacity-60'}`}>
+                  {a.is_active ? 'Live' : 'Hidden'}
+                </span>
+              </div>
+              {a.body && <p className="font-body text-sm text-[#d1c5b3] opacity-50 line-clamp-2">{a.body}</p>}
+              <p className="font-teko text-[11px] tracking-widest text-[#d1c5b3] opacity-30 uppercase mt-2">
+                {new Date(a.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => toggleActive(a)} title={a.is_active ? 'Hide' : 'Publish'} className="text-[#d1c5b3] opacity-60 hover:opacity-100 hover:text-[#f9d07a] transition-colors">
+                {a.is_active ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+              </button>
+              <button onClick={() => { setEditingId(a.id); setForm({ title: a.title, body: a.body || '', is_gold: a.is_gold }); window.scrollTo({ top: 0, behavior: 'smooth' }); }} title="Edit" className="text-[#d1c5b3] opacity-60 hover:opacity-100 hover:text-[#f9d07a] transition-colors">
+                <Edit2 size={16} />
+              </button>
+              <button onClick={() => handleDelete(a)} title="Delete" className="text-[#d1c5b3] opacity-60 hover:opacity-100 hover:text-red-400 transition-colors">
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Users Tab — role management
+// ─────────────────────────────────────────────────────────────
+function UsersTab({ currentUserId }) {
+  const { data: users, update: updateUser } = useSupabaseDB('users', { field: 'created_at', direction: 'desc' });
+  const [search, setSearch] = useState('');
+  const [busyId, setBusyId] = useState(null);
+
+  const filtered = users.filter(u => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (u.display_name || '').toLowerCase().includes(q) ||
+           (u.email || '').toLowerCase().includes(q) ||
+           (u.team_name || '').toLowerCase().includes(q);
+  });
+
+  const adminCount = users.filter(u => u.role === 'admin').length;
+
+  async function toggleRole(u) {
+    const makingUser = u.role === 'admin';
+    if (makingUser && u.id === currentUserId) return toast.error("You can't remove your own admin access.");
+    if (makingUser && adminCount <= 1) return toast.error('At least one admin must remain.');
+    const next = makingUser ? 'user' : 'admin';
+    if (!confirm(`${makingUser ? 'Revoke admin from' : 'Grant admin to'} ${u.display_name || u.email}?`)) return;
+    setBusyId(u.id);
+    try {
+      await updateUser(u.id, { role: next });
+      toast.success(`${u.display_name || u.email} is now ${next === 'admin' ? 'an admin' : 'a standard user'}`);
+    } catch (err) {
+      toast.error(`Failed: ${err.message}`);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-6 animate-page-enter max-w-5xl">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-[1px] bg-[rgba(78,70,56,0.15)]">
+        <AnalyticCard label="Total Users" value={users.length} gold />
+        <AnalyticCard label="Admins" value={adminCount} />
+        <AnalyticCard label="Standard Users" value={users.length - adminCount} />
+      </div>
+
+      <div className="flex items-center gap-3 bg-[#1b1b1b] border border-[rgba(78,70,56,0.2)] px-4 py-3 max-w-sm">
+        <Search size={14} className="text-[#d1c5b3] opacity-50 shrink-0" />
+        <input type="text" placeholder="Search name, email, or team..." value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="bg-transparent text-sm font-teko tracking-widest text-[#d1c5b3] placeholder:opacity-50 focus:outline-none w-full" />
+        {search && <button onClick={() => setSearch('')} className="text-[#d1c5b3] opacity-40 hover:opacity-100"><X size={12} /></button>}
+      </div>
+
+      <div className="space-y-2">
+        {filtered.length === 0 ? (
+          <div className="text-center py-10 bg-[#1b1b1b]">
+            <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-40">NO USERS FOUND</p>
+          </div>
+        ) : filtered.map(u => (
+          <div key={u.id} className="bg-[#1b1b1b] border border-[rgba(78,70,56,0.15)] p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className={`w-10 h-10 flex items-center justify-center shrink-0 border ${u.role === 'admin' ? 'bg-[#f9d07a]/10 border-[#f9d07a]/30' : 'bg-[#131313] border-white/5'}`}>
+                {u.role === 'admin' ? <Shield size={16} className="text-[#f9d07a]" /> : <User size={16} className="text-[#d1c5b3] opacity-50" />}
+              </div>
+              <div className="min-w-0">
+                <p className="font-bebas text-lg text-white leading-tight truncate">{u.display_name || 'Unnamed Player'}</p>
+                <p className="font-teko text-[12px] tracking-wider text-[#d1c5b3] opacity-40 truncate">{u.email}{u.team_name ? ` · ${u.team_name}` : ''}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className={`font-teko text-[11px] tracking-widest px-2 py-0.5 uppercase border ${u.role === 'admin' ? 'border-[#f9d07a]/30 text-[#f9d07a]' : 'border-[rgba(78,70,56,0.3)] text-[#d1c5b3] opacity-70'}`}>
+                {u.role || 'user'}
+              </span>
+              <button
+                onClick={() => toggleRole(u)}
+                disabled={busyId === u.id}
+                className="font-teko text-[12px] tracking-widest uppercase border border-white/10 px-4 py-2 text-[#d1c5b3] hover:bg-white/5 hover:text-[#f9d07a] transition-colors disabled:opacity-40"
+              >
+                {busyId === u.id ? '...' : u.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Proof Thumbnail — proofs live in a private bucket; admins view
+// them through short-lived signed URLs (RLS-gated server-side).
+// ─────────────────────────────────────────────────────────────
+function ProofThumb({ entry, index }) {
+  const [url, setUrl] = useState(null);
+
+  React.useEffect(() => {
+    let alive = true;
+    getSignedProofUrl(entry).then((signed) => { if (alive) setUrl(signed); });
+    return () => { alive = false; };
+  }, [entry]);
+
+  if (!url) {
+    return <div className="aspect-video bg-[#1a1a1a] border border-white/5 animate-pulse" />;
+  }
+
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className="group relative aspect-video bg-[#1a1a1a] border border-white/5 overflow-hidden flex items-center justify-center"
+    >
+      <img src={url} alt={`Proof ${index + 1}`} className="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60">
+        <span className="font-teko text-[13px] text-[#f9d07a] tracking-widest uppercase border border-[#f9d07a]/30 px-3 py-1">View Full</span>
+      </div>
+    </a>
   );
 }
 

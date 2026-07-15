@@ -7,6 +7,7 @@ import {
   ChevronDown, Users, Star, TrendingUp,
 } from 'lucide-react';
 import LiveStatus from '../components/LiveStatus';
+import AnnouncementsStrip from '../components/AnnouncementsStrip';
 import TournamentCard from '../components/TournamentCard';
 import { useTournaments } from '../hooks/useTournaments';
 import { useSupabaseDB } from '../hooks/useSupabaseDB';
@@ -18,7 +19,7 @@ export default function LandingPage() {
   const { currentTournament, openRegistrations } = useTournaments();
   const { user } = useAuth();
   const platformStats = usePlatformStats();
-  const { data: allRegistrations } = useSupabaseDB('registrations');
+  const { data: allRegistrations } = useSupabaseDB('registrations_public');
 
   const { regCounts, userRegStatuses } = React.useMemo(() => {
     const counts = {};
@@ -30,9 +31,8 @@ export default function LandingPage() {
     return { regCounts: counts, userRegStatuses: statuses };
   }, [allRegistrations, user?.id]);
 
-  // Direct query for the current user's own registration on the featured tournament.
-  // useSupabaseDB('registrations') only surfaces approved rows for non-admins (RLS),
-  // so we must query directly to reliably detect pending/reapplied statuses.
+  // Direct query for the current user's own registration on the featured
+  // tournament (own-row RLS policy on the base table).
   const [myRegStatus, setMyRegStatus] = useState(null);
   useEffect(() => {
     if (!user?.id || !currentTournament?.id) { setMyRegStatus(null); return; }
@@ -198,6 +198,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Command Center Announcements ── */}
+      <AnnouncementsStrip />
 
       {/* ── Live Broadcast ── */}
       <LiveStatus />

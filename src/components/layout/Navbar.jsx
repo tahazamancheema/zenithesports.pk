@@ -5,6 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { signOut } from '../../supabase/auth';
 import toast from 'react-hot-toast';
 import { useTournaments } from '../../hooks/useTournaments';
+import { useSupabaseDB } from '../../hooks/useSupabaseDB';
 
 const NAV_LINKS = [
   { label: 'HOME',         to: '/' },
@@ -24,6 +25,11 @@ const TICKER_STATIC = [
 export default function Navbar() {
   const { user, userDoc, isAdmin } = useAuth();
   const { openRegistrations, currentTournament } = useTournaments();
+  const { data: announcements } = useSupabaseDB(
+    'announcements',
+    { field: 'created_at', direction: 'desc' },
+    [['is_active', 'eq', true]]
+  );
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -75,7 +81,14 @@ export default function Navbar() {
     ] : []),
   ];
 
-  const tickerItems = [...dynamicItems, ...TICKER_STATIC];
+  // Admin-published announcements lead the ticker (max 5 most recent)
+  const announcementItems = announcements.slice(0, 5).map((a) => ({
+    text: a.title.toUpperCase(),
+    gold: a.is_gold,
+    pulse: a.is_gold,
+  }));
+
+  const tickerItems = [...announcementItems, ...dynamicItems, ...TICKER_STATIC];
 
   return (
     <header className="fixed top-0 w-full z-50">

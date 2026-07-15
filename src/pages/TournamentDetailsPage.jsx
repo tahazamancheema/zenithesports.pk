@@ -39,7 +39,7 @@ export default function TournamentDetailsPage() {
     data: registrations,
     loading: rLoading,
     error: rError
-  } = useSupabaseDB('registrations', null, [['tournament_id', 'eq', id]]);
+  } = useSupabaseDB('registrations_public', null, [['tournament_id', 'eq', id]]);
 
   // Results
   const {

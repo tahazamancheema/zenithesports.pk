@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Condensed:wght@400;700&family=Teko:wght@400;500;600;700&family=Bebas+Neue&family=Michroma&display=swap');
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────
@@ -42,12 +41,13 @@
   --color-tertiary-container: #c6b894;
   --color-surface-tint: #e9c16e;
 
-  /* Typography */
-  --font-bebas: 'Bebas Neue', sans-serif;
-  --font-teko: 'Teko', sans-serif;
-  --font-body: 'Rajdhani', sans-serif;
-  --font-roboto: 'Roboto', sans-serif;
-  --font-michroma: 'Michroma', sans-serif;
+  /* Typography — Saira superfamily: one typeface, three widths.
+     display = Saira Condensed   (headlines, numerals, hero)
+     label   = Saira Semi Condensed (overlines, tags, nav, meta)
+     body    = Saira             (paragraphs, forms, UI copy)   */
+  --font-display: 'Saira Condensed', 'Arial Narrow', sans-serif;
+  --font-label: 'Saira Semi Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Saira', 'Segoe UI', sans-serif;
 
   /* Border Radius — ZERO (The Monolith Rule) */
   --radius: 0px;
@@ -73,59 +73,63 @@ html {
 body {
   background-color: #0a0a0a;
   color: #f2f2f2;
-  font-family: 'Rajdhani', sans-serif;
+  font-family: var(--font-body);
   overflow-x: clip;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Typography Utilities ─── */
-.font-bebas {
-  font-family: 'Bebas Neue', sans-serif;
-}
+/* ─── Typography Utilities ───
+   Semantic classes: font-display / font-label / font-body (from @theme tokens).
+   Legacy aliases below keep older markup on-brand — prefer the semantic names
+   in new code. Display is always uppercase (The Uppercase Rule — Bebas had no
+   lowercase, so the alias preserves that behavior). Declared in the components
+   layer so weight utilities like font-bold can still override the defaults. */
+@layer components {
+  .font-display,
+  .font-bebas {
+    font-family: var(--font-display);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
 
-.font-teko {
-  font-family: 'Teko', sans-serif;
-}
+  .font-label,
+  .font-teko {
+    font-family: var(--font-label);
+    font-weight: 500;
+  }
 
-.font-agency {
-  font-family: 'Agency FB', 'Rajdhani', sans-serif;
-}
-
-.font-rajdhani {
-  font-family: 'Rajdhani', sans-serif;
-}
-
-.font-roboto {
-  font-family: 'Roboto', sans-serif;
-}
-
-.font-michroma {
-  font-family: 'Michroma', sans-serif;
+  .font-agency,
+  .font-rajdhani,
+  .font-roboto,
+  .font-michroma {
+    font-family: var(--font-body);
+  }
 }
 
 /* Clear & Professional Headlines */
 .headline-main {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-display);
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: 0.02em;
   color: #f2f2f2;
 }
 
 .headline-main-gold {
-  font-family: 'Bebas Neue', sans-serif;
+  font-family: var(--font-display);
   text-transform: uppercase;
-  font-weight: 400;
+  font-weight: 600;
   letter-spacing: 0.02em;
   color: #dbb462;
 }
 
 .hero-text-huge {
-  font-size: clamp(3.5rem, 12vw, 10rem);
-  line-height: 0.85;
-  font-weight: 400;
-  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(3.25rem, 11vw, 9rem);
+  line-height: 0.9;
+  font-weight: 700;
+  font-family: var(--font-display);
+  text-transform: uppercase;
 }
 
 /* ─── Background System ─── */

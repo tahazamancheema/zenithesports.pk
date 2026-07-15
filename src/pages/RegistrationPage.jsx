@@ -5,7 +5,7 @@ import { useTournaments } from '../hooks/useTournaments';
 import { useRegistration } from '../hooks/useRegistration';
 import { useAuth } from '../hooks/useAuth';
 import { useTournamentCountdown } from '../hooks/useTournamentCountdown';
-import { uploadFile } from '../utils/storage';
+import { uploadFile, uploadPrivateFile } from '../utils/storage';
 import GhostInput from '../components/ui/GhostInput';
 import WhatsAppModal from '../components/ui/WhatsAppModal';
 import toast from 'react-hot-toast';
@@ -238,7 +238,7 @@ export default function RegistrationPage() {
         if (sFile) {
           const compressedSS = await compressImage(sFile, { maxWidth: 1000, maxHeight: 1000, quality: 0.5 });
           uploadTasks.push(
-            uploadFile('ze-proofs', compressedSS, `proof_${i}_${user.id}_${Date.now()}`)
+            uploadPrivateFile('ze-proofs', compressedSS, `proof_${i}_${user.id}_${Date.now()}`)
               .catch(err => {
                 throw new Error(`Proof upload failed [${configSS[i].label}]: ${err.message}`);
               })
@@ -413,7 +413,7 @@ export default function RegistrationPage() {
                 </label>
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp"
                   onChange={(e) => { setFile(e.target.files[0]); clearFieldError('team_logo'); }}
                   className="w-full text-[13px] text-[#d1c5b3] file:mr-4 file:py-2 file:px-6 file:border-0 file:bg-[#1a1a1a] file:text-[#dbb462] file:font-teko file:text-[14px] file:cursor-pointer hover:file:bg-[#222] file:uppercase file:tracking-widest"
                 />
@@ -494,7 +494,7 @@ export default function RegistrationPage() {
                           </span>
                         </>
                       )}
-                      <input type="file" accept="image/*" required={ss.required} onChange={(e) => { const f = e.target.files[0]; if (f) { const next = [...screenshotFiles]; next[idx] = f; setScreenshotFiles(next); } }} className="absolute inset-0 opacity-0 cursor-pointer" />
+                      <input type="file" accept="image/png,image/jpeg,image/webp" required={ss.required} onChange={(e) => { const f = e.target.files[0]; if (f) { const next = [...screenshotFiles]; next[idx] = f; setScreenshotFiles(next); } }} className="absolute inset-0 opacity-0 cursor-pointer" />
                     </div>
                   </div>
                 ))}

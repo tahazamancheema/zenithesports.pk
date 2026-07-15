@@ -23,6 +23,7 @@ const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const RegistrationPage = lazy(() => import('./pages/RegistrationPage'));
 const DailyScrimsPage = lazy(() => import('./pages/DailyScrimsPage'));
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 
 // Pages that don't show the main footer
 const NO_FOOTER_ROUTES = ['/admin', '/profile'];
@@ -95,6 +96,7 @@ function AppLayout() {
             {/* Main */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth/reset" element={<ResetPasswordPage />} />
             <Route path="/tournaments" element={<TournamentsPage />} />
             <Route path="/tournaments/:id" element={<TournamentDetailsPage />} />
             <Route path="/scrims" element={<DailyScrimsPage />} />
@@ -144,7 +146,7 @@ const TOAST_STYLE = {
     background: '#1f1f1f',
     color: '#e2e2e2',
     border: '1px solid rgba(78, 70, 56, 0.3)',
-    fontFamily: "'Rajdhani', sans-serif",
+    fontFamily: "'Saira', 'Segoe UI', sans-serif",
     fontSize: '16px',
     borderRadius: '0px',
   },

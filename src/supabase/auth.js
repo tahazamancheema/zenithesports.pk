@@ -40,6 +40,44 @@ export async function signInWithEmail(email, password) {
 
 
 
+/**
+ * Send a password-reset email. The link lands on /auth/reset where the
+ * recovery session is established and the user sets a new password.
+ */
+export async function sendPasswordReset(email) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/auth/reset`,
+  });
+  if (error) throw error;
+}
+
+/** Set a new password for the currently signed-in (recovery) session. */
+export async function updatePassword(newPassword) {
+  const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Google OAuth sign-in. Redirects to Google, then back to /auth where
+ * detectSessionInUrl completes the session. Requires the Google provider
+ * to be enabled in Supabase Dashboard → Authentication → Providers.
+ */
+export async function signInWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'select_account',
+      },
+    },
+  });
+  if (error) throw error;
+  return data;
+}
+
 export async function signOut() {
   // Fire network signout but don't wait for it forever
   const requestPromise = supabase.auth.signOut();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Eye, EyeOff, ArrowRight, MessageCircle } from 'lucide-react';
-import { signInWithEmail, signUpWithEmail } from '../supabase/auth';
+import { signInWithEmail, signUpWithEmail, signInWithGoogle, sendPasswordReset } from '../supabase/auth';
 import { useAuth } from '../hooks/useAuth';
 import toast from 'react-hot-toast';
 import StaticBackground from '../components/ui/StaticBackground';
@@ -13,6 +13,7 @@ export default function AuthPage() {
   const [errors, setErrors] = useState({});
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [showWAModal, setShowWAModal] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -30,8 +31,10 @@ export default function AuthPage() {
     const errs = {};
     if (!form.email) errs.email = 'Email address required';
     else if (!/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Please enter a valid email';
-    if (!form.password) errs.password = 'Password required';
-    else if (form.password.length < 6) errs.password = 'Password must be at least 6 characters';
+    if (mode !== 'forgot') {
+      if (!form.password) errs.password = 'Password required';
+      else if (form.password.length < 6) errs.password = 'Password must be at least 6 characters';
+    }
     if (mode === 'register') {
       if (!form.displayName.trim()) errs.displayName = 'Full name required';
       if (form.password !== form.confirmPassword)
@@ -50,7 +53,11 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
-      if (mode === 'login') {
+      if (mode === 'forgot') {
+        await sendPasswordReset(form.email.trim());
+        toast.success('Reset link sent! Check your email inbox (and spam folder).');
+        setMode('login');
+      } else if (mode === 'login') {
         await signInWithEmail(form.email.trim(), form.password);
         toast.success(`Welcome back, ${form.email.split('@')[0]}!`);
         navigate('/tournaments');
@@ -68,6 +75,18 @@ export default function AuthPage() {
       toast.error(err?.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleGoogleSignIn() {
+    if (googleLoading) return;
+    setGoogleLoading(true);
+    try {
+      // Redirects to Google; the session completes back on /auth.
+      await signInWithGoogle();
+    } catch (err) {
+      toast.error(err?.message || 'Google sign-in failed. Please try again.');
+      setGoogleLoading(false);
     }
   }
 
@@ -117,7 +136,7 @@ export default function AuthPage() {
         <div className="w-full md:w-1/2 p-12 lg:p-16 flex flex-col justify-center bg-[#131313]">
           <div className="mb-12">
             <h2 className="font-bebas font-bold text-5xl tracking-[0.05em] text-white mb-2 uppercase">
-              {mode === 'login' ? 'ACCESS PORTAL' : 'ACCOUNT CREATION'}
+              {mode === 'login' ? 'ACCESS PORTAL' : mode === 'register' ? 'ACCOUNT CREATION' : 'RESET PASSWORD'}
             </h2>
             <button
               onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setErrors({}); }}
@@ -125,6 +144,11 @@ export default function AuthPage() {
             >
               {mode === 'login' ? "Register New Account" : 'Return to Login'}
             </button>
+            {mode === 'forgot' && (
+              <p className="font-body text-sm text-white/40 mt-3 max-w-xs">
+                Enter your registered email and we'll send you a link to set a new password.
+              </p>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -162,6 +186,7 @@ export default function AuthPage() {
               {errors.email && <p className="text-red-500 text-[12px] uppercase font-teko tracking-widest">{errors.email}</p>}
             </div>
 
+            {mode !== 'forgot' && (
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <label className="font-body text-[11px] font-bold tracking-wider text-white/60 uppercase block">Password</label>
@@ -186,6 +211,7 @@ export default function AuthPage() {
               </div>
               {errors.password && <p className="text-red-500 text-[12px] uppercase font-teko tracking-widest">{errors.password}</p>}
             </div>
+            )}
 
             {mode === 'register' && (
               <div className="space-y-2 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -209,12 +235,44 @@ export default function AuthPage() {
                 className="group relative w-full bg-[#dbb462] text-[#402d00] font-bebas text-3xl py-5 tracking-widest hover:brightness-110 active:scale-[0.98] transition-all overflow-hidden"
               >
                 <div className="relative z-10 flex items-center justify-center gap-3">
-                  {loading ? 'PROCESSING...' : mode === 'login' ? 'SIGN IN' : 'REGISTER'}
+                  {loading ? 'PROCESSING...' : mode === 'login' ? 'SIGN IN' : mode === 'register' ? 'REGISTER' : 'SEND RESET LINK'}
                   {!loading && <ArrowRight size={24} className="translate-x-0 group-hover:translate-x-2 transition-transform" />}
                 </div>
               </button>
+              {mode === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => { setMode('forgot'); setErrors({}); }}
+                  className="w-full mt-4 font-teko text-[14px] tracking-[0.25em] text-[#d1c5b3]/50 hover:text-[#dbb462] uppercase transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              )}
             </div>
           </form>
+
+          {/* ── Divider ── */}
+          <div className="flex items-center gap-4 my-8">
+            <div className="flex-1 h-[1px] bg-white/10" />
+            <span className="font-label text-[12px] tracking-[0.3em] text-white/30 uppercase">or</span>
+            <div className="flex-1 h-[1px] bg-white/10" />
+          </div>
+
+          {/* ── Google OAuth ── */}
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading}
+            className="btn-obsidian-ghost w-full py-4 font-display text-xl tracking-widest uppercase flex items-center justify-center gap-3 disabled:opacity-40 disabled:cursor-wait"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47a5.57 5.57 0 0 1-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09A11.99 11.99 0 0 0 12 24z" />
+              <path fill="#FBBC05" d="M5.27 14.29A7.2 7.2 0 0 1 4.89 12c0-.8.14-1.57.38-2.29V6.62H1.29a11.99 11.99 0 0 0 0 10.76l3.98-3.09z" />
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.69 1.29 6.62l3.98 3.09c.95-2.85 3.6-4.96 6.73-4.96z" />
+            </svg>
+            {googleLoading ? 'REDIRECTING…' : 'CONTINUE WITH GOOGLE'}
+          </button>
 
           <p className="mt-12 font-body text-[10px] text-white/40 text-center tracking-wider uppercase leading-relaxed max-w-xs mx-auto">
             By continuing, you agree to the Zenith Esports Protocol and Fair Play Governance.

@@ -3,23 +3,25 @@ import { supabase } from '../supabase/config';
 
 /**
  * useSupabaseDB — generic real-time CRUD hook for any Supabase table.
- * @param {string} tableName
- * @param {{ field, direction }?} orderByOption
- * @param {Array<[field, op, value]>?} filters (e.g. ['status', 'eq', 'active'])
  *
- * Includes three stale-data recovery mechanisms:
- *  1. Re-fetches when the browser tab becomes visible again (visibilitychange)
- *  2. Re-fetches when the window regains focus
- *  3. Monitors the Supabase Realtime channel and reconnects if it drops
+ * Resilience features:
+ *  1. SWR: serves stale localStorage cache while fresh data loads
+ *  2. Re-fetches on tab visibility + window focus
+ *  3. Heartbeat every 30s: refetches if empty/errored, reconnects dead channels
+ *  4. Channel reconnect after Supabase token refresh (TOKEN_REFRESHED event)
+ *  5. 401 recovery: silently refreshes session and retries the query once
  */
 export function useSupabaseDB(tableName, orderByOption = null, filters = []) {
-  // ── Scoped Cache Key ──
-  // Include filters and order in the key to prevent data collisions between pages
   const filtersKey = JSON.stringify(filters);
-  const orderKey = JSON.stringify(orderByOption);
-  const cacheKey = `zenith_cache_${tableName}_${filtersKey}_${orderKey}`;
+  const orderKey   = JSON.stringify(orderByOption);
+  const cacheKey   = `zenith_cache_${tableName}_${filtersKey}_${orderKey}`;
 
-  // 1. SWR Pattern: Load from cache immediately
+  // Views (e.g. registrations_public) can't emit postgres_changes events:
+  // subscribe to the underlying table instead, and poll as a fallback since
+  // RLS may withhold realtime rows the view would still expose.
+  const isView    = tableName.endsWith('_public');
+  const eventsTable = isView ? tableName.replace(/_public$/, '') : tableName;
+
   const [data, setData] = useState(() => {
     try {
       const cached = localStorage.getItem(cacheKey);
@@ -29,23 +31,22 @@ export function useSupabaseDB(tableName, orderByOption = null, filters = []) {
     }
   });
 
-  // 2. Optimized Loading State: Only true if we have NO data at all
   const [loading, setLoading] = useState(data.length === 0);
-  const [error, setError] = useState(null);
+  const [error,   setError]   = useState(null);
 
-  const stateRef = useRef({ data, error, loading });
+  const stateRef     = useRef({ data, error, loading });
+  const isFirstFetch = useRef(true);
+  const channelRef   = useRef(null);
+
   useEffect(() => {
     stateRef.current = { data, error, loading };
   }, [data, error, loading]);
 
-  const isFirstFetch = useRef(true);
-  const channelRef = useRef(null);
-
+  // ── Core fetch ─────────────────────────────────────────────────────────────
   const fetchData = useCallback(async (isRetry = false) => {
-    // Only show loading if we have nothing to show
     if (stateRef.current.data.length === 0) setLoading(true);
 
-    try {
+    const runQuery = async () => {
       let query = supabase.from(tableName).select('*');
 
       if (tableName === 'tournaments') {
@@ -59,25 +60,35 @@ export function useSupabaseDB(tableName, orderByOption = null, filters = []) {
       }
 
       if (orderByOption) {
-        const ascending = orderByOption.direction === 'asc';
-        query = query.order(orderByOption.field, { ascending });
+        query = query.order(orderByOption.field, { ascending: orderByOption.direction === 'asc' });
       }
 
-      // ── Aggressive Timeout ──
-      // Reduce to 7s for faster failover/feedback
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('QUERY_TIMEOUT')), 7000)
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('QUERY_TIMEOUT')), 8000)
       );
 
-      const { data: result, error: fetchErr } = await Promise.race([query, timeoutPromise]);
+      return Promise.race([query, timeout]);
+    };
+
+    try {
+      let { data: result, error: fetchErr } = await runQuery();
+
+      // 401 / JWT expired — refresh session and retry once
+      if (fetchErr?.status === 401 || fetchErr?.message?.includes('JWT')) {
+        const { error: refreshErr } = await supabase.auth.refreshSession();
+        if (!refreshErr) {
+          ({ data: result, error: fetchErr } = await runQuery());
+        }
+      }
+
       if (fetchErr) throw fetchErr;
 
-      // ── Resiliency: Only retry "0 results" for the broad tournaments list ──
-      const isBroadTournamentQuery = tableName === 'tournaments' && (!filters || filters.length === 0);
-      if (isFirstFetch.current && (!result || result.length === 0) && isBroadTournamentQuery && !isRetry) {
-         console.warn(`useSupabaseDB [${tableName}]: Empty result on first fetch, retrying...`);
-         setTimeout(() => fetchData(true), 1000);
-         return; 
+      // Retry once on empty broad tournament query (race condition on first load)
+      const isBroadTournaments = tableName === 'tournaments' && (!filters || filters.length === 0);
+      if (isFirstFetch.current && (!result || result.length === 0) && isBroadTournaments && !isRetry) {
+        console.warn(`useSupabaseDB [${tableName}]: empty on first fetch, retrying…`);
+        setTimeout(() => fetchData(true), 1000);
+        return;
       }
 
       const newData = result || [];
@@ -86,24 +97,23 @@ export function useSupabaseDB(tableName, orderByOption = null, filters = []) {
       isFirstFetch.current = false;
       setLoading(false);
 
-      // Persist to scoped cache
-      try {
-        localStorage.setItem(cacheKey, JSON.stringify(newData));
-      } catch (e) {}
+      try { localStorage.setItem(cacheKey, JSON.stringify(newData)); } catch {}
+
     } catch (err) {
-      console.error(`useSupabaseDB [${tableName}]:`, err);
-      
+      console.error(`useSupabaseDB [${tableName}]:`, err.message);
+
       if (err.message === 'QUERY_TIMEOUT' && !isRetry) {
         fetchData(true);
         return;
       }
 
-      setError(err.message === 'QUERY_TIMEOUT' ? 'Connection slow. Retrying...' : err.message);
+      setError(err.message === 'QUERY_TIMEOUT' ? 'Connection slow. Retrying…' : err.message);
       setLoading(false);
       isFirstFetch.current = false;
     }
-  }, [tableName, orderKey, filtersKey, cacheKey]);
+  }, [tableName, orderKey, filtersKey, cacheKey]); // eslint-disable-line
 
+  // ── Realtime subscription ──────────────────────────────────────────────────
   const subscribeRealtime = useCallback(() => {
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
@@ -111,17 +121,14 @@ export function useSupabaseDB(tableName, orderByOption = null, filters = []) {
     }
 
     const channel = supabase
-      .channel(`public:${tableName}:${Math.random()}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: tableName },
-        () => { fetchData(); }
-      )
+      .channel(`public:${eventsTable}:${Math.random()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: eventsTable }, () => fetchData())
       .subscribe((status) => {
         if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Reconnect after 3s (was 10s) — faster recovery
           setTimeout(() => {
-             if (document.visibilityState === 'visible') subscribeRealtime();
-          }, 10000); // 10s wait before resetting channel
+            if (document.visibilityState === 'visible') subscribeRealtime();
+          }, 3000);
         }
       });
 
@@ -133,81 +140,69 @@ export function useSupabaseDB(tableName, orderByOption = null, filters = []) {
     fetchData();
     subscribeRealtime();
 
+    // Heartbeat: every 30s refetch if empty/errored; reconnect dead channels.
+    // View-backed tables always refetch — realtime can't be relied on for them.
     const heartbeat = setInterval(() => {
-      const { data: curData, error: curError, loading: curLoading } = stateRef.current;
+      const { data: cur, error: curErr, loading: curLoading } = stateRef.current;
       if (curLoading) return;
-      // Sync data if empty or errored
-      if (curData.length === 0 || curError) fetchData();
-      // Reconnect dead channel even when data exists (channel can silently die)
+      if (isView || cur.length === 0 || curErr) fetchData();
       const ch = channelRef.current;
       if (!ch || ch.state === 'closed' || ch.state === 'errored') subscribeRealtime();
     }, 30000);
 
-    const handleVisibilityChange = () => {
+    // Re-fetch + reconnect when tab becomes visible (browser may have suspended WS)
+    const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         fetchData();
-        subscribeRealtime(); // Reconnect WebSocket — browser may have suspended it while hidden
+        subscribeRealtime();
       }
     };
 
-    const handleFocus = () => {
-      fetchData();
-    };
+    const handleFocus = () => fetchData();
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // Reconnect Realtime channel after a token refresh — the old channel's auth
+    // header is stale once the JWT rotates, which can silently break postgres_changes.
+    const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'TOKEN_REFRESHED') {
+        subscribeRealtime();
+      }
+    });
+
+    document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       clearInterval(heartbeat);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      authSub.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('focus', handleFocus);
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
-  }, [fetchData, subscribeRealtime, tableName]);
+  }, [fetchData, subscribeRealtime]);
 
-  const add = useCallback(
-    async (docData) => {
-      const { data: newDoc, error: insertErr } = await supabase
-        .from(tableName)
-        .insert([docData])
-        .select()
-        .single();
-      if (insertErr) throw insertErr;
-      await fetchData();
-      return newDoc;
-    },
-    [tableName, fetchData]
-  );
+  // ── Mutations ──────────────────────────────────────────────────────────────
+  const add = useCallback(async (docData) => {
+    const { data: newDoc, error: insertErr } = await supabase
+      .from(tableName).insert([docData]).select().single();
+    if (insertErr) throw insertErr;
+    await fetchData();
+    return newDoc;
+  }, [tableName, fetchData]);
 
-  const update = useCallback(
-    async (id, docData) => {
-      const { data: updatedDoc, error: updateErr } = await supabase
-        .from(tableName)
-        .update(docData)
-        .eq('id', id)
-        .select()
-        .single();
-      if (updateErr) throw updateErr;
-      await fetchData();
-      return updatedDoc;
-    },
-    [tableName, fetchData]
-  );
+  const update = useCallback(async (id, docData) => {
+    const { data: updatedDoc, error: updateErr } = await supabase
+      .from(tableName).update(docData).eq('id', id).select().single();
+    if (updateErr) throw updateErr;
+    await fetchData();
+    return updatedDoc;
+  }, [tableName, fetchData]);
 
-  const remove = useCallback(
-    async (id) => {
-      const { error: deleteErr } = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', id);
-      if (deleteErr) throw deleteErr;
-      await fetchData();
-    },
-    [tableName, fetchData]
-  );
+  const remove = useCallback(async (id) => {
+    const { error: deleteErr } = await supabase
+      .from(tableName).delete().eq('id', id);
+    if (deleteErr) throw deleteErr;
+    await fetchData();
+  }, [tableName, fetchData]);
 
   return { data, loading, error, add, update, remove, refetch: fetchData };
 }
-

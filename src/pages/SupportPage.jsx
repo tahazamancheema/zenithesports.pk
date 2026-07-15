@@ -45,7 +45,7 @@ const FAQS = [
   },
   {
     q: 'I forgot my password — how do I reset it?',
-    a: 'On the login page, click "Forgot Password" (or use the Magic Link option). Enter your registered email and we will send you a sign-in link. If you do not receive it within 5 minutes, check your spam folder or contact us on WhatsApp.',
+    a: 'On the login page, click "Forgot Password". Enter your registered email and we will send you a password reset link. If you do not receive it within 5 minutes, check your spam folder or contact us on WhatsApp.',
   },
   {
     q: 'Google sign-in isn\'t working — what do I do?',

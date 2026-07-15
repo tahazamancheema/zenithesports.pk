@@ -71,70 +71,27 @@ export function useRegistration() {
   }, []);
 
   /**
-   * Check if any player ID or IGN already exists in any registration.
-   * Excludes 'rejected' records.
+   * Check if the team name, any player ID, or any IGN already exists in an
+   * active registration for this tournament. Runs server-side via the
+   * SECURITY DEFINER RPC `find_registration_duplicates`, so it works without
+   * exposing other teams' registration data to the client.
+   * Returns { type: 'team'|'id'|'ign', value } or null.
    */
   const findDuplicates = useCallback(async (playerIDs, playerIGNs, teamName, tournamentID, excludeRegId = null) => {
     if (!tournamentID) return null;
 
     try {
-      // 1. Check for Duplicate Team Name (Case-insensitive)
-      if (teamName) {
-        const teamQuery = supabase
-          .from('registrations')
-          .select('id, team_name')
-          .eq('tournament_id', tournamentID)
-          .neq('status', 'rejected')
-          .ilike('team_name', teamName)
-          .neq('id', excludeRegId || '00000000-0000-0000-0000-000000000000')
-          .limit(1);
+      const rpc = supabase.rpc('find_registration_duplicates', {
+        p_tournament_id: tournamentID,
+        p_team_name: teamName?.trim() || null,
+        p_player_ids: (playerIDs || []).filter(Boolean),
+        p_player_igns: (playerIGNs || []).filter(Boolean),
+        p_exclude_reg: excludeRegId || null,
+      });
 
-        const { data: teamCheck, error: teamError } = await runTimedQuery(teamQuery, 8000);
-        if (teamError) throw teamError;
-        if (teamCheck?.length > 0) return { type: 'team', value: teamName };
-      }
-
-      // 2. Check for Duplicate Player IDs
-      if (playerIDs && playerIDs.length > 0) {
-        let idQuery = supabase
-          .from('registrations')
-          .select('id, player_ids')
-          .eq('tournament_id', tournamentID)
-          .neq('status', 'rejected')
-          .overlaps('player_ids', playerIDs);
-
-        if (excludeRegId) idQuery = idQuery.neq('id', excludeRegId);
-        
-        const { data: idData, error: idError } = await runTimedQuery(idQuery.limit(1), 8000);
-        if (idError) throw idError;
-        if (idData?.length > 0) {
-          const matched = playerIDs.find(id => idData[0].player_ids.includes(id));
-          return { type: 'id', value: matched };
-        }
-      }
-
-      // 3. Check for Duplicate Player IGNs (Case-insensitive)
-      if (playerIGNs && playerIGNs.length > 0) {
-        let ignQuery = supabase
-          .from('registrations')
-          .select('id, player_igns')
-          .eq('tournament_id', tournamentID)
-          .neq('status', 'rejected')
-          .overlaps('player_igns', playerIGNs.map(n => n.toLowerCase()));
-
-        if (excludeRegId) ignQuery = ignQuery.neq('id', excludeRegId);
-        
-        const { data: ignData, error: ignError } = await runTimedQuery(ignQuery.limit(1), 8000);
-        if (ignError) throw ignError;
-        if (ignData?.length > 0) {
-          const matched = playerIGNs.find(n => 
-            ignData[0].player_igns.some(existing => existing.toLowerCase() === n.toLowerCase())
-          );
-          return { type: 'ign', value: matched };
-        }
-      }
-      
-      return null;
+      const { data, error } = await runTimedQuery(rpc, 10000);
+      if (error) throw error;
+      return data || null;
     } catch (err) {
       console.error('Duplicate check error:', err);
       if (err.message === 'QUERY_TIMEOUT') {
