@@ -205,13 +205,16 @@ create policy "Admins can update all registrations." on public.registrations for
 drop policy if exists "Admins can delete registrations." on public.registrations;
 create policy "Admins can delete registrations." on public.registrations for delete using (public.is_admin());
 
--- Users may edit while pending, and reapply after rejection — nothing else.
+-- Users may edit while pending, reapply after rejection, or withdraw an
+-- active registration. Withdrawal is allowed from any active state; a
+-- withdrawn registration frees its team name/IDs for re-registration.
 drop policy if exists "Users can update their own pending registrations." on public.registrations;
 drop policy if exists "Users can edit pending or reapply rejected registrations." on public.registrations;
-create policy "Users can edit pending or reapply rejected registrations." on public.registrations
+drop policy if exists "Users can edit, withdraw, or reapply their registrations." on public.registrations;
+create policy "Users can edit, withdraw, or reapply their registrations." on public.registrations
   for update
-  using (auth.uid() = user_id and status in ('pending', 'rejected'))
-  with check (auth.uid() = user_id and status in ('pending', 'reapplied'));
+  using (auth.uid() = user_id and status in ('pending', 'reapplied', 'approved', 'rejected', 'withdrawn'))
+  with check (auth.uid() = user_id and status in ('pending', 'reapplied', 'withdrawn'));
 
 -- Column-safe public projection for landing/tournament pages (counts, team
 -- lists). SECURITY DEFINER on purpose: exposes ONLY these non-PII columns.
@@ -236,16 +239,31 @@ begin
     return new;
   end if;
 
+  -- Basic payload sanity (non-admins, insert & update)
+  if length(coalesce(new.team_name, '')) = 0 or length(new.team_name) > 60 then
+    raise exception 'Team name must be between 1 and 60 characters';
+  end if;
+  if new.player_ids is null or array_length(new.player_ids, 1) is null then
+    raise exception 'At least one player is required';
+  end if;
+  if array_length(new.player_ids, 1) > 10 then
+    raise exception 'Too many players in the roster';
+  end if;
+
   if tg_op = 'INSERT' then
     new.group_id := null;
     new.rejection_reason := null;
   else
-    if new.status not in ('pending', 'reapplied') then
+    if new.status not in ('pending', 'reapplied', 'withdrawn') then
       raise exception 'Invalid status change';
     end if;
     new.tournament_id := old.tournament_id;
     new.user_id := old.user_id;
     new.group_id := old.group_id;
+    -- Withdrawing is always allowed, even after the deadline.
+    if new.status = 'withdrawn' then
+      return new;
+    end if;
   end if;
 
   select * into t from public.tournaments where id = new.tournament_id;
@@ -419,7 +437,7 @@ begin
     if exists (
       select 1 from public.registrations r
       where r.tournament_id = p_tournament_id
-        and r.status <> 'rejected'
+        and r.status not in ('rejected', 'withdrawn')
         and lower(r.team_name) = lower(trim(p_team_name))
         and (p_exclude_reg is null or r.id <> p_exclude_reg)
     ) then
@@ -430,7 +448,7 @@ begin
   if p_player_ids is not null and array_length(p_player_ids, 1) > 0 then
     select r.player_ids into v_ids from public.registrations r
     where r.tournament_id = p_tournament_id
-      and r.status <> 'rejected'
+      and r.status not in ('rejected', 'withdrawn')
       and r.player_ids && p_player_ids
       and (p_exclude_reg is null or r.id <> p_exclude_reg)
     limit 1;
@@ -444,7 +462,7 @@ begin
   if p_player_igns is not null and array_length(p_player_igns, 1) > 0 then
     select r.player_igns into v_igns from public.registrations r
     where r.tournament_id = p_tournament_id
-      and r.status <> 'rejected'
+      and r.status not in ('rejected', 'withdrawn')
       and exists (
         select 1 from unnest(r.player_igns) x
         join unnest(p_player_igns) y on lower(x) = lower(y)
@@ -484,6 +502,7 @@ create index if not exists idx_registrations_player_igns on public.registrations
 -- ── ADDITIONAL PERFORMANCE INDEXES ──
 create index if not exists idx_tournaments_created_at on public.tournaments(created_at desc);
 create index if not exists idx_tournaments_status on public.tournaments(status);
+create index if not exists idx_tournaments_game on public.tournaments(game);
 create index if not exists idx_registrations_created_at on public.registrations(created_at desc);
 
 -- ─────────────────────────────────────────

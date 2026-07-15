@@ -25,6 +25,12 @@ const STATUS_CONFIG = {
     textClass: 'text-blue-400',
     bgClass: 'bg-blue-500/10',
   },
+  withdrawn: {
+    label: 'WITHDRAWN',
+    dotClass: 'bg-[#9a8f7f]',
+    textClass: 'text-[#9a8f7f]',
+    bgClass: 'bg-[#9a8f7f]/10',
+  },
   awaiting: {
     label: 'PENDING',
     dotClass: 'bg-yellow-500 animate-pulse',

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../supabase/config';
+import { getGame } from '../config/games';
 
 /**
  * useRegistration — handles registration submission with validation guards:
@@ -106,12 +107,15 @@ export function useRegistration() {
    * to status 'reapplied' to avoid duplicates. Otherwise, we INSERT.
    */
   const submitRegistration = useCallback(
-    async ({ uid, tournamentID, teamName, realName, teamLogoURL, whatsapp, captainDiscord, playerIDs, playerIgns, screenshotURLs }) => {
+    async ({ uid, tournamentID, game, teamName, realName, teamLogoURL, whatsapp, captainDiscord, playerIDs, playerIgns, screenshotURLs }) => {
       setSubmitting(true);
       setError(null);
 
       try {
-        const idRegex = /^\d{10,14}$/;
+        const division = getGame(game);
+        const idRegex = new RegExp(division.playerId.pattern);
+        const minPlayers = division.roster.requiredCount;
+        const teamWord = division.roster.teamWord.toLowerCase();
         const cleanIDs = playerIDs.filter(Boolean).map((id) => id.trim());
         
         // 1. Check for existing record
@@ -134,15 +138,15 @@ export function useRegistration() {
             throw new Error(`Team name "${duplicate.value}" is already taken in this tournament.`);
           }
           if (duplicate.type === 'ign') {
-            throw new Error(`Player name "${duplicate.value}" is already registered in another squad.`);
+            throw new Error(`Player name "${duplicate.value}" is already registered in another ${teamWord}.`);
           }
-          throw new Error(`Player ID "${duplicate.value}" is already registered in another squad.`);
+          throw new Error(`Player ID "${duplicate.value}" is already registered in another ${teamWord}.`);
         }
 
-        // 3. Validation
-        if (cleanIDs.length < 4) throw new Error('At least 4 players are required.');
+        // 3. Validation (division-specific)
+        if (cleanIDs.length < minPlayers) throw new Error(`At least ${minPlayers} players are required.`);
         for (const pid of cleanIDs) {
-          if (!idRegex.test(pid)) throw new Error(`Invalid ID format: ${pid}`);
+          if (!idRegex.test(pid)) throw new Error(`Invalid ${division.playerId.label}: ${pid}`);
         }
 
         const payload = {
@@ -161,9 +165,11 @@ export function useRegistration() {
         };
 
         let finalResult;
-        if (existing && (existing.status === 'rejected')) {
-          // UPDATE existing to 'reapplied'
-          payload.status = 'reapplied';
+        if (existing && (existing.status === 'rejected' || existing.status === 'withdrawn')) {
+          // Reuse the old row instead of creating a duplicate. Rejected teams
+          // become 'reapplied' (needs review); withdrawn teams are treated as a
+          // fresh registration ('pending', or auto-approved server-side).
+          payload.status = existing.status === 'rejected' ? 'reapplied' : 'pending';
           finalResult = await runTimedQuery(
             supabase
               .from('registrations')

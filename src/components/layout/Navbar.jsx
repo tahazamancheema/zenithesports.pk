@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, LogOut, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Menu, X, LogOut, ShieldCheck, ChevronRight, ChevronDown, Crosshair, Flame, Target } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { signOut } from '../../supabase/auth';
 import toast from 'react-hot-toast';
 import { useTournaments } from '../../hooks/useTournaments';
 import { useSupabaseDB } from '../../hooks/useSupabaseDB';
+import { GAME_LIST } from '../../config/games';
+
+const GAME_ICONS = { Crosshair, Flame, Target };
 
 const NAV_LINKS = [
   { label: 'HOME',         to: '/' },
+  { label: 'DIVISIONS',    to: '/games', hasDivisions: true },
   { label: 'TOURNAMENTS',  to: '/tournaments' },
   { label: 'DAILY SCRIMS', to: '/scrims' },
   { label: 'ABOUT US',     to: '/about' },
@@ -151,15 +155,55 @@ export default function Navbar() {
                   <span className="text-[#f2f2f2] group-hover:text-white transition-colors">ZENITH</span>
                   <span className="ml-1 text-[#dbb462]">ESPORTS</span>
                 </div>
-                <div className="font-teko text-[8px] tracking-[0.38em] text-[#d1c5b3] opacity-20 mt-0.5 hidden md:block">PAKISTAN · PUBG MOBILE</div>
+                <div className="font-teko text-[8px] tracking-[0.38em] text-[#d1c5b3] opacity-20 mt-0.5 hidden md:block">PAKISTAN · PUBGM · FREE FIRE · VALORANT</div>
               </div>
             </Link>
 
             {/* Desktop Nav */}
             <nav className="hidden lg:flex items-center gap-0.5">
-              {NAV_LINKS.map(({ label, to }) => {
+              {NAV_LINKS.map(({ label, to, hasDivisions }) => {
                 const active = isActive(to);
                 const badge = label === 'TOURNAMENTS' && openRegistrations.length > 0 ? openRegistrations.length : null;
+
+                if (hasDivisions) {
+                  return (
+                    <div key={label} className="relative group/div">
+                      <Link
+                        to={to}
+                        className={`relative font-teko text-[14px] tracking-[0.18em] px-3.5 py-1.5 uppercase transition-all duration-300 flex items-center gap-1
+                          ${active ? 'text-[#dbb462]' : 'text-[#d1c5b3] opacity-45 group-hover/div:opacity-100 group-hover/div:text-white'}`}
+                      >
+                        {label}
+                        <ChevronDown size={12} className="transition-transform group-hover/div:rotate-180" />
+                        <span className={`absolute bottom-0 left-3.5 right-3.5 h-[1.5px] bg-[#dbb462] transition-transform duration-400 origin-left ${active ? 'scale-x-100' : 'scale-x-0 group-hover/div:scale-x-100'}`} />
+                      </Link>
+                      {/* Divisions dropdown */}
+                      <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover/div:opacity-100 group-hover/div:visible transition-all duration-200 z-50">
+                        <div className="w-64 bg-[#0b0b0b] border border-[#dbb462]/12 shadow-[0_16px_50px_rgba(0,0,0,0.8)] py-1.5">
+                          {GAME_LIST.map((g) => {
+                            const GIcon = GAME_ICONS[g.icon] || Crosshair;
+                            return (
+                              <Link
+                                key={g.slug}
+                                to={`/games/${g.slug}`}
+                                className="flex items-center gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors group/item"
+                              >
+                                <span className="w-8 h-8 flex items-center justify-center border shrink-0" style={{ borderColor: g.accent + '44', backgroundColor: g.accentSoft }}>
+                                  <GIcon size={15} style={{ color: g.accent }} />
+                                </span>
+                                <span className="min-w-0">
+                                  <span className="block font-teko text-[15px] tracking-[0.1em] text-white uppercase leading-tight">{g.name}</span>
+                                  <span className="block font-body text-[11px] text-[#d1c5b3] opacity-40 truncate">{g.tagline}</span>
+                                </span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
                   <Link
                     key={label}
@@ -241,28 +285,47 @@ export default function Navbar() {
           <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#dbb462]/20 to-transparent" />
 
           <nav className="flex flex-col">
-            {NAV_LINKS.map(({ label, to }) => {
+            {NAV_LINKS.map(({ label, to, hasDivisions }) => {
               const active = isActive(to);
               const badge = label === 'TOURNAMENTS' && openRegistrations.length > 0 ? openRegistrations.length : null;
               return (
-                <Link
-                  key={label}
-                  to={to}
-                  onClick={() => setMobileOpen(false)}
-                  className={`flex items-center justify-between px-7 py-4 border-b border-white/[0.04] font-teko text-[20px] tracking-[0.12em] uppercase transition-colors ${
-                    active ? 'text-[#dbb462] bg-[#dbb462]/[0.04]' : 'text-[#d1c5b3] opacity-45'
-                  }`}
-                >
-                  <span>{label}</span>
-                  <div className="flex items-center gap-2">
-                    {badge && (
-                      <span className="bg-[#dbb462] text-[#402d00] font-teko text-[10px] tracking-widest px-2 py-0.5 leading-none">
-                        {badge} OPEN
-                      </span>
-                    )}
-                    <ChevronRight size={15} className={active ? 'text-[#dbb462]' : 'text-white/15'} />
-                  </div>
-                </Link>
+                <React.Fragment key={label}>
+                  <Link
+                    to={to}
+                    onClick={() => setMobileOpen(false)}
+                    className={`flex items-center justify-between px-7 py-4 border-b border-white/[0.04] font-teko text-[20px] tracking-[0.12em] uppercase transition-colors ${
+                      active ? 'text-[#dbb462] bg-[#dbb462]/[0.04]' : 'text-[#d1c5b3] opacity-45'
+                    }`}
+                  >
+                    <span>{label}</span>
+                    <div className="flex items-center gap-2">
+                      {badge && (
+                        <span className="bg-[#dbb462] text-[#402d00] font-teko text-[10px] tracking-widest px-2 py-0.5 leading-none">
+                          {badge} OPEN
+                        </span>
+                      )}
+                      <ChevronRight size={15} className={active ? 'text-[#dbb462]' : 'text-white/15'} />
+                    </div>
+                  </Link>
+                  {hasDivisions && (
+                    <div className="bg-[#050505] border-b border-white/[0.04]">
+                      {GAME_LIST.map((g) => {
+                        const GIcon = GAME_ICONS[g.icon] || Crosshair;
+                        return (
+                          <Link
+                            key={g.slug}
+                            to={`/games/${g.slug}`}
+                            onClick={() => setMobileOpen(false)}
+                            className="flex items-center gap-3 pl-10 pr-7 py-3.5 border-b border-white/[0.02] last:border-b-0"
+                          >
+                            <GIcon size={16} style={{ color: g.accent }} />
+                            <span className="font-teko text-[16px] tracking-[0.1em] text-[#d1c5b3] opacity-70 uppercase">{g.name}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </React.Fragment>
               );
             })}
             {isAdmin && (

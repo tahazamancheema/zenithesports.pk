@@ -4,12 +4,18 @@ import { useTournaments } from '../hooks/useTournaments';
 import { useSupabaseDB } from '../hooks/useSupabaseDB';
 import { AlertTriangle, RefreshCw, Trophy } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { GAME_LIST, getGame } from '../config/games';
 
 const FILTERS = [
   { label: 'ALL',       value: 'all' },
   { label: 'OPEN',      value: 'registrations_open' },
   { label: 'ONGOING',   value: 'in_progress' },
   { label: 'COMPLETED', value: 'completed' },
+];
+
+const GAME_FILTERS = [
+  { label: 'ALL GAMES', value: 'all', accent: '#dbb462' },
+  ...GAME_LIST.map((g) => ({ label: g.name, value: g.slug, accent: g.accent })),
 ];
 
 export default function TournamentsPage() {
@@ -31,6 +37,7 @@ export default function TournamentsPage() {
   } = useSupabaseDB('registrations_public');
 
   const [filter, setFilter] = useState('all');
+  const [gameFilter, setGameFilter] = useState('all');
 
   // Compute registration counts and user registration status from real-time data
   const { regCounts, userRegStatuses } = useMemo(() => {
@@ -51,17 +58,23 @@ export default function TournamentsPage() {
     return { regCounts: counts, userRegStatuses: statuses };
   }, [allRegistrations, user?.id]);
 
-  const filtered = tournaments.filter((t) => filter === 'all' || t.status === filter);
-  
+  // Apply the game filter first, then status. Status badge counts reflect
+  // the active game filter so the numbers always match what's on screen.
+  const gameScoped = tournaments.filter((t) => gameFilter === 'all' || getGame(t.game).slug === gameFilter);
+  const filtered = gameScoped.filter((t) => filter === 'all' || t.status === filter);
+
   const getRegCount = (id) => regCounts[id] || 0;
 
-  // Count by status for filter badges
+  // Count by status for filter badges (within the current game scope)
   const countByStatus = {
-    all: tournaments.length,
-    registrations_open: tournaments.filter(t => t.status === 'registrations_open').length,
-    in_progress: tournaments.filter(t => t.status === 'in_progress').length,
-    completed: tournaments.filter(t => t.status === 'completed').length,
+    all: gameScoped.length,
+    registrations_open: gameScoped.filter(t => t.status === 'registrations_open').length,
+    in_progress: gameScoped.filter(t => t.status === 'in_progress').length,
+    completed: gameScoped.filter(t => t.status === 'completed').length,
   };
+
+  const countByGame = (slug) =>
+    slug === 'all' ? tournaments.length : tournaments.filter(t => getGame(t.game).slug === slug).length;
 
   const isLoading = tLoading || rLoading;
   const isError = tError;
@@ -105,6 +118,32 @@ export default function TournamentsPage() {
             <TourneyStatCell label="Open Now" value={countByStatus.registrations_open} accent />
             <TourneyStatCell label="In Progress" value={countByStatus.in_progress} />
             <TourneyStatCell label="Completed" value={countByStatus.completed} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Division Filter Row ── */}
+      <div className="border-b border-white/[0.04] bg-[#0a0a0a]">
+        <div className="container mx-auto max-w-7xl px-6 lg:px-16">
+          <div className="flex items-center gap-2 py-4 overflow-x-auto no-scrollbar">
+            <span className="font-label text-[12px] tracking-[0.25em] text-[#d1c5b3] opacity-30 uppercase shrink-0 mr-2 hidden md:block">Division</span>
+            {GAME_FILTERS.map(({ label, value, accent }) => {
+              const active = gameFilter === value;
+              const count = countByGame(value);
+              return (
+                <button
+                  key={value}
+                  onClick={() => setGameFilter(value)}
+                  className="font-label text-[13px] tracking-[0.18em] px-4 py-2 uppercase whitespace-nowrap border transition-all shrink-0 flex items-center gap-2"
+                  style={active
+                    ? { backgroundColor: accent, borderColor: accent, color: '#0a0a0a' }
+                    : { borderColor: 'rgba(255,255,255,0.08)', color: '#d1c5b3' }}
+                >
+                  {label}
+                  <span className="text-[11px]" style={{ opacity: active ? 0.6 : 0.5, color: active ? '#0a0a0a' : accent }}>{count}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>

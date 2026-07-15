@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import LiveStatus from '../components/LiveStatus';
 import AnnouncementsStrip from '../components/AnnouncementsStrip';
+import DivisionsSection from '../components/DivisionsSection';
 import TournamentCard from '../components/TournamentCard';
 import { useTournaments } from '../hooks/useTournaments';
 import { useSupabaseDB } from '../hooks/useSupabaseDB';
@@ -140,7 +141,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-end">
               <div>
                 <p className="font-rajdhani text-[#d1c5b3] text-[19px] leading-relaxed opacity-55 font-medium max-w-lg mb-10">
-                  Every squad verified. Every match tracked. Every champion earned. Pakistan's most rigorous PUBG Mobile platform.
+                  Every squad verified. Every match tracked. Every champion earned. Pakistan's premier esports organization across PUBG Mobile, Free Fire, and Valorant.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Link
@@ -151,10 +152,10 @@ export default function LandingPage() {
                     <ArrowRight size={20} strokeWidth={2.5} />
                   </Link>
                   <Link
-                    to="/tournaments"
+                    to="/games"
                     className="btn-obsidian-ghost font-bebas text-[20px] px-9 py-5 tracking-[0.15em] uppercase"
                   >
-                    VIEW EVENTS
+                    OUR DIVISIONS
                   </Link>
                 </div>
               </div>
@@ -198,6 +199,9 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Divisions ── */}
+      <DivisionsSection />
 
       {/* ── Command Center Announcements ── */}
       <AnnouncementsStrip />

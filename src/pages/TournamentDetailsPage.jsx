@@ -9,6 +9,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import RegistrationCountdown from '../components/RegistrationCountdown';
 import { useSupabaseDB } from '../hooks/useSupabaseDB';
 import { useTournamentCountdown } from '../hooks/useTournamentCountdown';
+import { getGame } from '../config/games';
 
 const TABS = [
   { id: 'overview',  label: 'OVERVIEW',  icon: BookOpen },
@@ -81,6 +82,7 @@ export default function TournamentDetailsPage() {
   let currentStatus = computeTournamentStatus(tournament);
   const t = { ...tournament, status: currentStatus };
   const { title, description, briefing, game, max_teams, prize_pool, status, start_date, registration_deadline, registration_open_date, poster_url } = t;
+  const division = getGame(game);
 
   const parseJSON = (val) => {
     if (!val) return [];
@@ -92,7 +94,10 @@ export default function TournamentDetailsPage() {
 
   const approvedCount = registrations.filter(r => r.status === 'approved').length;
   const totalCount    = registrations.length;
-  const isUserRegistered = user && registrations.some(r => r.user_id === user.id);
+  // A withdrawn or rejected entry doesn't count as "registered" — those users
+  // may register/re-apply again while registration is open.
+  const userReg = user ? registrations.find(r => r.user_id === user.id) : null;
+  const isUserRegistered = !!userReg && !['withdrawn'].includes(userReg.status);
   const isOpen = status === 'registrations_open' && phase === 'closing' && (!max_teams || approvedCount < max_teams);
   const capacityPct = max_teams ? Math.min((approvedCount / max_teams) * 100, 100) : 100;
 
@@ -156,9 +161,13 @@ export default function TournamentDetailsPage() {
 
           {/* Badges */}
           <div className="flex flex-wrap gap-3 items-center mb-6">
-            <span className="font-teko text-[14px] tracking-[0.2em] text-[#dbb462] uppercase bg-[#dbb462]/10 px-4 py-1.5 border border-[#dbb462]/20">
-              {game || 'PUBG MOBILE'}
-            </span>
+            <Link
+              to={`/games/${division.slug}`}
+              className="font-teko text-[14px] tracking-[0.2em] uppercase px-4 py-1.5 border transition-opacity hover:opacity-80"
+              style={{ color: division.accent, backgroundColor: division.accentSoft, borderColor: division.accent + '33' }}
+            >
+              {division.name}
+            </Link>
             <StatusBadge status={status} />
           </div>
 
@@ -562,7 +571,6 @@ export default function TournamentDetailsPage() {
                   <div className="space-y-3">
                     {/* User is registered: Show Status */}
                     {isUserRegistered && (() => {
-                      const userReg = registrations.find(r => r.user_id === user?.id);
                       if (userReg?.status === 'rejected') {
                         return (
                           <div className="space-y-4">
@@ -595,7 +603,7 @@ export default function TournamentDetailsPage() {
                               to={user ? `/register/${id}` : '/auth'}
                               className="btn-obsidian-primary w-full py-5 font-bebas text-[22px] tracking-[0.2em] inline-flex items-center justify-center gap-3 uppercase group/cta"
                             >
-                              {user ? 'REGISTER TEAM' : 'LOGIN TO REGISTER'} <ArrowRight size={20} className="group-hover/cta:translate-x-1 transition-transform" />
+                              {user ? `REGISTER ${division.roster.teamWord.toUpperCase()}` : 'LOGIN TO REGISTER'} <ArrowRight size={20} className="group-hover/cta:translate-x-1 transition-transform" />
                             </Link>
                           ) : (
                             // Full

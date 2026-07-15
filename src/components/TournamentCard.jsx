@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Trophy, ChevronRight, Users, Zap, Shield, Clock, Wifi } from 'lucide-react';
 import { useTournamentCountdown } from '../hooks/useTournamentCountdown';
 import StatusBadge from './ui/StatusBadge';
+import { getGame } from '../config/games';
 
 // ── Status-driven design tokens ──────────────────────────────────
 const STATUS_COLORS = {
@@ -59,6 +60,7 @@ export default function TournamentCard({ tournament, registrationCount = 0, user
     format = 'Squad', team_size = 4, entry_fee = 0, region = 'Pakistan',
   } = tournament;
 
+  const division = getGame(game);
   const { phase, days, hours, mins, secs } = useTournamentCountdown(registration_open_date, registration_deadline);
 
   const slotsPercent  = max_teams ? Math.min((registrationCount / max_teams) * 100, 100) : null;
@@ -181,10 +183,10 @@ export default function TournamentCard({ tournament, registrationCount = 0, user
         {/* Meta row */}
         <div className="flex items-center gap-2 mb-2.5">
           <span
-            className="font-teko text-[11px] tracking-[0.2em] uppercase"
-            style={{ color: sc.accent, opacity: 0.85 }}
+            className="font-teko text-[11px] tracking-[0.2em] uppercase px-2 py-0.5 border leading-none"
+            style={{ color: division.accent, borderColor: division.accent + '33', backgroundColor: division.accentSoft }}
           >
-            {game}
+            {division.name}
           </span>
           <div className="w-1 h-1 bg-white/15 rounded-full" />
           <span className="font-teko text-[11px] tracking-[0.15em] text-[#d1c5b3] opacity-35 uppercase">{region || 'Pakistan'}</span>
@@ -266,7 +268,7 @@ export default function TournamentCard({ tournament, registrationCount = 0, user
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <Users size={11} className="text-[#d1c5b3] opacity-30 shrink-0" />
-              <span className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase">Squads</span>
+              <span className="font-teko text-[11px] tracking-[0.2em] text-[#d1c5b3] opacity-40 uppercase">{division.roster.teamWord}s</span>
             </div>
             <div className="flex items-baseline gap-1">
               <span className="font-bebas text-xl leading-none text-white">{animatedCount}</span>
@@ -306,7 +308,7 @@ export default function TournamentCard({ tournament, registrationCount = 0, user
 
         {/* ── CTA ──────────────────────────────────────────────── */}
         <div className="mt-auto flex gap-2">
-          {isOpen && (!userRegistrationStatus || userRegistrationStatus === 'rejected') ? (
+          {isOpen && (!userRegistrationStatus || userRegistrationStatus === 'rejected' || userRegistrationStatus === 'withdrawn') ? (
             <Link
               to={`/register/${id}`}
               className="flex-1 py-3.5 font-bebas text-[1.1rem] tracking-[0.15em] uppercase text-center relative overflow-hidden transition-all duration-300 group/cta"
@@ -316,7 +318,7 @@ export default function TournamentCard({ tournament, registrationCount = 0, user
                 color: sc.accent,
               }}
             >
-              <span className="relative z-10">REGISTER SQUAD</span>
+              <span className="relative z-10">REGISTER {division.roster.teamWord}</span>
               <div
                 className="absolute inset-0 opacity-0 group-hover/cta:opacity-100 transition-opacity duration-300"
                 style={{ backgroundColor: `${sc.accent}18` }}

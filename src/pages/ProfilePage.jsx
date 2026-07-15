@@ -6,19 +6,34 @@ import { supabase } from '../supabase/config';
 import GhostInput from '../components/ui/GhostInput';
 import StatusBadge from '../components/ui/StatusBadge';
 import toast from 'react-hot-toast';
-import { Save, User, Shield, Users, Phone, Trophy, Clock, CheckCircle2, XCircle, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Save, User, Shield, Users, Phone, Trophy, Clock, CheckCircle2, XCircle, ChevronRight, AlertTriangle, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { getGame } from '../config/games';
 
 export default function ProfilePage() {
   const { user, userDoc, loading, refreshProfile } = useAuth();
   const { tournaments } = useTournaments();
 
   // My registrations — scoped to this user only
-  const { data: myRegistrations, loading: regsLoading } = useSupabaseDB(
+  const { data: myRegistrations, loading: regsLoading, update: updateMyReg } = useSupabaseDB(
     'registrations',
     { field: 'created_at', direction: 'desc' },
     user ? [['user_id', 'eq', user.id]] : null
   );
+
+  const [withdrawingId, setWithdrawingId] = useState(null);
+  async function handleWithdraw(reg) {
+    if (!confirm(`Withdraw "${reg.team_name}" from this tournament? You can re-register later while registration is open.`)) return;
+    setWithdrawingId(reg.id);
+    try {
+      await updateMyReg(reg.id, { status: 'withdrawn' });
+      toast.success('Registration withdrawn.');
+    } catch (err) {
+      toast.error(`Could not withdraw: ${err.message}`);
+    } finally {
+      setWithdrawingId(null);
+    }
+  }
 
   const [form, setForm] = useState({
     displayName: '',
@@ -301,9 +316,11 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {myRegistrations.map(reg => {
                   const tournament = tournaments.find(t => t.id === reg.tournament_id);
+                  const division = getGame(tournament?.game);
                   const regDate = reg.created_at
                     ? new Date(reg.created_at).toLocaleDateString('en-PK', { day: 'numeric', month: 'short', year: 'numeric' })
                     : '—';
+                  const canWithdraw = ['pending', 'reapplied', 'approved'].includes(reg.status);
 
                   return (
                     <div
@@ -322,7 +339,12 @@ export default function ProfilePage() {
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="font-bebas text-xl text-white leading-none uppercase truncate">{reg.team_name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-bebas text-xl text-white leading-none uppercase truncate">{reg.team_name}</p>
+                              <span className="font-teko text-[10px] tracking-[0.15em] uppercase px-1.5 py-0.5 border leading-none shrink-0" style={{ color: division.accent, borderColor: division.accent + '44', backgroundColor: division.accentSoft }}>
+                                {division.short}
+                              </span>
+                            </div>
                             <p className="font-teko text-[12px] tracking-widest text-[#d1c5b3] opacity-50 uppercase mt-1">
                               {tournament?.title || reg.tournament_id}
                             </p>
@@ -340,18 +362,30 @@ export default function ProfilePage() {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-3">
                         <span className="font-teko text-[12px] tracking-widest text-[#d1c5b3] opacity-40 uppercase">
                           Registered {regDate}
                         </span>
-                        {tournament && (
-                          <Link
-                            to={`/tournaments/${tournament.id}`}
-                            className="font-teko text-[12px] tracking-widest text-[#dbb462] opacity-60 hover:opacity-100 uppercase transition-opacity flex items-center gap-1"
-                          >
-                            View <ChevronRight size={12} />
-                          </Link>
-                        )}
+                        <div className="flex items-center gap-3">
+                          {canWithdraw && (
+                            <button
+                              onClick={() => handleWithdraw(reg)}
+                              disabled={withdrawingId === reg.id}
+                              className="font-teko text-[12px] tracking-widest text-[#d1c5b3] opacity-50 hover:opacity-100 hover:text-red-400 uppercase transition-all flex items-center gap-1 disabled:opacity-30"
+                              title="Withdraw this registration"
+                            >
+                              <LogOut size={12} /> {withdrawingId === reg.id ? '...' : 'Withdraw'}
+                            </button>
+                          )}
+                          {tournament && (
+                            <Link
+                              to={`/tournaments/${tournament.id}`}
+                              className="font-teko text-[12px] tracking-widest text-[#dbb462] opacity-60 hover:opacity-100 uppercase transition-opacity flex items-center gap-1"
+                            >
+                              View <ChevronRight size={12} />
+                            </Link>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );

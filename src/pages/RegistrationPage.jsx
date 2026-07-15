@@ -9,6 +9,9 @@ import { uploadFile, uploadPrivateFile } from '../utils/storage';
 import GhostInput from '../components/ui/GhostInput';
 import WhatsAppModal from '../components/ui/WhatsAppModal';
 import toast from 'react-hot-toast';
+import { getGame } from '../config/games';
+
+const MAX_ROSTER = 7; // upper bound across all divisions (Valorant)
 
 export default function RegistrationPage() {
   const { tournamentId } = useParams();
@@ -17,34 +20,30 @@ export default function RegistrationPage() {
   const { submitRegistration, hasPendingRegistration, findDuplicates, submitting } = useRegistration();
   const { user, userDoc, loading: aLoading } = useAuth();
   
-  const [form, setForm] = useState({
-    team_name: '',
-    real_name: '',
-    whatsapp_number: '',
-    captain_discord: '',
-    player_1_ign: '', player_1_id: '',
-    player_2_ign: '', player_2_id: '',
-    player_3_ign: '', player_3_id: '',
-    player_4_ign: '', player_4_id: '',
-    player_5_ign: '', player_5_id: '',
-    player_6_ign: '', player_6_id: '',
+  const [form, setForm] = useState(() => {
+    const base = { team_name: '', real_name: '', whatsapp_number: '', captain_discord: '' };
+    for (let i = 1; i <= MAX_ROSTER; i++) { base[`player_${i}_ign`] = ''; base[`player_${i}_id`] = ''; }
+    return base;
   });
   const [showWAModal, setShowWAModal] = useState(false);
 
   const handleAutoFill = () => {
     if (!userDoc) return;
     const pids = userDoc.player_ids || [];
-    setForm({
-      team_name: userDoc.team_name || '',
-      real_name: userDoc.display_name || '',
-      whatsapp_number: userDoc.whatsapp_number || '',
-      captain_discord: userDoc.captain_discord || '',
-      player_1_id: pids[0] || '', player_1_ign: userDoc.player_igns?.[0] || '',
-      player_2_id: pids[1] || '', player_2_ign: userDoc.player_igns?.[1] || '',
-      player_3_id: pids[2] || '', player_3_ign: userDoc.player_igns?.[2] || '',
-      player_4_id: pids[3] || '', player_4_ign: userDoc.player_igns?.[3] || '',
-      player_5_id: pids[4] || '', player_5_ign: userDoc.player_igns?.[4] || '',
-      player_6_id: pids[5] || '', player_6_ign: userDoc.player_igns?.[5] || '',
+    const igns = userDoc.player_igns || [];
+    setForm((f) => {
+      const next = {
+        ...f,
+        team_name: userDoc.team_name || '',
+        real_name: userDoc.display_name || '',
+        whatsapp_number: userDoc.whatsapp_number || '',
+        captain_discord: userDoc.captain_discord || '',
+      };
+      for (let i = 1; i <= MAX_ROSTER; i++) {
+        next[`player_${i}_id`] = pids[i - 1] || '';
+        next[`player_${i}_ign`] = igns[i - 1] || '';
+      }
+      return next;
     });
     toast.success('Profile data synchronized successfully.');
   };
@@ -65,6 +64,8 @@ export default function RegistrationPage() {
   };
 
   const tournament = tournaments.find(t => t.id === tournamentId);
+  const division = getGame(tournament?.game);
+  const roster = division.roster;
   const { phase } = useTournamentCountdown(tournament?.registration_open_date, tournament?.registration_deadline);
 
   useEffect(() => {
@@ -99,43 +100,46 @@ export default function RegistrationPage() {
       return toast.error('WhatsApp number must be exactly 11 digits.', { id: 'reg' });
     }
 
-    // Validate Player IDs & Names (All required and optional if provided)
-    const idRegex = /^\d{10,14}$/;
+    // Validate Player IDs & Names using this division's rules.
+    const idRegex = new RegExp(division.playerId.pattern);
+    const requiredCount = roster.requiredCount;
+    const maxCount = roster.max;
     let firstErrorField = null;
     const squadIDs = new Set();
     const squadIGNs = new Set();
-    
-    for (let i = 1; i <= 6; i++) {
+
+    for (let i = 1; i <= maxCount; i++) {
       const pid = form[`player_${i}_id`]?.trim();
       const pign = form[`player_${i}_ign`]?.trim().toLowerCase();
-      
-      // Required for 1-4, or if provided for 5-6
-      if (i <= 4 || pid || pign) {
+      const isRequired = i <= requiredCount;
+
+      // Required slots, or optional slots the user started filling
+      if (isRequired || pid || pign) {
         // ID Checks
         if (!pid) {
-          if (i <= 4) {
+          if (isRequired) {
             if (!firstErrorField) firstErrorField = `player_${i}_id`;
             setFieldErrors(prev => ({ ...prev, [`player_${i}_id`]: 'Required' }));
           }
         } else if (!idRegex.test(pid)) {
           if (!firstErrorField) firstErrorField = `player_${i}_id`;
-          setFieldErrors(prev => ({ ...prev, [`player_${i}_id`]: 'Invalid ID (10-14 digits)' }));
-        } else if (squadIDs.has(pid)) {
+          setFieldErrors(prev => ({ ...prev, [`player_${i}_id`]: `Invalid ${division.playerId.label}` }));
+        } else if (squadIDs.has(pid.toLowerCase())) {
           if (!firstErrorField) firstErrorField = `player_${i}_id`;
-          setFieldErrors(prev => ({ ...prev, [`player_${i}_id`]: 'Duplicate ID in Squad' }));
+          setFieldErrors(prev => ({ ...prev, [`player_${i}_id`]: `Duplicate ID in ${roster.teamWord}` }));
         } else {
-          squadIDs.add(pid);
+          squadIDs.add(pid.toLowerCase());
         }
 
         // IGN Checks
         if (!pign) {
-          if (i <= 4) {
+          if (isRequired) {
             if (!firstErrorField) firstErrorField = `player_${i}_ign`;
             setFieldErrors(prev => ({ ...prev, [`player_${i}_ign`]: 'Required' }));
           }
         } else if (squadIGNs.has(pign)) {
           if (!firstErrorField) firstErrorField = `player_${i}_ign`;
-          setFieldErrors(prev => ({ ...prev, [`player_${i}_ign`]: 'Duplicate Name in Squad' }));
+          setFieldErrors(prev => ({ ...prev, [`player_${i}_ign`]: `Duplicate Name in ${roster.teamWord}` }));
         } else {
           squadIGNs.add(pign);
         }
@@ -143,7 +147,7 @@ export default function RegistrationPage() {
     }
 
     if (firstErrorField) {
-      return toast.error('Please fix squad errors (Duplicate names/IDs or invalid formats).', { id: 'reg' });
+      return toast.error(`Please fix ${roster.teamWord.toLowerCase()} errors (duplicate names/IDs or invalid formats).`, { id: 'reg' });
     }
 
     // Validate Screenshot Uniqueness
@@ -165,10 +169,16 @@ export default function RegistrationPage() {
 
       toast.loading('Stage 1: Verifying squad status...', { id: 'reg' });
       
-      const cleanIDs = [
-        form.player_1_id, form.player_2_id, form.player_3_id,
-        form.player_4_id, form.player_5_id, form.player_6_id
-      ].filter(Boolean).map(id => id.trim());
+      // Build roster arrays from the filled slots (up to this division's max).
+      const cleanIDs = [];
+      const playerIgns = [];
+      for (let i = 1; i <= roster.max; i++) {
+        const pid = form[`player_${i}_id`]?.trim();
+        if (pid) {
+          cleanIDs.push(pid);
+          playerIgns.push(form[`player_${i}_ign`]?.trim() || '');
+        }
+      }
 
       // Pre-Guard 1: Pending check
       const pending = await hasPendingRegistration(user.id, tournament.id);
@@ -176,11 +186,6 @@ export default function RegistrationPage() {
         setSaving(false);
         return toast.error('You already have a pending registration. Please wait for it to be reviewed.', { id: 'reg' });
       }
-
-      const playerIgns = [
-        form.player_1_ign, form.player_2_ign, form.player_3_ign,
-        form.player_4_ign, form.player_5_ign, form.player_6_ign
-      ].filter((_, i) => !!form[`player_${i+1}_id`]);
 
       // Pre-Guard 2: Duplicate check
       toast.loading('Stage 2: Scanning for duplicates...', { id: 'reg' });
@@ -193,22 +198,22 @@ export default function RegistrationPage() {
         }
         if (duplicate.type === 'ign') {
           // Find which field it is
-          for (let i = 1; i <= 6; i++) {
+          for (let i = 1; i <= roster.max; i++) {
             if (form[`player_${i}_ign`]?.trim().toLowerCase() === duplicate.value.toLowerCase()) {
               setFieldErrors(prev => ({ ...prev, [`player_${i}_ign`]: 'Already Registered' }));
               break;
             }
           }
-          return toast.error(`Player name "${duplicate.value}" is already registered in another squad.`, { id: 'reg' });
+          return toast.error(`Player name "${duplicate.value}" is already registered in another ${roster.teamWord.toLowerCase()}.`, { id: 'reg' });
         }
         // ID Check
-        for (let i = 1; i <= 6; i++) {
+        for (let i = 1; i <= roster.max; i++) {
           if (form[`player_${i}_id`]?.trim() === duplicate.value) {
             setFieldErrors(prev => ({ ...prev, [`player_${i}_id`]: 'Already Registered' }));
             break;
           }
         }
-        return toast.error(`Player ID "${duplicate.value}" is already registered in another squad.`, { id: 'reg' });
+        return toast.error(`Player ID "${duplicate.value}" is already registered in another ${roster.teamWord.toLowerCase()}.`, { id: 'reg' });
       }
 
       toast.loading('Optimizing tactical assets...', { id: 'reg' });
@@ -261,6 +266,7 @@ export default function RegistrationPage() {
       const result = await submitRegistration({
         uid: user.id,
         tournamentID: tournament.id,
+        game: tournament.game,
         teamName: form.team_name,
         realName: form.real_name,
         teamLogoURL: logoUrl,
@@ -351,9 +357,12 @@ export default function RegistrationPage() {
           >
             <ChevronLeft size={14} /> Cancel Registration
           </button>
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-8 h-[2px] bg-[#dbb462]" />
-            <span className="font-teko text-[13px] tracking-[0.3em] text-[#dbb462] uppercase">Team Registration</span>
+          <div className="flex items-center gap-3 mb-5 flex-wrap">
+            <div className="w-8 h-[2px]" style={{ backgroundColor: division.accent }} />
+            <span className="font-teko text-[13px] tracking-[0.3em] uppercase" style={{ color: division.accent }}>{roster.teamWord} Registration</span>
+            <span className="font-teko text-[12px] tracking-[0.2em] uppercase px-2.5 py-0.5 border leading-none" style={{ color: division.accent, borderColor: division.accent + '44', backgroundColor: division.accentSoft }}>
+              {division.name}
+            </span>
           </div>
           <h1 className="font-bebas text-5xl md:text-7xl lg:text-8xl tracking-tight text-[#f2f2f2] uppercase leading-[0.85]">
             {tournament.title}
@@ -427,38 +436,45 @@ export default function RegistrationPage() {
             </div>
           </FormSection>
 
-          {/* ── Section 2: Player Roster ── */}
-          <FormSection number="02" title="Player Roster" hint="Min 4 required · Player 5–6 optional · IDs must be 10–14 digits">
+          {/* ── Section 2: Player Roster (division-aware) ── */}
+          <FormSection
+            number="02"
+            title={`${roster.teamWord} Roster`}
+            hint={`Min ${roster.requiredCount} required · Players ${roster.requiredCount + 1}–${roster.max} optional · ${division.playerId.help}`}
+          >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {[1, 2, 3, 4, 5, 6].map(num => (
-                <div key={num} className="bg-[#0a0a0a] border border-white/[0.05] p-5 relative group hover:border-white/[0.1] transition-colors">
-                  {/* Player number badge */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="font-bebas text-2xl text-[#dbb462] opacity-30 leading-none">{String(num).padStart(2, '0')}</span>
-                    <span className="font-teko text-[12px] tracking-[0.25em] text-[#d1c5b3] opacity-40 uppercase">
-                      Player {num} {num > 4 && '· Optional'}
-                    </span>
+              {Array.from({ length: roster.max }, (_, idx) => idx + 1).map(num => {
+                const required = num <= roster.requiredCount;
+                return (
+                  <div key={num} className="bg-[#0a0a0a] border border-white/[0.05] p-5 relative group hover:border-white/[0.1] transition-colors">
+                    {/* Player number badge */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="font-bebas text-2xl text-[#dbb462] opacity-30 leading-none">{String(num).padStart(2, '0')}</span>
+                      <span className="font-teko text-[12px] tracking-[0.25em] text-[#d1c5b3] opacity-40 uppercase">
+                        Player {num} {!required && '· Optional'}
+                      </span>
+                    </div>
+                    <div className="space-y-4">
+                      <GhostInput
+                        label={division.ign.label}
+                        value={form[`player_${num}_ign`]}
+                        onChange={e => { setForm(f => ({ ...f, [`player_${num}_ign`]: e.target.value })); clearFieldError(`player_${num}_ign`); }}
+                        required={required}
+                        placeholder={division.ign.placeholder}
+                        error={fieldErrors[`player_${num}_ign`]}
+                      />
+                      <GhostInput
+                        label={division.playerId.label}
+                        value={form[`player_${num}_id`]}
+                        onChange={e => { setForm(f => ({ ...f, [`player_${num}_id`]: e.target.value })); clearFieldError(`player_${num}_id`); }}
+                        required={required}
+                        placeholder={division.playerId.placeholder}
+                        error={fieldErrors[`player_${num}_id`]}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-4">
-                    <GhostInput
-                      label="In-Game Name"
-                      value={form[`player_${num}_ign`]}
-                      onChange={e => { setForm(f => ({ ...f, [`player_${num}_ign`]: e.target.value })); clearFieldError(`player_${num}_ign`); }}
-                      required={num <= 4}
-                      placeholder="IGN"
-                      error={fieldErrors[`player_${num}_ign`]}
-                    />
-                    <GhostInput
-                      label="Character ID"
-                      value={form[`player_${num}_id`]}
-                      onChange={e => { setForm(f => ({ ...f, [`player_${num}_id`]: e.target.value })); clearFieldError(`player_${num}_id`); }}
-                      required={num <= 4}
-                      placeholder="10–14 digit ID"
-                      error={fieldErrors[`player_${num}_id`]}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </FormSection>
 
@@ -512,7 +528,7 @@ export default function RegistrationPage() {
               disabled={submitting || saving}
               className="w-full md:w-auto btn-obsidian-primary px-16 py-5 font-bebas text-[26px] tracking-widest uppercase disabled:opacity-40 disabled:cursor-wait"
             >
-              {(submitting || saving) ? 'PROCESSING...' : 'REGISTER TEAM'}
+              {(submitting || saving) ? 'PROCESSING...' : `REGISTER ${roster.teamWord.toUpperCase()}`}
             </button>
           </div>
 

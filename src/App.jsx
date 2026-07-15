@@ -24,6 +24,8 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const RegistrationPage = lazy(() => import('./pages/RegistrationPage'));
 const DailyScrimsPage = lazy(() => import('./pages/DailyScrimsPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
+const GamesIndexPage = lazy(() => import('./pages/GamesIndexPage'));
+const GameHubPage = lazy(() => import('./pages/GameHubPage'));
 
 // Pages that don't show the main footer
 const NO_FOOTER_ROUTES = ['/admin', '/profile'];
@@ -97,6 +99,8 @@ function AppLayout() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/auth/reset" element={<ResetPasswordPage />} />
+            <Route path="/games" element={<GamesIndexPage />} />
+            <Route path="/games/:slug" element={<GameHubPage />} />
             <Route path="/tournaments" element={<TournamentsPage />} />
             <Route path="/tournaments/:id" element={<TournamentDetailsPage />} />
             <Route path="/scrims" element={<DailyScrimsPage />} />

@@ -19,6 +19,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import Modal from '../components/ui/Modal';
 import GhostInput from '../components/ui/GhostInput';
 import { uploadFile, getSignedProofUrl } from '../utils/storage';
+import { GAME_LIST, getGame } from '../config/games';
 import toast from 'react-hot-toast';
 
 // ─────────────────────────────────────────────────────────────
@@ -55,8 +56,9 @@ export default function AdminDashboard() {
   const [registrationModal, setRegistrationModal] = useState({ open: false, data: null, tournamentId: null });
   // Rejection reason modal
   const [rejectModal, setRejectModal] = useState({ open: false, reg: null, reason: 'Incorrect Player ID / Incomplete Screenshots' });
-  // Tournament search
+  // Tournament search + division filter
   const [tournamentSearch, setTournamentSearch] = useState('');
+  const [tournamentGameFilter, setTournamentGameFilter] = useState('all');
 
   // Auth guard
   React.useEffect(() => {
@@ -72,6 +74,17 @@ export default function AdminDashboard() {
   }
   async function handleReject(reg) {
     setRejectModal({ open: true, reg, reason: 'Incorrect Player ID / Incomplete Screenshots' });
+  }
+  async function handleBulkApprove(regs) {
+    if (!regs?.length) return;
+    if (!confirm(`Approve all ${regs.length} pending team${regs.length > 1 ? 's' : ''}? This cannot be undone in bulk.`)) return;
+    const toastId = toast.loading(`Approving ${regs.length} teams...`);
+    let ok = 0, fail = 0;
+    for (const reg of regs) {
+      try { await updateReg(reg.id, { status: 'approved' }); ok++; }
+      catch { fail++; }
+    }
+    toast.success(`${ok} approved${fail ? `, ${fail} failed` : ''}.`, { id: toastId });
   }
   async function confirmReject() {
     const { reg, reason } = rejectModal;
@@ -227,24 +240,43 @@ export default function AdminDashboard() {
 
           {activeTab === 'tournaments' && (
             <div className="space-y-4">
-              {/* Tournament Search */}
-              <div className="flex items-center gap-3 bg-[#1b1b1b] border border-[rgba(78,70,56,0.2)] px-4 py-3 max-w-sm">
-                <Search size={14} className="text-[#d1c5b3] opacity-50 shrink-0" />
-                <input
-                  type="text"
-                  placeholder="Search tournaments..."
-                  value={tournamentSearch}
-                  onChange={e => setTournamentSearch(e.target.value)}
-                  className="bg-transparent text-sm font-teko tracking-widest text-[#d1c5b3] placeholder:opacity-50 focus:outline-none w-full"
-                />
-                {tournamentSearch && (
-                  <button onClick={() => setTournamentSearch('')} className="text-[#d1c5b3] opacity-40 hover:opacity-100">
-                    <X size={12} />
-                  </button>
-                )}
+              {/* Search + division filter */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-3 bg-[#1b1b1b] border border-[rgba(78,70,56,0.2)] px-4 py-3 max-w-sm flex-1 min-w-[200px]">
+                  <Search size={14} className="text-[#d1c5b3] opacity-50 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search tournaments..."
+                    value={tournamentSearch}
+                    onChange={e => setTournamentSearch(e.target.value)}
+                    className="bg-transparent text-sm font-teko tracking-widest text-[#d1c5b3] placeholder:opacity-50 focus:outline-none w-full"
+                  />
+                  {tournamentSearch && (
+                    <button onClick={() => setTournamentSearch('')} className="text-[#d1c5b3] opacity-40 hover:opacity-100">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                  {[{ label: 'ALL', slug: 'all', accent: '#dbb462' }, ...GAME_LIST.map(g => ({ label: g.short, slug: g.slug, accent: g.accent }))].map(({ label, slug, accent }) => {
+                    const active = tournamentGameFilter === slug;
+                    return (
+                      <button
+                        key={slug}
+                        onClick={() => setTournamentGameFilter(slug)}
+                        className="font-teko text-[13px] tracking-widest px-4 py-3 uppercase whitespace-nowrap border transition-all shrink-0"
+                        style={active ? { backgroundColor: accent, borderColor: accent, color: '#0a0a0a' } : { borderColor: 'rgba(78,70,56,0.3)', color: '#d1c5b3' }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             <TournamentsTab
-              tournaments={tournaments.filter(t => !tournamentSearch || t.title.toLowerCase().includes(tournamentSearch.toLowerCase()))}
+              tournaments={tournaments
+                .filter(t => tournamentGameFilter === 'all' || getGame(t.game).slug === tournamentGameFilter)
+                .filter(t => !tournamentSearch || t.title.toLowerCase().includes(tournamentSearch.toLowerCase()))}
               registrations={registrations}
               onEdit={(t) => setTournamentModal({ open: true, data: t })}
               onDelete={async (t) => {
@@ -333,6 +365,7 @@ export default function AdminDashboard() {
           onClose={() => setRegsModal(null)}
           onApprove={handleApprove}
           onReject={handleReject}
+          onBulkApprove={handleBulkApprove}
           onDelete={handleDelete}
           onExport={(type) => handleExport(regsModal, type)}
           onEdit={(reg) => {
@@ -668,19 +701,26 @@ function ActionBtn({ icon: Icon, label, badge, onClick }) {
 // ─────────────────────────────────────────────────────────────
 // Tournament Registrations Modal
 // ─────────────────────────────────────────────────────────────
-function TournamentRegsModal({ tournament, registrations, onClose, onApprove, onReject, onDelete, onExport, onEdit, onAdd }) {
+function TournamentRegsModal({ tournament, registrations, onClose, onApprove, onReject, onDelete, onExport, onEdit, onAdd, onBulkApprove }) {
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const division = getGame(tournament.game);
 
   const filtered = registrations
     .filter((r) => filterStatus === 'all' || r.status === filterStatus)
     .filter((r) =>
       search
         ? r.team_name?.toLowerCase().includes(search.toLowerCase()) ||
-          r.real_name?.toLowerCase().includes(search.toLowerCase())
+          r.real_name?.toLowerCase().includes(search.toLowerCase()) ||
+          r.whatsapp_number?.includes(search) ||
+          r.player_ids?.some((pid) => pid?.toLowerCase().includes(search.toLowerCase())) ||
+          r.player_igns?.some((ign) => ign?.toLowerCase().includes(search.toLowerCase()))
         : true
     );
+
+  const pendingRegs = registrations.filter((r) => r.status === 'pending' || r.status === 'reapplied');
 
   const stats = {
     total:     registrations.length,
@@ -698,11 +738,25 @@ function TournamentRegsModal({ tournament, registrations, onClose, onApprove, on
         <div className="flex items-center justify-between px-8 py-5 border-b border-[rgba(78,70,56,0.2)] flex-shrink-0">
           <div>
             <h2 className="font-bebas text-2xl font-bold text-[#f9d07a]">REGISTRATIONS</h2>
-            <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-70 mt-1">
-              {tournament.title.toUpperCase()}
-            </p>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <span className="font-teko text-[11px] tracking-[0.2em] uppercase px-2 py-0.5 border leading-none" style={{ color: division.accent, borderColor: division.accent + '44', backgroundColor: division.accentSoft }}>
+                {division.name}
+              </span>
+              <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-70">
+                {tournament.title.toUpperCase()}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3">
+            {pendingRegs.length > 0 && onBulkApprove && (
+              <button
+                onClick={() => onBulkApprove(pendingRegs)}
+                className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-3 md:px-4 py-2 font-teko text-[12px] md:text-[11px] tracking-widest hover:bg-emerald-500/20 transition-colors"
+                title="Approve all pending & re-applied teams"
+              >
+                <CheckCircle2 size={12} /> <span className="hidden sm:inline">APPROVE ALL</span> ({pendingRegs.length})
+              </button>
+            )}
             <div className="relative">
               <button
                 onClick={() => setExportMenuOpen(!exportMenuOpen)}
@@ -771,10 +825,10 @@ function TournamentRegsModal({ tournament, registrations, onClose, onApprove, on
             <Search size={12} className="text-[#d1c5b3] opacity-60" />
             <input
               type="text"
-              placeholder="Search teams..."
+              placeholder="Search team, name, ID, WhatsApp..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent text-[11px] font-teko text-[14px] tracking-widest text-[#d1c5b3] placeholder:opacity-70 w-36 focus:outline-none"
+              className="bg-transparent text-[11px] font-teko text-[14px] tracking-widest text-[#d1c5b3] placeholder:opacity-70 w-52 focus:outline-none"
             />
           </div>
           {['all', 'pending', 'reapplied', 'approved', 'rejected'].map((s) => (
@@ -812,8 +866,13 @@ function TournamentRegsModal({ tournament, registrations, onClose, onApprove, on
                   </td>
                 </tr>
               ) : (
-                filtered.map((reg) => (
-                  <tr key={reg.id} className="border-b border-[rgba(78,70,56,0.08)] group hover:bg-[#1a1a1a] transition-colors">
+                filtered.map((reg) => {
+                  const isExpanded = expandedId === reg.id;
+                  const waDigits = (reg.whatsapp_number || '').replace(/[^0-9]/g, '');
+                  const waLink = waDigits ? `https://wa.me/92${waDigits.replace(/^0/, '')}` : null;
+                  return (
+                  <React.Fragment key={reg.id}>
+                  <tr className="border-b border-[rgba(78,70,56,0.08)] group hover:bg-[#1a1a1a] transition-colors">
                     <td className="px-4 py-4">
                       <div className="flex items-center gap-3">
                         {reg.logo_url ? (
@@ -834,11 +893,22 @@ function TournamentRegsModal({ tournament, registrations, onClose, onApprove, on
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-4 font-body text-xs text-[#d1c5b3] opacity-70">{reg.whatsapp_number}</td>
+                    <td className="px-4 py-4 font-body text-xs text-[#d1c5b3] opacity-70">
+                      {waLink ? (
+                        <a href={waLink} target="_blank" rel="noreferrer" className="hover:text-[#25D366] transition-colors underline decoration-dotted underline-offset-2">
+                          {reg.whatsapp_number}
+                        </a>
+                      ) : (reg.whatsapp_number || '—')}
+                    </td>
                     <td className="px-4 py-4">
-                      <span className="font-teko text-[13px] text-[#f9d07a] tracking-widest">
+                      <button
+                        onClick={() => setExpandedId(isExpanded ? null : reg.id)}
+                        className="font-teko text-[13px] text-[#f9d07a] tracking-widest hover:opacity-70 flex items-center gap-1"
+                        title="View roster"
+                      >
                         {reg.player_ids?.length || 0} PLAYERS
-                      </span>
+                        <ChevronRight size={13} className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                      </button>
                     </td>
                     <td className="px-4 py-4">
                       <StatusBadge status={reg.status} />
@@ -867,7 +937,31 @@ function TournamentRegsModal({ tournament, registrations, onClose, onApprove, on
                       </div>
                     </td>
                   </tr>
-                ))
+                  {isExpanded && (
+                    <tr className="bg-[#0e0e0e] border-b border-[rgba(78,70,56,0.08)]">
+                      <td colSpan={7} className="px-6 py-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                          {(reg.player_ids || []).map((pid, i) => (
+                            <div key={i} className="bg-[#151515] border border-white/[0.05] px-4 py-2.5 flex items-center gap-3">
+                              <span className="font-bebas text-lg text-[#f9d07a] opacity-40 leading-none w-6">{String(i + 1).padStart(2, '0')}</span>
+                              <div className="min-w-0">
+                                <p className="font-teko text-[14px] tracking-wide text-white truncate leading-tight">{reg.player_igns?.[i] || '—'}</p>
+                                <p className="font-mono text-[12px] text-[#d1c5b3] opacity-50 truncate">{pid}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        {reg.captain_discord && (
+                          <p className="font-teko text-[13px] tracking-widest text-[#d1c5b3] opacity-50 mt-4 uppercase">
+                            Discord: <span className="text-[#f9d07a] normal-case tracking-normal">{reg.captain_discord}</span>
+                          </p>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -1025,16 +1119,18 @@ function TournamentGroupsModal({ tournament, registrations, allRegistrations, up
 // Tournament Create/Edit Modal
 // ─────────────────────────────────────────────────────────────
 
+// The three official Zenith divisions come first (mirrors src/config/games.js),
+// with a flexible 'Other' bucket for one-off events.
 const GAME_MODES = {
   'PUBG Mobile': ['Squad', 'Duo', 'Solo'],
-  'Free Fire':   ['Squad', 'Duo', 'Solo'],
-  'Valorant':    ['5v5', 'Duo', 'Solo'],
-  'Warzone':     ['Trio', 'Duo', 'Solo'],
+  'Free Fire':   ['Squad', 'Duo', 'Solo', 'Clash Squad'],
+  'Valorant':    ['5v5', '3v3', '1v1'],
   'Other':       ['Team', 'Duo', 'Solo', 'Custom'],
 };
 
 const TEAM_SIZE_BY_FORMAT = {
-  Squad: 4, Duo: 2, Solo: 1, Trio: 3, '5v5': 5, Team: 4, Custom: 4,
+  Squad: 4, Duo: 2, Solo: 1, Trio: 3, '5v5': 5, '3v3': 3, '1v1': 1,
+  'Clash Squad': 4, Team: 4, Custom: 4,
 };
 
 const ROADMAP_PRESETS = {
