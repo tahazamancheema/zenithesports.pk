@@ -22,7 +22,6 @@ const TermsPage = lazy(() => import('./pages/TermsPage'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 const RegistrationPage = lazy(() => import('./pages/RegistrationPage'));
-const DailyScrimsPage = lazy(() => import('./pages/DailyScrimsPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const GamesIndexPage = lazy(() => import('./pages/GamesIndexPage'));
 const GameHubPage = lazy(() => import('./pages/GameHubPage'));
@@ -103,7 +102,6 @@ function AppLayout() {
             <Route path="/games/:slug" element={<GameHubPage />} />
             <Route path="/tournaments" element={<TournamentsPage />} />
             <Route path="/tournaments/:id" element={<TournamentDetailsPage />} />
-            <Route path="/scrims" element={<DailyScrimsPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/support" element={<SupportPage />} />

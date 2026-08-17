@@ -14,7 +14,6 @@ const NAV_LINKS = [
   { label: 'HOME',         to: '/' },
   { label: 'DIVISIONS',    to: '/games', hasDivisions: true },
   { label: 'TOURNAMENTS',  to: '/tournaments' },
-  { label: 'DAILY SCRIMS', to: '/scrims' },
   { label: 'ABOUT US',     to: '/about' },
   { label: 'MY PROFILE',   to: '/profile' },
 ];
