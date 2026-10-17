@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/hisaab/admin",
+      "destination": "/hisaab/admin/index.html"
+    },
+    {
+      "source": "/hisaab/admin/",
+      "destination": "/hisaab/admin/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
@@ -32,6 +40,19 @@
         {
           "key": "Strict-Transport-Security",
           "value": "max-age=63072000; includeSubDomains"
+        }
+      ]
+    },
+    {
+      "source": "/hisaab/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow, noarchive, nosnippet"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
         }
       ]
     }
