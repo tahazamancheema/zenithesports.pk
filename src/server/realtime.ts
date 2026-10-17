@@ -38,8 +38,9 @@ class Hub {
     const [{ max }] = await db()<{ max: number }[]>`select coalesce(max(id), 0)::int as max from zenith.events`
     this.lastId = Math.max(this.lastId, max)
     const url = env.DATABASE_LISTEN_URL ?? env.DATABASE_URL
-    // Supabase's transaction pooler (port 6543) cannot hold a LISTEN.
-    if (url && !/:6543\//.test(url)) {
+    // Supabase's transaction pooler (port 6543) cannot hold a LISTEN; REALTIME_LISTEN=off is for
+    // single-session local databases (PGlite), where the event cursor alone delivers updates.
+    if (url && !/:6543\//.test(url) && process.env.REALTIME_LISTEN !== 'off') {
       try {
         this.listenSql = postgres(url, { max: 1, prepare: false, onnotice: () => {} })
         await this.listenSql.listen('zenith_events', () => void this.fetch())

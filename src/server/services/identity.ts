@@ -10,9 +10,11 @@ type Source = 'registration' | 'manual' | 'report' | 'lft'
  */
 export async function upsertPlayer(
   tx: Db,
-  p: { gameId: string; uidKind: string; uidRaw: string; ign: string; source: Source },
+  p: { gameId: string; uidKind: string; uidRaw: string; ign: string | null; source: Source },
 ): Promise<string> {
   const uidNorm = normId(p.uidRaw)!
+  // Reports and flags may not know the name; a placeholder must never overwrite a real one.
+  const knownIgn = p.ign && p.ign !== 'Unknown' ? p.ign : null
   const [existing] = await tx<{ playerId: string }[]>`
     select player_id from zenith.player_identifiers
      where game_id = ${p.gameId} and kind = ${p.uidKind} and value_norm = ${uidNorm}
@@ -21,7 +23,7 @@ export async function upsertPlayer(
   let playerId = existing?.playerId
   if (!playerId) {
     const [row] = await tx<{ id: string }[]>`
-      insert into zenith.players (game_id, display_ign, source) values (${p.gameId}, ${p.ign}, ${p.source}) returning id
+      insert into zenith.players (game_id, display_ign, source) values (${p.gameId}, ${knownIgn ?? 'Unknown'}, ${p.source}) returning id
     `
     playerId = row.id
     await tx`
@@ -30,12 +32,12 @@ export async function upsertPlayer(
     `
   } else {
     await tx`update zenith.player_identifiers set last_seen_at = now() where player_id = ${playerId} and value_norm = ${uidNorm}`
-    await tx`update zenith.players set display_ign = ${p.ign} where id = ${playerId}`
+    if (knownIgn) await tx`update zenith.players set display_ign = ${knownIgn} where id = ${playerId}`
   }
-  const ignNorm = normName(p.ign)
+  const ignNorm = knownIgn ? normName(knownIgn) : null
   if (ignNorm) {
     await tx`
-      insert into zenith.player_ign_history (player_id, ign, ign_norm) values (${playerId}, ${p.ign}, ${ignNorm})
+      insert into zenith.player_ign_history (player_id, ign, ign_norm) values (${playerId}, ${knownIgn}, ${ignNorm})
       on conflict (player_id, ign_norm) do update set seen_at = now()
     `
   }

@@ -247,3 +247,58 @@ export async function submitContact(raw: Record<string, string>, ipHash: string)
   })
   return { ok: true, reference }
 }
+
+// ─── HQ console reads ───────────────────────────────────────────────────────
+
+export async function hqOverview() {
+  const [row] = await db()<{ inquiries: number; bookings: number; messages: number; waitlist: number }[]>`
+    select (select count(*)::int from zenith.product_inquiries where status = 'new') as inquiries,
+           (select count(*)::int from zenith.production_bookings where status in ('requested', 'under_review', 'needs_info')) as bookings,
+           (select count(*)::int from zenith.contact_messages where status = 'new') as messages,
+           (select count(*)::int from zenith.waitlist_signups) as waitlist
+  `
+  return row
+}
+
+export async function listInquiries() {
+  return db()<
+    { id: string; reference: string; name: string; email: string | null; phoneE164: string | null; organization: string | null; game: string | null; intendedUse: string | null; requirements: string | null; message: string | null; status: string; internalNote: string | null; createdAt: Date }[]
+  >`select * from zenith.product_inquiries order by case status when 'new' then 0 else 1 end, created_at desc limit 200`
+}
+
+export async function listBookings() {
+  return db()<
+    {
+      id: string
+      reference: string
+      tournamentName: string
+      game: string
+      eventDate: Date
+      startTime: string
+      timezone: string
+      contactName: string
+      email: string | null
+      phoneE164: string | null
+      organization: string | null
+      broadcastRequirements: string
+      eventScope: string | null
+      notes: string | null
+      status: BookingStatus
+      adminNote: string | null
+      createdAt: Date
+      decidedAt: Date | null
+    }[]
+  >`select * from zenith.production_bookings order by case when status in ('requested', 'under_review', 'needs_info') then 0 else 1 end, event_date limit 200`
+}
+
+export async function listMessages() {
+  return db()<{ id: string; reference: string; name: string; email: string; topic: string; message: string; status: string; createdAt: Date }[]>`
+    select * from zenith.contact_messages order by case status when 'new' then 0 else 1 end, created_at desc limit 200
+  `
+}
+
+export async function listWaitlist() {
+  return db()<{ id: string; email: string; name: string | null; platform: string; audience: string | null; createdAt: Date }[]>`
+    select id, email, name, platform, audience, created_at from zenith.waitlist_signups order by created_at desc limit 1000
+  `
+}

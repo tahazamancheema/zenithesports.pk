@@ -3,7 +3,7 @@ import { isEmail } from '@/lib/normalize'
 import { ROLES, type Role } from '@/lib/permissions'
 import { audit, type Actor } from '../audit'
 import { hashPassword, randomToken, verifyPassword } from '../crypto'
-import { db, isUniqueViolation } from '../db'
+import { db, isUniqueViolation, type Db } from '../db'
 import { revokeAllSessions, type Staff } from '../auth/session'
 
 export function passwordProblem(pw: string): string | null {
@@ -46,7 +46,7 @@ export async function createStaff(d: { email: string; displayName: string; roles
   return temp
 }
 
-async function superAdminCount(conn = db()) {
+async function superAdminCount(conn: Db = db()) {
   const [{ n }] = await conn<{ n: number }[]>`
     select count(*)::int as n from zenith.staff_roles r join zenith.staff_users u on u.id = r.user_id
      where r.role = 'super_admin' and u.status = 'active'

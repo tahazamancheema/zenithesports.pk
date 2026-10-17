@@ -517,7 +517,7 @@ export const ALERT_TRANSITIONS: Record<AlertStatus, AlertStatus[]> = {
   resolved: ['open'],
 }
 
-export async function listAlerts(f: { status?: string; registrationId?: string; tournamentId?: string; page?: number }) {
+export async function listAlerts(f: { status?: string; registrationId?: string; tournamentId?: string; flagId?: string; page?: number }) {
   const page = Math.max(1, f.page ?? 1)
   return db()<
     {
@@ -551,6 +551,7 @@ export async function listAlerts(f: { status?: string; registrationId?: string; 
      where (${f.status ?? null}::text is null or a.status = ${f.status ?? null})
        and (${f.registrationId ?? null}::uuid is null or a.registration_id = ${f.registrationId ?? null}::uuid)
        and (${f.tournamentId ?? null}::uuid is null or a.tournament_id = ${f.tournamentId ?? null}::uuid)
+       and (${f.flagId ?? null}::uuid is null or a.flag_id = ${f.flagId ?? null}::uuid)
      order by case a.status when 'open' then 0 when 'acknowledged' then 1 else 2 end,
               case a.confidence when 'confirmed' then 0 when 'strong' then 1 else 2 end,
               a.last_detected_at desc

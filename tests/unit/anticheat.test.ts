@@ -154,3 +154,22 @@ describe('public reports', () => {
     await s.end()
   })
 })
+
+describe('identity records', () => {
+  it('a report without a name never overwrites the in-game name recorded at registration', async () => {
+    const REVIEWER = await staffActor()
+    const t = await openTournament(saveTournament, setTournamentStatus)
+    const known = pubgUid()
+    await register(t.slug, squad('Named', [known, pubgUid(), pubgUid(), pubgUid()]))
+    const r = await submitReport({ gameId: 'pubg-mobile', uid: known, reportScreenshot: await png(21), uidScreenshot: await png(22), ipHash: 'ip' })
+    expect(r.ok).toBe(true)
+    const s = sql()
+    const [rep] = await s<{ id: string }[]>`select id from zenith.ac_reports where reported_uid_raw = ${known}`
+    await reviewReport(rep.id, { decision: 'approve', uidMatch: true, reason: 'UID matches' }, REVIEWER)
+    const [p] = await s<{ ign: string }[]>`
+      select p.display_ign as ign from zenith.players p join zenith.player_identifiers i on i.player_id = p.id where i.value_norm = ${known}
+    `
+    expect(p.ign).toBe('Named1')
+    await s.end()
+  })
+})

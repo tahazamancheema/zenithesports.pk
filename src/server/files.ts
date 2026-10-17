@@ -35,7 +35,7 @@ export async function inspectImage(
   const mime = sniffImage(buf)
   const accept = opts.accept ?? ['image/png', 'image/jpeg', 'image/webp']
   if (!mime || !accept.includes(mime)) throw new UploadError(`${opts.label}: upload a PNG, JPEG or WebP image.`)
-  let meta: sharp.Metadata
+  let meta: Awaited<ReturnType<ReturnType<typeof sharp>['metadata']>>
   try {
     const img = sharp(buf, { limitInputPixels: MAX_PIXELS, failOn: 'error' })
     meta = await img.metadata()

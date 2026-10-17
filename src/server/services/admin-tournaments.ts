@@ -2,6 +2,7 @@ import 'server-only'
 import { z } from 'zod'
 import { formSchemaSchema, type FormSchema } from '@/lib/forms/schema'
 import { safeUrl, slugify } from '@/lib/normalize'
+import { zonedToUtc } from '@/lib/zoned'
 import { audit, type Actor } from '../audit'
 import { db, isUniqueViolation } from '../db'
 import { getFormats } from './catalog'
@@ -93,7 +94,14 @@ export function parseLinks(text: string) {
 
 export type TournamentSaveResult = { ok: true; id: string } | { ok: false; error: string; fieldErrors?: Record<string, string> }
 
-export async function saveTournament(id: string | null, raw: Record<string, string>, actor: Actor): Promise<TournamentSaveResult> {
+export async function saveTournament(id: string | null, rawIn: Record<string, string>, actor: Actor): Promise<TournamentSaveResult> {
+  // Form inputs are wall-clock times in the tournament's timezone; ISO strings pass through.
+  const tz = rawIn.timezone || 'Asia/Karachi'
+  const raw = { ...rawIn }
+  for (const k of ['startsAt', 'endsAt', 'registrationOpensAt', 'registrationClosesAt']) {
+    const v = raw[k]
+    if (v && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v)) raw[k] = zonedToUtc(v, tz)?.toISOString() ?? v
+  }
   const parsed = tournamentInput.safeParse(raw)
   if (!parsed.success) {
     const fe: Record<string, string> = {}
