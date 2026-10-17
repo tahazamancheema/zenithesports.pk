@@ -626,7 +626,7 @@
     // Removed people stay visible while they still have unpaid sessions
     const visible = all.filter((p) => p.active || p.dueSessions > 0);
     const rates = new Set(all.filter((p) => p.active).map((p) => p.rate));
-    const commonRate = rates.size === 1 ? [...rates][0] : null;
+    const commonRate = rates.size > 1 ? null : rates.size === 1 ? [...rates][0] : DEFAULT_RATE;
     return { people: all, visible, totals, today, commonRate };
   }
 
