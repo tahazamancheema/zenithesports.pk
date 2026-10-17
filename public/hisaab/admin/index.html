@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith Hisaab — Private Ledger</title>
+  <meta name="description" content="Zenith Hisaab: the private ledger Zenith Esports uses to track scrim fees, tournament entries, prize payouts and staff salaries in PKR.">
+  <meta name="theme-color" content="#090807">
+
+  <!-- Keep this private ledger out of search engines -->
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+
+  <link rel="icon" type="image/png" href="/hisaab/admin/assets/zenith-logo-gold.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Michroma&display=swap" rel="stylesheet">
+  <!-- Urdu wordmark (subset to the single word "حساب") -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@600&text=%D8%AD%D8%B3%D8%A7%D8%A8&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/hisaab/admin/styles.css?v=3.2">
+</head>
+<body>
+
+  <!-- Icon sprite -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect width="16" height="11" x="4" y="11" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 8.8-8.8M17 6l2.5 2.5M14.5 8.5 16.5 10.5"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.9 9.9a3 3 0 1 0 4.2 4.2"/><path d="M10.7 5.1A10.4 10.4 0 0 1 12 5c6.5 0 10 7 10 7a13.2 13.2 0 0 1-1.7 2.7"/><path d="M6.6 6.6A13.5 13.5 0 0 0 2 12s3.5 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="m2 2 20 20"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.3" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/><path d="m14.5 5.5 3 3"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6M18.5 6l-.8 13.1A2 2 0 0 1 15.7 21H8.3a2 2 0 0 1-2-1.9L5.5 6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5M12 3v12"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 17H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/><path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="7" rx="1"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect width="13" height="13" x="8" y="8" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-in" viewBox="0 0 24 24"><path d="M17 7 7 17M17 17H7V7"/></symbol>
+    <symbol id="i-out" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+    <symbol id="i-message" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2.5 21.5Z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M10.3 3.9 2.4 17.5A2 2 0 0 0 4.1 20.5h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 21.5s-8-3.5-8-10V5.5l8-3 8 3v6c0 6.5-8 10-8 10Z"/></symbol>
+    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="17" x="3" y="4.5" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.2a6.5 6.5 0 0 1 3 5.8"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h14a1.5 1.5 0 0 0 1.5-1.5V9a2 2 0 0 0-2-2H5.5A2.5 2.5 0 0 1 3 4.5"/><path d="M16.5 13.5h.01"/></symbol>
+  </svg>
+
+  <!-- ======================================================== -->
+  <!-- ACCESS GATE                                               -->
+  <!-- ======================================================== -->
+  <div class="gate" id="adminGateOverlay">
+    <img src="/hisaab/admin/assets/zenith-logo-gold.png" alt="" class="gate-watermark" aria-hidden="true">
+    <div class="gate-panel">
+      <img src="/hisaab/admin/assets/zenith-logo-gold.png" alt="Zenith Esports" class="gate-logo">
+      <div class="gate-word">ZENITH</div>
+      <div class="gate-sub">
+        <span>Hisaab</span>
+        <span class="urdu" lang="ur">حساب</span>
+      </div>
+      <p class="gate-lede">Private ledger. Enter the admin passcode to continue.</p>
+
+      <form id="adminGateForm" class="gate-form" novalidate>
+        <div class="gate-input-wrap">
+          <input type="password" id="gatePasscodeInput" class="gate-input" placeholder="••••••" autocomplete="current-password" aria-label="Admin passcode" required>
+          <button type="button" class="gate-eye" id="toggleGateEyeBtn" aria-label="Show passcode">
+            <svg class="i"><use href="#i-eye"/></svg>
+          </button>
+        </div>
+        <p class="gate-error" id="gateErrorMsg" role="alert"></p>
+
+        <label class="check">
+          <input type="checkbox" id="gateRememberCheckbox" checked>
+          <span class="check-box"><svg class="i"><use href="#i-check"/></svg></span>
+          <span>Keep me signed in on this device</span>
+        </label>
+
+        <!-- Enabled by app.js once it has loaded, so Enter can't submit the form natively -->
+        <button type="submit" class="btn btn-gold btn-block btn-lg" id="gateSubmitBtn" disabled>Unlock ledger</button>
+      </form>
+
+      <p class="gate-foot">
+        <svg class="i"><use href="#i-shield"/></svg>
+        Zenith Esports staff only
+      </p>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- TOP BAR                                                   -->
+  <!-- ======================================================== -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#" aria-label="Zenith Hisaab">
+        <img src="/hisaab/admin/assets/zenith-logo-gold.png" alt="" class="brand-mark">
+        <span class="brand-text">
+          <span class="brand-word">ZENITH</span>
+          <span class="brand-sub"><span>Hisaab</span><span class="urdu" lang="ur">حساب</span></span>
+        </span>
+      </a>
+
+      <div class="topbar-context">
+        <span class="context-label">Esports ledger · PKR</span>
+        <span class="context-value" id="todayLabel">—</span>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="admin-chip" id="adminChip" title="Change who is recording entries">
+          <span class="admin-avatar" id="adminAvatar">?</span>
+          <span class="admin-meta">
+            <span class="admin-label">Recording as</span>
+            <span class="admin-name" id="adminName">Set name</span>
+          </span>
+        </button>
+
+        <div class="menu-wrap" id="toolsMenuWrap">
+          <button class="btn btn-ghost" id="toolsDropdownBtn" aria-haspopup="menu" aria-expanded="false">
+            <svg class="i"><use href="#i-sliders"/></svg>
+            <span class="hide-sm">Tools</span>
+          </button>
+          <div class="menu menu-anchored" id="toolsDropdownMenu" role="menu">
+            <p class="menu-label">Export</p>
+            <button class="menu-item" id="exportCsvBtn" role="menuitem"><svg class="i"><use href="#i-file"/></svg>Balances (CSV)</button>
+            <button class="menu-item" id="exportHistoryCsvBtn" role="menuitem"><svg class="i"><use href="#i-history"/></svg>Full history (CSV)</button>
+            <button class="menu-item" id="exportSalaryCsvBtn" role="menuitem"><svg class="i"><use href="#i-wallet"/></svg>Salary log (CSV)</button>
+            <button class="menu-item" id="printReportBtn" role="menuitem"><svg class="i"><use href="#i-printer"/></svg>Print statement</button>
+            <div class="menu-sep"></div>
+            <p class="menu-label">Data</p>
+            <button class="menu-item" id="backupDataBtn" role="menuitem"><svg class="i"><use href="#i-download"/></svg>Download backup</button>
+            <button class="menu-item" id="restoreDataBtn" role="menuitem"><svg class="i"><use href="#i-upload"/></svg>Restore from backup</button>
+            <input type="file" id="restoreFileInput" accept=".json,application/json" hidden>
+            <div class="menu-sep"></div>
+            <p class="menu-label">Access</p>
+            <button class="menu-item" id="changePasscodeBtn" role="menuitem"><svg class="i"><use href="#i-key"/></svg>Change passcode</button>
+            <button class="menu-item menu-item-danger" id="clearAllDataBtn" role="menuitem"><svg class="i"><use href="#i-trash"/></svg>Clear team ledger</button>
+          </div>
+        </div>
+
+        <button class="btn btn-ghost btn-icon" id="headerLockBtn" title="Lock ledger" aria-label="Lock ledger">
+          <svg class="i"><use href="#i-lock"/></svg>
+        </button>
+
+        <button class="btn btn-gold" id="openAddTeamModalBtn">
+          <svg class="i"><use href="#i-plus"/></svg>
+          <span id="newEntryLabel">New entry</span>
+          <kbd class="hide-sm">N</kbd>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Print-only statement header -->
+  <div class="print-head" aria-hidden="true">
+    <img src="/hisaab/admin/assets/zenith-logo-black.png" alt="">
+    <div>
+      <strong>Zenith Esports — Hisaab statement</strong>
+      <span id="printDate"></span>
+    </div>
+  </div>
+
+  <main class="page">
+
+    <!-- ===================== OVERVIEW ===================== -->
+    <section class="overview" aria-labelledby="overviewTitle">
+      <div class="overview-head">
+        <div>
+          <p class="eyebrow">Statement · <span id="statementDate">—</span></p>
+          <h1 class="sr-only" id="overviewTitle">Zenith Hisaab</h1>
+          <div class="view-switch" role="tablist" aria-label="Books">
+            <button class="view-tab is-active" role="tab" id="viewTabTeams" data-view="teams" aria-selected="true">The books</button>
+            <span class="view-sep" aria-hidden="true">/</span>
+            <button class="view-tab" role="tab" id="viewTabSalaries" data-view="salaries" aria-selected="false">Salaries<span class="view-count" id="viewSalariesBadge" title="People with salary due" hidden></span></button>
+          </div>
+        </div>
+        <p class="overview-note" id="overviewNote"></p>
+      </div>
+
+      <div class="figures" id="teamFigures">
+        <article class="figure figure-in">
+          <div class="figure-top">
+            <span class="figure-label"><svg class="i"><use href="#i-in"/></svg>Owed to us</span>
+            <span class="figure-count" id="receivableTeamsCount">0 teams</span>
+          </div>
+          <div class="figure-value" id="totalReceivableAmount"></div>
+          <p class="figure-foot">Collected to date <strong id="totalCollectedAmount">PKR 0</strong></p>
+        </article>
+
+        <article class="figure figure-out">
+          <div class="figure-top">
+            <span class="figure-label"><svg class="i"><use href="#i-out"/></svg>We owe</span>
+            <span class="figure-count" id="payableTeamsCount">0 teams</span>
+          </div>
+          <div class="figure-value" id="totalPayableAmount"></div>
+          <p class="figure-foot">Paid out to date <strong id="totalPaidOutAmount">PKR 0</strong></p>
+        </article>
+
+        <article class="figure figure-net">
+          <div class="figure-top">
+            <span class="figure-label">Net position</span>
+            <span class="net-tag" id="netStatusBadge">Even</span>
+          </div>
+          <div class="figure-value" id="netBalanceAmount"></div>
+          <div class="split" aria-hidden="true">
+            <span class="split-in" id="splitIn"></span>
+            <span class="split-out" id="splitOut"></span>
+          </div>
+          <p class="figure-foot" id="netBalanceSubtext">What we owe minus what’s owed to us</p>
+        </article>
+      </div>
+
+      <div class="figures figures-pay" id="payrollFigures" hidden>
+        <article class="figure figure-out">
+          <div class="figure-top">
+            <span class="figure-label"><svg class="i"><use href="#i-wallet"/></svg>Salaries due</span>
+            <span class="figure-count" id="payDuePeople">0 people</span>
+          </div>
+          <div class="figure-value" id="payDueAmount"></div>
+          <p class="figure-foot">Not paid yet <strong id="payDueSessions">0 sessions</strong></p>
+        </article>
+
+        <article class="figure figure-month">
+          <div class="figure-top">
+            <span class="figure-label"><svg class="i"><use href="#i-calendar"/></svg><span id="payMonthLabel">This month</span></span>
+            <span class="figure-count" id="payMonthSessions">0 sessions</span>
+          </div>
+          <div class="figure-value" id="payMonthAmount"></div>
+          <p class="figure-foot">Today <strong id="payTodaySessions">0 sessions</strong></p>
+        </article>
+
+        <article class="figure figure-net figure-paid">
+          <div class="figure-top">
+            <span class="figure-label">Paid this month</span>
+            <span class="net-tag" id="payRateTag">PKR 70 a session</span>
+          </div>
+          <div class="figure-value" id="payPaidMonthAmount"></div>
+          <p class="figure-foot">Paid to date <strong id="payPaidTotal">PKR 0</strong></p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===================== LEDGER ===================== -->
+    <section class="ledger" id="ledgerRoot" aria-label="Ledger">
+
+      <div class="toolbar">
+        <div class="segmented" role="tablist" aria-label="Ledger view">
+          <button class="seg" role="tab" data-tab="receivable" id="tabReceivable">
+            <span class="seg-dot dot-in"></span>Owed to us<span class="seg-count" id="tabReceivableBadge">0</span>
+          </button>
+          <button class="seg" role="tab" data-tab="payable" id="tabPayable">
+            <span class="seg-dot dot-out"></span>We owe<span class="seg-count" id="tabPayableBadge">0</span>
+          </button>
+          <button class="seg" role="tab" data-tab="split" id="tabSplitView">Both</button>
+        </div>
+
+        <div class="filters">
+          <label class="search">
+            <svg class="i"><use href="#i-search"/></svg>
+            <input type="text" id="searchInput" placeholder="Search team, number or note" autocomplete="off" aria-label="Search teams">
+            <kbd class="search-kbd" id="searchKbd">/</kbd>
+            <button type="button" class="search-clear" id="clearSearchBtn" aria-label="Clear search" hidden>
+              <svg class="i"><use href="#i-x"/></svg>
+            </button>
+          </label>
+
+          <div class="select">
+            <select id="statusFilter" aria-label="Filter by status">
+              <option value="ALL">All statuses</option>
+              <option value="UNPAID">Pending</option>
+              <option value="PARTIAL">Partly paid</option>
+              <option value="SETTLED">Settled</option>
+            </select>
+            <svg class="i"><use href="#i-chevron"/></svg>
+          </div>
+
+          <div class="select">
+            <select id="sortFilter" aria-label="Sort teams">
+              <option value="amount-desc">Largest balance</option>
+              <option value="amount-asc">Smallest balance</option>
+              <option value="recent">Recent activity</option>
+              <option value="name-asc">Name, A–Z</option>
+            </select>
+            <svg class="i"><use href="#i-chevron"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Owed to us -->
+      <section class="sheet sheet-in" id="sectionReceivable" aria-labelledby="receivableTitle">
+        <header class="sheet-head">
+          <div class="sheet-title-wrap">
+            <span class="sheet-glyph"><svg class="i"><use href="#i-in"/></svg></span>
+            <div>
+              <h2 class="sheet-title" id="receivableTitle">Owed to us</h2>
+              <p class="sheet-desc">Scrim fees, tournament entries and penalties due to Zenith</p>
+            </div>
+          </div>
+          <div class="sheet-head-right">
+            <div class="sheet-sum">
+              <span>Outstanding</span>
+              <strong id="receivableTableTotalDisplay">PKR 0</strong>
+              <em id="receivableFilterNote"></em>
+            </div>
+            <button class="btn btn-sm btn-outline" data-action="add" data-category="RECEIVABLE">
+              <svg class="i"><use href="#i-plus"/></svg>Add team
+            </button>
+          </div>
+        </header>
+
+        <div class="table-wrap">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th class="c-team">Team</th>
+                <th class="c-contact">WhatsApp</th>
+                <th class="c-progress">Collected</th>
+                <th class="c-balance">Balance <span class="th-unit">PKR</span></th>
+                <th class="c-status">Status</th>
+                <th class="c-activity">Last entry</th>
+                <th class="c-actions"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="receivableTableBody"></tbody>
+          </table>
+          <div class="empty" id="receivableEmptyState" hidden></div>
+        </div>
+      </section>
+
+      <!-- We owe -->
+      <section class="sheet sheet-out" id="sectionPayable" aria-labelledby="payableTitle">
+        <header class="sheet-head">
+          <div class="sheet-title-wrap">
+            <span class="sheet-glyph"><svg class="i"><use href="#i-out"/></svg></span>
+            <div>
+              <h2 class="sheet-title" id="payableTitle">We owe</h2>
+              <p class="sheet-desc">Prize money, rewards and refunds Zenith has to pay out</p>
+            </div>
+          </div>
+          <div class="sheet-head-right">
+            <div class="sheet-sum">
+              <span>Outstanding</span>
+              <strong id="payableTableTotalDisplay">PKR 0</strong>
+              <em id="payableFilterNote"></em>
+            </div>
+            <button class="btn btn-sm btn-outline btn-outline-silver" data-action="add" data-category="PAYABLE">
+              <svg class="i"><use href="#i-plus"/></svg>Add payout
+            </button>
+          </div>
+        </header>
+
+        <div class="table-wrap">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th class="c-team">Team</th>
+                <th class="c-contact">WhatsApp</th>
+                <th class="c-progress">Paid out</th>
+                <th class="c-balance">Balance <span class="th-unit">PKR</span></th>
+                <th class="c-status">Status</th>
+                <th class="c-activity">Last entry</th>
+                <th class="c-actions"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="payableTableBody"></tbody>
+          </table>
+          <div class="empty" id="payableEmptyState" hidden></div>
+        </div>
+      </section>
+    </section>
+
+    <!-- ===================== SALARIES ===================== -->
+    <section class="payroll" id="payrollRoot" aria-label="Salaries" hidden>
+      <section class="sheet sheet-pay" aria-labelledby="payrollTitle">
+        <header class="sheet-head">
+          <div class="sheet-title-wrap">
+            <span class="sheet-glyph"><svg class="i"><use href="#i-users"/></svg></span>
+            <div>
+              <h2 class="sheet-title" id="payrollTitle">Staff register</h2>
+              <p class="sheet-desc" id="payrollDesc">Sessions worked each day, paid per session</p>
+            </div>
+          </div>
+          <div class="sheet-head-right">
+            <div class="sheet-sum">
+              <span>Due</span>
+              <strong id="payrollDueDisplay">PKR 0</strong>
+            </div>
+            <button class="btn btn-sm btn-outline btn-outline-silver" data-action="add-staff">
+              <svg class="i"><use href="#i-plus"/></svg>Add person
+            </button>
+            <button class="btn btn-sm btn-settle" data-action="pay-all" id="payAllBtn" disabled>
+              <svg class="i"><use href="#i-check"/></svg>Pay everyone
+            </button>
+          </div>
+        </header>
+
+        <div class="table-wrap">
+          <table class="ledger-table pay-table" id="payrollTable">
+            <thead>
+              <tr>
+                <th class="c-person">Person</th>
+                <th class="c-week"><div class="week week-head" id="weekHead"></div></th>
+                <th class="c-unpaid">Unpaid</th>
+                <th class="c-due">Due <span class="th-unit">PKR</span></th>
+                <th class="c-lastpaid">Last paid</th>
+                <th class="c-actions"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="payrollTableBody"></tbody>
+          </table>
+          <div class="empty" id="payrollEmptyState" hidden></div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- FOOTER                                                    -->
+  <!-- ======================================================== -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="/hisaab/admin/assets/zenith-logo-gold.png" alt="" class="footer-mark">
+        <div>
+          <p class="footer-word">ZENITH <span>ESPORTS</span></p>
+          <p class="footer-tag">Hisaab <span class="urdu" lang="ur">حساب</span> is where we keep track of every scrim fee, prize payout and staff salary.</p>
+        </div>
+      </div>
+
+      <dl class="footer-facts">
+        <div>
+          <dt>Sync</dt>
+          <dd><span class="live-dot" id="syncDot"></span><span id="syncLabel">Connecting…</span></dd>
+        </div>
+        <div>
+          <dt>Currency</dt>
+          <dd>Pakistani rupee (PKR)</dd>
+        </div>
+        <div>
+          <dt>Shortcuts</dt>
+          <dd class="footer-keys"><kbd>N</kbd> new entry <kbd>/</kbd> search <kbd>Esc</kbd> close</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="footer-wordmark" aria-hidden="true">ZENITH</div>
+
+    <div class="footer-base">
+      <span>© 2026 Zenith Esports. Internal use only.</span>
+      <span>Hisaab v3.2</span>
+    </div>
+  </footer>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: ADD / EDIT TEAM                                    -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="teamModalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="teamModalTitle">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="teamModalEyebrow">New entry</p>
+          <h3 class="modal-title" id="teamModalTitle">Add a team to the ledger</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="teamForm" class="modal-body" novalidate>
+        <input type="hidden" id="editTeamId">
+
+        <fieldset class="field">
+          <legend class="field-label">Which side of the ledger?</legend>
+          <div class="choices">
+            <label class="choice choice-in">
+              <input type="radio" name="teamCategory" id="catReceivable" value="RECEIVABLE" checked>
+              <span class="choice-card">
+                <span class="choice-glyph"><svg class="i"><use href="#i-in"/></svg></span>
+                <span class="choice-text"><strong>They owe us</strong><small>Scrim fees, entries, penalties</small></span>
+              </span>
+            </label>
+            <label class="choice choice-out">
+              <input type="radio" name="teamCategory" id="catPayable" value="PAYABLE">
+              <span class="choice-card">
+                <span class="choice-glyph"><svg class="i"><use href="#i-out"/></svg></span>
+                <span class="choice-text"><strong>We owe them</strong><small>Prize money, refunds</small></span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="teamNameInput" class="field-label">Team name</label>
+            <input type="text" id="teamNameInput" class="input" placeholder="e.g. Agonxi8 Esports" autocomplete="off">
+            <span class="field-error" id="teamNameError">Enter the team's name</span>
+          </div>
+          <div class="field">
+            <label for="teamContactInput" class="field-label">WhatsApp number</label>
+            <input type="tel" id="teamContactInput" class="input input-mono" placeholder="0300 1234567" autocomplete="off">
+            <span class="field-error" id="teamContactError">Enter a WhatsApp number</span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="teamAmountInput" class="field-label" id="teamAmountLabel">Opening amount</label>
+            <div class="affix">
+              <span class="affix-text">PKR</span>
+              <input type="number" id="teamAmountInput" class="input input-mono" placeholder="0" min="0" step="1" inputmode="numeric">
+            </div>
+            <span class="field-error" id="teamAmountError">Enter an amount of 0 or more</span>
+            <span class="field-hint" id="teamAmountHint" hidden>Changing this adds a correction to the history</span>
+          </div>
+          <div class="field">
+            <label for="teamAdminNameInput" class="field-label">Recorded by</label>
+            <input type="text" id="teamAdminNameInput" class="input" placeholder="Your name" autocomplete="off">
+            <span class="field-error" id="teamAdminNameError">Enter your name for the record</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="teamNotesInput" class="field-label">Note <span class="optional">optional</span></label>
+          <input type="text" id="teamNotesInput" class="input" placeholder="e.g. Week 3 scrims, registered by captain" autocomplete="off">
+        </div>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="saveTeamSubmitBtn">Add to ledger</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: RECORD AN ENTRY (ADJUST)                           -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="adjustModalOverlay" aria-hidden="true">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="adjustModalTeamName">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="adjustEyebrow">Owed to us</p>
+          <h3 class="modal-title" id="adjustModalTeamName">Team</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="adjustForm" class="modal-body" novalidate>
+        <div class="segmented segmented-block" role="radiogroup" aria-label="Entry type">
+          <button type="button" class="seg" id="adjustTypeDeduct" data-type="DECREMENT" role="radio">Payment received</button>
+          <button type="button" class="seg" id="adjustTypeAdd" data-type="INCREMENT" role="radio">Add charge</button>
+        </div>
+
+        <div class="field">
+          <label for="adjustAmountInput" class="field-label">Amount</label>
+          <div class="affix affix-lg">
+            <span class="affix-text">PKR</span>
+            <input type="number" id="adjustAmountInput" class="input input-mono input-lg" placeholder="0" min="1" step="1" inputmode="numeric">
+          </div>
+          <div class="chips">
+            <button type="button" class="chip" data-amt="500">500</button>
+            <button type="button" class="chip" data-amt="1000">1,000</button>
+            <button type="button" class="chip" data-amt="2000">2,000</button>
+            <button type="button" class="chip" data-amt="5000">5,000</button>
+            <button type="button" class="chip chip-accent" id="fullBalanceChip">Full balance</button>
+          </div>
+          <span class="field-error" id="adjustAmountError"></span>
+        </div>
+
+        <div class="sum-line">
+          <div class="sum-cell">
+            <span>Current</span>
+            <strong id="adjustCurrentBalance">0</strong>
+          </div>
+          <span class="sum-op" id="adjustOp">−</span>
+          <div class="sum-cell">
+            <span>This entry</span>
+            <strong id="adjustDeltaDisplay">0</strong>
+          </div>
+          <span class="sum-op">=</span>
+          <div class="sum-cell sum-result">
+            <span>New balance</span>
+            <strong id="adjustNewBalance">0</strong>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="adjustAdminNameInput" class="field-label">Recorded by</label>
+            <input type="text" id="adjustAdminNameInput" class="input" placeholder="Your name" autocomplete="off">
+            <span class="field-error" id="adjustAdminError">Enter your name for the record</span>
+          </div>
+          <div class="field">
+            <label for="adjustReasonInput" class="field-label">Note <span class="optional">optional</span></label>
+            <input type="text" id="adjustReasonInput" class="input" placeholder="Reference or reason" autocomplete="off">
+          </div>
+        </div>
+
+        <div class="chips chips-methods" id="methodChips">
+          <span class="chips-label">Paid via</span>
+          <button type="button" class="chip" data-method="Easypaisa">Easypaisa</button>
+          <button type="button" class="chip" data-method="JazzCash">JazzCash</button>
+          <button type="button" class="chip" data-method="Bank transfer">Bank</button>
+          <button type="button" class="chip" data-method="Cash">Cash</button>
+        </div>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="confirmAdjustBtn">Record payment</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: LOG SESSIONS (one day, everyone)                   -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="logModalOverlay" aria-hidden="true">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="logModalTitle">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="logEyebrow">Salaries · PKR 70 a session</p>
+          <h3 class="modal-title" id="logModalTitle">Log sessions</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="logForm" class="modal-body" novalidate>
+        <div class="day-picker">
+          <button type="button" class="icon-btn day-step" id="logPrevDayBtn" aria-label="Previous day"><svg class="i"><use href="#i-chevron-left"/></svg></button>
+          <div class="affix day-field">
+            <span class="affix-text" id="logDayName">FRI</span>
+            <input type="date" id="logDateInput" class="input input-mono" aria-label="Day worked" required>
+          </div>
+          <button type="button" class="icon-btn day-step" id="logNextDayBtn" aria-label="Next day"><svg class="i"><use href="#i-chevron-right"/></svg></button>
+          <button type="button" class="chip" id="logTodayBtn">Today</button>
+        </div>
+
+        <ul class="log-list" id="logList"></ul>
+
+        <div class="log-total">
+          <span>Day total</span>
+          <strong id="logTotalSessions">0 sessions</strong>
+          <strong class="log-total-amount" id="logTotalAmount">PKR 0</strong>
+        </div>
+
+        <div class="field">
+          <label for="logAdminNameInput" class="field-label">Recorded by</label>
+          <input type="text" id="logAdminNameInput" class="input" placeholder="Your name" autocomplete="off">
+          <span class="field-error" id="logAdminError">Enter your name for the record</span>
+        </div>
+
+        <footer class="modal-foot">
+          <span class="foot-note" id="logChangesNote"></span>
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="saveLogBtn">Save day</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: ADD / EDIT PERSON                                  -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="staffModalOverlay" aria-hidden="true">
+    <div class="modal modal-xs" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="staffModalEyebrow">Staff register</p>
+          <h3 class="modal-title" id="staffModalTitle">Add a person</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="staffForm" class="modal-body" novalidate>
+        <input type="hidden" id="editStaffId">
+        <div class="field">
+          <label for="staffNameInput" class="field-label">Name</label>
+          <input type="text" id="staffNameInput" class="input" placeholder="e.g. Bilal" autocomplete="off" maxlength="60">
+          <span class="field-error" id="staffNameError">Enter a name</span>
+        </div>
+        <div class="field">
+          <label for="staffRateInput" class="field-label">Pay per session</label>
+          <div class="affix">
+            <span class="affix-text">PKR</span>
+            <input type="number" id="staffRateInput" class="input input-mono" placeholder="70" min="0" step="1" inputmode="numeric">
+          </div>
+          <span class="field-error" id="staffRateError">Enter an amount of 0 or more</span>
+          <span class="field-hint" id="staffRateHint">Applies to sessions logged from now on. Paid sessions keep the rate they were paid at.</span>
+        </div>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="saveStaffBtn">Add to register</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CHANGE PASSCODE                                    -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="changePasscodeModalOverlay" aria-hidden="true">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="passcodeModalTitle">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow">Access</p>
+          <h3 class="modal-title" id="passcodeModalTitle">Change passcode</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="changePasscodeForm" class="modal-body" novalidate>
+        <div class="field">
+          <label for="currentPasscodeInput" class="field-label">Current passcode</label>
+          <input type="password" id="currentPasscodeInput" class="input input-mono" autocomplete="current-password">
+          <span class="field-error" id="currentPasscodeError">That's not the current passcode</span>
+        </div>
+        <div class="field">
+          <label for="newPasscodeInput" class="field-label">New passcode</label>
+          <input type="password" id="newPasscodeInput" class="input input-mono" placeholder="At least 8 characters" autocomplete="new-password">
+          <span class="field-error" id="newPasscodeError">Use at least 8 characters</span>
+        </div>
+        <div class="field">
+          <label for="confirmPasscodeInput" class="field-label">Confirm new passcode</label>
+          <input type="password" id="confirmPasscodeInput" class="input input-mono" autocomplete="new-password">
+          <span class="field-error" id="confirmPasscodeError">The two passcodes don't match</span>
+        </div>
+        <p class="field-hint">Every admin signs in with this passcode, so share the new one with them after you change it.</p>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="savePasscodeBtn">Update passcode</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- DIALOG: CONFIRM / PROMPT                                  -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="dialogOverlay" aria-hidden="true">
+    <div class="modal modal-xs" role="alertdialog" aria-modal="true" aria-labelledby="dialogTitle" aria-describedby="dialogText">
+      <form class="modal-body dialog" id="dialogForm" novalidate>
+        <span class="dialog-glyph" id="dialogGlyph"></span>
+        <h3 class="modal-title" id="dialogTitle"></h3>
+        <p class="dialog-text" id="dialogText"></p>
+        <div class="field" id="dialogField" hidden>
+          <label for="dialogInput" class="field-label" id="dialogInputLabel"></label>
+          <input type="text" id="dialogInput" class="input" autocomplete="off">
+          <span class="field-error" id="dialogError"></span>
+        </div>
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="dialogConfirm">Confirm</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- Row overflow menu (positioned by script) -->
+  <div class="menu menu-floating" id="rowMenu" role="menu" hidden>
+    <button class="menu-item" data-row-action="edit" role="menuitem"><svg class="i"><use href="#i-pencil"/></svg>Edit details</button>
+    <button class="menu-item" data-row-action="settle" role="menuitem"><svg class="i"><use href="#i-check-circle"/></svg><span id="rowMenuSettleLabel">Mark as settled</span></button>
+    <button class="menu-item" data-row-action="remind" role="menuitem"><svg class="i"><use href="#i-message"/></svg>Send WhatsApp reminder</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item menu-item-danger" data-row-action="delete" role="menuitem"><svg class="i"><use href="#i-trash"/></svg>Delete team</button>
+  </div>
+
+  <!-- Staff overflow menu (positioned by script) -->
+  <div class="menu menu-floating" id="staffMenu" role="menu" hidden>
+    <button class="menu-item" data-staff-action="log" role="menuitem"><svg class="i"><use href="#i-calendar"/></svg>Log today’s sessions</button>
+    <button class="menu-item" data-staff-action="edit" role="menuitem"><svg class="i"><use href="#i-pencil"/></svg>Edit name or rate</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item menu-item-danger" data-staff-action="remove" role="menuitem"><svg class="i"><use href="#i-trash"/></svg>Remove from register</button>
+  </div>
+
+  <div class="toasts" id="toastContainer" aria-live="polite"></div>
+
+  <script src="/hisaab/admin/config.js?v=3.2"></script>
+  <script src="/hisaab/admin/app.js?v=3.2"></script>
+</body>
+</html>
