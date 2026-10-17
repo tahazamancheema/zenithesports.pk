@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Zenith Hisaab — Private Ledger</title>
-  <meta name="description" content="Zenith Hisaab: the private ledger Zenith Esports uses to track scrim fees, tournament entries and prize payouts in PKR.">
+  <meta name="description" content="Zenith Hisaab: the private ledger Zenith Esports uses to track scrim fees, tournament entries, prize payouts and staff salaries in PKR.">
   <meta name="theme-color" content="#090807">
 
   <!-- Keep this private ledger out of search engines -->
@@ -20,7 +20,7 @@
   <!-- Urdu wordmark (subset to the single word "حساب") -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@600&text=%D8%AD%D8%B3%D8%A7%D8%A8&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/hisaab/admin/styles.css?v=3.1">
+  <link rel="stylesheet" href="/hisaab/admin/styles.css?v=3.2">
 </head>
 <body>
 
@@ -57,6 +57,11 @@
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 21.5s-8-3.5-8-10V5.5l8-3 8 3v6c0 6.5-8 10-8 10Z"/></symbol>
     <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1Z"/></symbol>
     <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0Z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/></symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect width="18" height="17" x="3" y="4.5" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 17.5h.01M12 17.5h.01"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.2a6.5 6.5 0 0 1 3 5.8"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V5.5A1.5 1.5 0 0 0 17.5 4h-12A2.5 2.5 0 0 0 3 6.5v11A2.5 2.5 0 0 0 5.5 20h14a1.5 1.5 0 0 0 1.5-1.5V9a2 2 0 0 0-2-2H5.5A2.5 2.5 0 0 1 3 4.5"/><path d="M16.5 13.5h.01"/></symbol>
   </svg>
 
   <!-- ======================================================== -->
@@ -135,6 +140,7 @@
             <p class="menu-label">Export</p>
             <button class="menu-item" id="exportCsvBtn" role="menuitem"><svg class="i"><use href="#i-file"/></svg>Balances (CSV)</button>
             <button class="menu-item" id="exportHistoryCsvBtn" role="menuitem"><svg class="i"><use href="#i-history"/></svg>Full history (CSV)</button>
+            <button class="menu-item" id="exportSalaryCsvBtn" role="menuitem"><svg class="i"><use href="#i-wallet"/></svg>Salary log (CSV)</button>
             <button class="menu-item" id="printReportBtn" role="menuitem"><svg class="i"><use href="#i-printer"/></svg>Print statement</button>
             <div class="menu-sep"></div>
             <p class="menu-label">Data</p>
@@ -144,7 +150,7 @@
             <div class="menu-sep"></div>
             <p class="menu-label">Access</p>
             <button class="menu-item" id="changePasscodeBtn" role="menuitem"><svg class="i"><use href="#i-key"/></svg>Change passcode</button>
-            <button class="menu-item menu-item-danger" id="clearAllDataBtn" role="menuitem"><svg class="i"><use href="#i-trash"/></svg>Clear all records</button>
+            <button class="menu-item menu-item-danger" id="clearAllDataBtn" role="menuitem"><svg class="i"><use href="#i-trash"/></svg>Clear team ledger</button>
           </div>
         </div>
 
@@ -154,7 +160,7 @@
 
         <button class="btn btn-gold" id="openAddTeamModalBtn">
           <svg class="i"><use href="#i-plus"/></svg>
-          <span>New entry</span>
+          <span id="newEntryLabel">New entry</span>
           <kbd class="hide-sm">N</kbd>
         </button>
       </div>
@@ -177,12 +183,17 @@
       <div class="overview-head">
         <div>
           <p class="eyebrow">Statement · <span id="statementDate">—</span></p>
-          <h1 class="page-title" id="overviewTitle">The books</h1>
+          <h1 class="sr-only" id="overviewTitle">Zenith Hisaab</h1>
+          <div class="view-switch" role="tablist" aria-label="Books">
+            <button class="view-tab is-active" role="tab" id="viewTabTeams" data-view="teams" aria-selected="true">The books</button>
+            <span class="view-sep" aria-hidden="true">/</span>
+            <button class="view-tab" role="tab" id="viewTabSalaries" data-view="salaries" aria-selected="false">Salaries<span class="view-count" id="viewSalariesBadge" title="People with salary due" hidden></span></button>
+          </div>
         </div>
         <p class="overview-note" id="overviewNote"></p>
       </div>
 
-      <div class="figures">
+      <div class="figures" id="teamFigures">
         <article class="figure figure-in">
           <div class="figure-top">
             <span class="figure-label"><svg class="i"><use href="#i-in"/></svg>Owed to us</span>
@@ -211,7 +222,36 @@
             <span class="split-in" id="splitIn"></span>
             <span class="split-out" id="splitOut"></span>
           </div>
-          <p class="figure-foot" id="netBalanceSubtext">Owed to us minus what we owe</p>
+          <p class="figure-foot" id="netBalanceSubtext">What we owe minus what’s owed to us</p>
+        </article>
+      </div>
+
+      <div class="figures figures-pay" id="payrollFigures" hidden>
+        <article class="figure figure-out">
+          <div class="figure-top">
+            <span class="figure-label"><svg class="i"><use href="#i-wallet"/></svg>Salaries due</span>
+            <span class="figure-count" id="payDuePeople">0 people</span>
+          </div>
+          <div class="figure-value" id="payDueAmount"></div>
+          <p class="figure-foot">Not paid yet <strong id="payDueSessions">0 sessions</strong></p>
+        </article>
+
+        <article class="figure figure-month">
+          <div class="figure-top">
+            <span class="figure-label"><svg class="i"><use href="#i-calendar"/></svg><span id="payMonthLabel">This month</span></span>
+            <span class="figure-count" id="payMonthSessions">0 sessions</span>
+          </div>
+          <div class="figure-value" id="payMonthAmount"></div>
+          <p class="figure-foot">Today <strong id="payTodaySessions">0 sessions</strong></p>
+        </article>
+
+        <article class="figure figure-net figure-paid">
+          <div class="figure-top">
+            <span class="figure-label">Paid this month</span>
+            <span class="net-tag" id="payRateTag">PKR 70 a session</span>
+          </div>
+          <div class="figure-value" id="payPaidMonthAmount"></div>
+          <p class="figure-foot">Paid to date <strong id="payPaidTotal">PKR 0</strong></p>
         </article>
       </div>
     </section>
@@ -344,6 +384,50 @@
         </div>
       </section>
     </section>
+
+    <!-- ===================== SALARIES ===================== -->
+    <section class="payroll" id="payrollRoot" aria-label="Salaries" hidden>
+      <section class="sheet sheet-pay" aria-labelledby="payrollTitle">
+        <header class="sheet-head">
+          <div class="sheet-title-wrap">
+            <span class="sheet-glyph"><svg class="i"><use href="#i-users"/></svg></span>
+            <div>
+              <h2 class="sheet-title" id="payrollTitle">Staff register</h2>
+              <p class="sheet-desc" id="payrollDesc">Sessions worked each day, paid per session</p>
+            </div>
+          </div>
+          <div class="sheet-head-right">
+            <div class="sheet-sum">
+              <span>Due</span>
+              <strong id="payrollDueDisplay">PKR 0</strong>
+            </div>
+            <button class="btn btn-sm btn-outline btn-outline-silver" data-action="add-staff">
+              <svg class="i"><use href="#i-plus"/></svg>Add person
+            </button>
+            <button class="btn btn-sm btn-settle" data-action="pay-all" id="payAllBtn" disabled>
+              <svg class="i"><use href="#i-check"/></svg>Pay everyone
+            </button>
+          </div>
+        </header>
+
+        <div class="table-wrap">
+          <table class="ledger-table pay-table" id="payrollTable">
+            <thead>
+              <tr>
+                <th class="c-person">Person</th>
+                <th class="c-week"><div class="week week-head" id="weekHead"></div></th>
+                <th class="c-unpaid">Unpaid</th>
+                <th class="c-due">Due <span class="th-unit">PKR</span></th>
+                <th class="c-lastpaid">Last paid</th>
+                <th class="c-actions"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody id="payrollTableBody"></tbody>
+          </table>
+          <div class="empty" id="payrollEmptyState" hidden></div>
+        </div>
+      </section>
+    </section>
   </main>
 
   <!-- ======================================================== -->
@@ -355,7 +439,7 @@
         <img src="/hisaab/admin/assets/zenith-logo-gold.png" alt="" class="footer-mark">
         <div>
           <p class="footer-word">ZENITH <span>ESPORTS</span></p>
-          <p class="footer-tag">Hisaab <span class="urdu" lang="ur">حساب</span> is where we keep track of every scrim fee, entry and prize payout.</p>
+          <p class="footer-tag">Hisaab <span class="urdu" lang="ur">حساب</span> is where we keep track of every scrim fee, prize payout and staff salary.</p>
         </div>
       </div>
 
@@ -379,7 +463,7 @@
 
     <div class="footer-base">
       <span>© 2026 Zenith Esports. Internal use only.</span>
-      <span>Hisaab v3.1</span>
+      <span>Hisaab v3.2</span>
     </div>
   </footer>
 
@@ -543,6 +627,91 @@
   </div>
 
   <!-- ======================================================== -->
+  <!-- MODAL: LOG SESSIONS (one day, everyone)                   -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="logModalOverlay" aria-hidden="true">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="logModalTitle">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="logEyebrow">Salaries · PKR 70 a session</p>
+          <h3 class="modal-title" id="logModalTitle">Log sessions</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="logForm" class="modal-body" novalidate>
+        <div class="day-picker">
+          <button type="button" class="icon-btn day-step" id="logPrevDayBtn" aria-label="Previous day"><svg class="i"><use href="#i-chevron-left"/></svg></button>
+          <div class="affix day-field">
+            <span class="affix-text" id="logDayName">FRI</span>
+            <input type="date" id="logDateInput" class="input input-mono" aria-label="Day worked" required>
+          </div>
+          <button type="button" class="icon-btn day-step" id="logNextDayBtn" aria-label="Next day"><svg class="i"><use href="#i-chevron-right"/></svg></button>
+          <button type="button" class="chip" id="logTodayBtn">Today</button>
+        </div>
+
+        <ul class="log-list" id="logList"></ul>
+
+        <div class="log-total">
+          <span>Day total</span>
+          <strong id="logTotalSessions">0 sessions</strong>
+          <strong class="log-total-amount" id="logTotalAmount">PKR 0</strong>
+        </div>
+
+        <div class="field">
+          <label for="logAdminNameInput" class="field-label">Recorded by</label>
+          <input type="text" id="logAdminNameInput" class="input" placeholder="Your name" autocomplete="off">
+          <span class="field-error" id="logAdminError">Enter your name for the record</span>
+        </div>
+
+        <footer class="modal-foot">
+          <span class="foot-note" id="logChangesNote"></span>
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="saveLogBtn">Save day</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: ADD / EDIT PERSON                                  -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="staffModalOverlay" aria-hidden="true">
+    <div class="modal modal-xs" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="staffModalEyebrow">Staff register</p>
+          <h3 class="modal-title" id="staffModalTitle">Add a person</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="staffForm" class="modal-body" novalidate>
+        <input type="hidden" id="editStaffId">
+        <div class="field">
+          <label for="staffNameInput" class="field-label">Name</label>
+          <input type="text" id="staffNameInput" class="input" placeholder="e.g. Bilal" autocomplete="off" maxlength="60">
+          <span class="field-error" id="staffNameError">Enter a name</span>
+        </div>
+        <div class="field">
+          <label for="staffRateInput" class="field-label">Pay per session</label>
+          <div class="affix">
+            <span class="affix-text">PKR</span>
+            <input type="number" id="staffRateInput" class="input input-mono" placeholder="70" min="0" step="1" inputmode="numeric">
+          </div>
+          <span class="field-error" id="staffRateError">Enter an amount of 0 or more</span>
+          <span class="field-hint" id="staffRateHint">Applies to sessions logged from now on. Paid sessions keep the rate they were paid at.</span>
+        </div>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="saveStaffBtn">Add to register</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- MODAL: CHANGE PASSCODE                                    -->
   <!-- ======================================================== -->
   <div class="modal-overlay" id="changePasscodeModalOverlay" aria-hidden="true">
@@ -612,9 +781,17 @@
     <button class="menu-item menu-item-danger" data-row-action="delete" role="menuitem"><svg class="i"><use href="#i-trash"/></svg>Delete team</button>
   </div>
 
+  <!-- Staff overflow menu (positioned by script) -->
+  <div class="menu menu-floating" id="staffMenu" role="menu" hidden>
+    <button class="menu-item" data-staff-action="log" role="menuitem"><svg class="i"><use href="#i-calendar"/></svg>Log today’s sessions</button>
+    <button class="menu-item" data-staff-action="edit" role="menuitem"><svg class="i"><use href="#i-pencil"/></svg>Edit name or rate</button>
+    <div class="menu-sep"></div>
+    <button class="menu-item menu-item-danger" data-staff-action="remove" role="menuitem"><svg class="i"><use href="#i-trash"/></svg>Remove from register</button>
+  </div>
+
   <div class="toasts" id="toastContainer" aria-live="polite"></div>
 
-  <script src="/hisaab/admin/config.js?v=3.1"></script>
-  <script src="/hisaab/admin/app.js?v=3.1"></script>
+  <script src="/hisaab/admin/config.js?v=3.2"></script>
+  <script src="/hisaab/admin/app.js?v=3.2"></script>
 </body>
 </html>

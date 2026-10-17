@@ -268,6 +268,8 @@ kbd {
   background: var(--ink-3);
   border-color: var(--line-2);
 }
+.icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.icon-btn:disabled:hover { color: var(--text-3); background: none; border-color: transparent; }
 .icon-btn-xs { min-width: 24px; height: 24px; padding: 0 4px; border-radius: 6px; }
 .icon-btn-xs .i { width: 13px; height: 13px; }
 .icon-btn-count span { font: 500 11.5px/1 var(--font-mono); }
@@ -530,6 +532,64 @@ kbd {
   color: var(--text-3);
 }
 .overview-note b { color: var(--text-2); font-weight: 500; }
+
+/* The page title doubles as the switch between the two books */
+.view-switch {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 8px;
+}
+.view-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 7px;
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--text-3);
+  transition: color 0.15s;
+}
+.view-tab:hover { color: var(--text-2); }
+.view-tab.is-active { color: var(--text); }
+.view-tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, var(--gold-hi), var(--gold-lo) 70%, transparent);
+  opacity: 0;
+  transform: scaleX(0.4);
+  transform-origin: left;
+  transition: opacity 0.2s, transform 0.3s var(--ease);
+}
+.view-tab.is-active::after { opacity: 1; transform: none; }
+.view-sep {
+  font-size: 26px;
+  font-weight: 300;
+  line-height: 1;
+  color: var(--line-3);
+}
+.view-count {
+  min-width: 20px;
+  height: 19px;
+  padding: 0 6px;
+  display: inline-grid;
+  place-items: center;
+  align-self: flex-start;
+  margin-top: 2px;
+  border-radius: 6px;
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: 0;
+  color: #1d1608;
+  background: linear-gradient(180deg, #ecd28c, #c29d4f);
+}
 
 .figures {
   position: relative;
@@ -1194,6 +1254,231 @@ a.wa-link:hover { background: rgba(79, 211, 137, 0.08); color: var(--text); }
 .empty h3 { font-size: 15px; font-weight: 600; color: var(--text); }
 .empty p { max-width: 340px; font-size: 13px; color: var(--text-3); }
 .empty .btn { margin-top: 10px; }
+.empty code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  font: 500 12px var(--font-mono);
+  color: var(--text-2);
+  background: var(--ink-3);
+  border: 1px solid var(--line);
+}
+
+/* ==========================================================================
+   SALARIES — staff register, week tallies, work record
+   ========================================================================== */
+.payroll { display: flex; flex-direction: column; gap: 18px; }
+
+.figure-month .figure-label .i { color: var(--text-2); }
+.figure-paid .figure-value { color: #d9ecdf; }
+
+.sheet-pay .sheet-glyph {
+  color: var(--silver);
+  background: linear-gradient(145deg, rgba(198, 202, 208, 0.14), rgba(198, 202, 208, 0.03));
+  border: 1px solid var(--silver-line);
+}
+.sheet-pay .sheet-sum strong { color: #eef0f3; }
+.sheet-pay .monogram {
+  color: #e6e8ec;
+  background: linear-gradient(150deg, #24252a 0%, #141518 100%);
+  border: 1px solid rgba(198, 202, 208, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.sheet-pay .balance { color: #eef0f3; }
+.sheet-pay .balance.is-zero { color: var(--text-3); }
+.row.is-removed .monogram,
+.row.is-removed .team-name { opacity: 0.55; }
+
+.pay-table th.c-person { width: 24%; }
+.pay-table th.c-week { width: 1%; padding-top: 7px; padding-bottom: 7px; }
+.pay-table th.c-unpaid { width: 14%; }
+.pay-table th.c-due { width: 9%; }
+.pay-table th.c-lastpaid { width: 14%; }
+.pay-table .c-due { text-align: right; }
+.pay-table .c-lastpaid { white-space: nowrap; }
+
+/* Seven days, today last — each cell is that day's session count */
+.week { display: flex; gap: 4px; }
+
+.week-day {
+  width: 30px;
+  padding: 3px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  border-radius: 6px;
+  font: 500 9px/1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  transition: background-color 0.15s, color 0.15s;
+}
+.week-day b { font-size: 11.5px; font-weight: 500; letter-spacing: 0; color: var(--text-2); }
+.week-day:hover { background: var(--ink-3); color: var(--text-2); }
+.week-day.is-today,
+.week-day.is-today b { color: var(--gold-hi); }
+
+.tally {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 7px;
+  border: 1px solid var(--line-2);
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text);
+  transition: border-color 0.15s, background-color 0.15s, transform 0.08s;
+}
+.tally b { font: 500 12.5px/1 var(--font-mono); }
+.tally i { display: none; font: 500 9px/1 var(--font-mono); font-style: normal; letter-spacing: 0.06em; color: var(--text-3); }
+.tally:hover { border-color: var(--line-3); background: var(--ink-3); }
+.tally:active { transform: translateY(1px); }
+.tally.is-empty { border-style: dashed; background: transparent; color: var(--text-3); }
+.tally.is-empty b:empty::before { content: '·'; }
+.tally.is-unpaid {
+  color: #eef0f3;
+  border-color: var(--silver-line);
+  background: linear-gradient(180deg, rgba(198, 202, 208, 0.13), rgba(198, 202, 208, 0.04));
+}
+.tally.is-paid {
+  color: var(--settled);
+  border-color: rgba(136, 195, 155, 0.28);
+  background: rgba(136, 195, 155, 0.07);
+}
+.tally.is-part {
+  color: #eef0f3;
+  border-color: var(--silver-line);
+  background: linear-gradient(135deg, rgba(136, 195, 155, 0.18) 0 42%, rgba(198, 202, 208, 0.08) 58%);
+}
+.tally.is-today { box-shadow: 0 0 0 1px var(--ink-1), 0 0 0 2px rgba(212, 176, 98, 0.55); }
+
+.unpaid { display: flex; flex-direction: column; gap: 2px; }
+.unpaid b { font: 500 13px var(--font-mono); color: var(--text); white-space: nowrap; }
+.unpaid small { font: 400 11.5px var(--font-mono); color: var(--text-3); white-space: nowrap; }
+.unpaid.is-zero b { font: 500 12.5px var(--font-sans); color: var(--settled); }
+
+/* Work record timeline */
+.sheet-pay .tl-item.is-up .tl-amount { color: #eef0f3; }
+.sheet-pay .tl-item.is-up .tl-node::after { background: var(--silver); }
+.tl-item.is-done .tl-amount { color: var(--text-2); }
+.tl-item.is-done .tl-node::after { background: rgba(136, 195, 155, 0.5); }
+
+/* ==========================================================================
+   LOG SESSIONS SHEET
+   ========================================================================== */
+.day-picker { display: flex; align-items: center; gap: 6px; }
+.day-field { flex: 1; min-width: 0; }
+.day-field .affix-text { letter-spacing: 0.12em; }
+.day-field .input { padding-left: 52px; }
+.day-step {
+  width: 38px;
+  height: 40px;
+  border-color: var(--line-2);
+  background: var(--ink-1);
+}
+.day-picker .chip { height: 40px; padding: 0 12px; font-family: var(--font-sans); }
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.75) sepia(0.4); opacity: 0.75; cursor: pointer; }
+
+.log-list {
+  list-style: none;
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--ink-0);
+}
+.log-row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto 60px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px 9px 10px;
+  transition: background-color 0.15s;
+}
+.log-row + .log-row { border-top: 1px solid var(--line); }
+.log-row .monogram {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 9.5px;
+  color: #e6e8ec;
+  background: linear-gradient(150deg, #24252a 0%, #141518 100%);
+  border: 1px solid rgba(198, 202, 208, 0.2);
+}
+.log-who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.log-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.log-meta { font-size: 11.5px; color: var(--text-3); }
+.log-meta:empty { display: none; }
+.log-amount { font: 500 12.5px var(--font-mono); color: var(--text-3); text-align: right; white-space: nowrap; }
+.log-row.has-count .log-amount { color: var(--text-2); }
+.log-row.is-changed { background: var(--gold-tint); }
+.log-row.is-changed .log-amount { color: var(--gold-hi); }
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  border: 1px solid var(--line-2);
+  border-radius: 9px;
+  background: var(--ink-1);
+  overflow: hidden;
+}
+.stepper button {
+  width: 32px;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-2);
+  transition: background-color 0.12s, color 0.12s;
+}
+.stepper button .i { width: 14px; height: 14px; }
+.stepper button:hover:not(:disabled) { background: var(--ink-4); color: var(--text); }
+.stepper button:disabled { opacity: 0.3; cursor: not-allowed; }
+.stepper input {
+  width: 42px;
+  height: 100%;
+  text-align: center;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  background: transparent;
+  font: 500 15px var(--font-mono);
+  color: var(--text);
+  outline: none;
+}
+.stepper input:focus { background: rgba(212, 176, 98, 0.1); }
+.log-row.is-changed .stepper { border-color: var(--gold-line); }
+
+.log-total {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 18px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: var(--ink-0) var(--tex-hairlines);
+  border: 1px dashed var(--line-3);
+}
+.log-total span {
+  font: 500 9.5px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.log-total strong { font: 500 14px var(--font-mono); color: var(--text-2); white-space: nowrap; }
+.log-total .log-total-amount { font-size: 17px; color: #eef0f3; }
+
+.foot-note { margin-right: auto; align-self: center; font-size: 12px; color: var(--gold); }
+.foot-note:empty { display: none; }
 
 /* ==========================================================================
    FOOTER
@@ -1944,6 +2229,53 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   .brand-sub .urdu { display: none; }
 }
 
+/* --- Salaries at smaller sizes (after the shared table rules so these win) --- */
+@media screen and (max-width: 1180px) {
+  .pay-table tr.row > td.c-lastpaid, .pay-table th.c-lastpaid { display: none; }
+  .sheet-pay .sheet-head .btn-settle { width: auto; padding: 0 11px; }
+}
+
+@media screen and (max-width: 900px) {
+  .view-tab { font-size: 25px; }
+  .view-sep { font-size: 22px; }
+
+  .sheet-pay .sheet-head-right { flex-wrap: wrap; gap: 10px; }
+  .sheet-pay .sheet-sum { margin-right: auto; }
+
+  .pay-table tr.row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "person due"
+      "week week"
+      "unpaid actions";
+  }
+  .pay-table tr.row > td.c-person { grid-area: person; min-width: 0; }
+  .pay-table tr.row > td.c-due { grid-area: due; align-self: center; }
+  .pay-table tr.row > td.c-week { grid-area: week; }
+  .pay-table tr.row > td.c-unpaid { grid-area: unpaid; align-self: center; }
+  .pay-table td.c-due::before {
+    content: 'Due';
+    display: block;
+    margin-bottom: 3px;
+    font: 500 9.5px/1 var(--font-mono);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  .pay-table .week { gap: 5px; }
+  .pay-table .tally { flex: 1; width: auto; height: 44px; }
+  .pay-table .tally i { display: block; }
+
+  .log-row { grid-template-columns: 32px minmax(0, 1fr) auto 52px; gap: 10px; }
+  .log-total { gap: 12px; }
+}
+
+@media screen and (max-width: 420px) {
+  .log-row { grid-template-columns: minmax(0, 1fr) auto 48px; padding-left: 12px; }
+  .log-row .monogram { display: none; }
+  .day-picker .chip { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 }
@@ -1999,4 +2331,11 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   .status { border: 1px solid #999 !important; background: none !important; color: #111 !important; }
   .progress-track { background: #eee !important; }
   .progress-track span { background: #777 !important; }
+
+  /* Salaries */
+  .tally { border: 1px solid #bbb !important; background: none !important; color: #111 !important; box-shadow: none !important; }
+  .tally.is-paid { color: #777 !important; }
+  .week-day, .week-day b, .unpaid b, .sheet-pay .balance { color: #111 !important; }
+  .unpaid small { color: #555 !important; }
+  .figure-paid .figure-value { color: #111 !important; }
 }
