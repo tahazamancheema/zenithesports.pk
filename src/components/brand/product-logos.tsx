@@ -107,47 +107,19 @@ export function ProductIcon({ product, size = 48, className = '' }: { product: P
 
       {product === 'points' && (
         <>
-          {/* A rank emblem: a faceted hexagonal gem holding three rank-up chevrons, with a gold
-              spark at the apex. Standings are about climbing, so the icon is a climb. */}
+          {/* The score ring: points filling up around the Zenith mark, a gold marker at the leading edge. */}
           <defs>
-            <linearGradient id={`${id}-night`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#1c1450" />
-              <stop offset="1" stopColor="#07051a" />
-            </linearGradient>
-            <radialGradient id={`${id}-halo`} cx="0.5" cy="0.52" r="0.5">
-              <stop offset="0" stopColor="#8b74ff" stopOpacity="0.55" />
-              <stop offset="1" stopColor="#8b74ff" stopOpacity="0" />
-            </radialGradient>
-            <linearGradient id={`${id}-core`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#140d3a" />
-              <stop offset="1" stopColor="#0a0722" />
-            </linearGradient>
-            <linearGradient id={`${id}-gold2`} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#fff3c4" />
-              <stop offset="1" stopColor="#f0b23a" />
+            <linearGradient id={`${id}-emerald`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#18a96f" />
+              <stop offset="1" stopColor="#0a5136" />
             </linearGradient>
           </defs>
-          <rect x="4" y="4" width="248" height="248" rx="58" fill={`url(#${id}-night)`} />
-          <circle cx="128" cy="134" r="112" fill={`url(#${id}-halo)`} />
-          {/* gem facets, lit from the top left */}
-          <g strokeLinejoin="round">
-            <path d="M128 40 L208 86 L128 134 Z" fill="#7d68ff" />
-            <path d="M208 86 L208 180 L128 134 Z" fill="#4c37d6" />
-            <path d="M208 180 L128 226 L128 134 Z" fill="#33239f" />
-            <path d="M128 226 L48 180 L128 134 Z" fill="#4430c4" />
-            <path d="M48 180 L48 86 L128 134 Z" fill="#6c56f5" />
-            <path d="M48 86 L128 40 L128 134 Z" fill="#a898ff" />
-          </g>
-          <path d="M128 40 L208 86 L208 180 L128 226 L48 180 L48 86 Z" fill="none" stroke="#ddd5ff" strokeOpacity="0.55" strokeWidth="3" strokeLinejoin="round" />
-          {/* inner well */}
-          <path d="M128 70 L182 101 L182 165 L128 196 L74 165 L74 101 Z" fill={`url(#${id}-core)`} stroke="#fff" strokeOpacity="0.12" strokeWidth="2" strokeLinejoin="round" />
-          {/* rank-up chevrons */}
-          <g fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13">
-            <path d="M98 170 L128 150 L158 170" stroke="#7b66ff" />
-            <path d="M98 146 L128 126 L158 146" stroke="#bdb1ff" />
-            <path d="M98 122 L128 102 L158 122" stroke="#ffffff" />
-          </g>
-          <path d="M128 66 l6 14 14 6 -14 6 -6 14 -6 -14 -14 -6 14 -6z" fill={`url(#${id}-gold2)`} transform="translate(0 -40) scale(1) " />
+          <rect x="4" y="4" width="248" height="248" rx="58" fill={`url(#${id}-emerald)`} />
+          <rect x="4.5" y="4.5" width="247" height="247" rx="57.5" fill="none" stroke="rgba(255,255,255,0.14)" />
+          <circle cx="128" cy="128" r="78" fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="22" />
+          <circle cx="128" cy="128" r="78" fill="none" stroke="#fff" strokeWidth="22" strokeLinecap="round" strokeDasharray={`${(2 * Math.PI * 78 * 0.78).toFixed(1)} 999`} transform="rotate(-90 128 128)" />
+          <circle cx={(128 + 78 * Math.cos(-Math.PI / 2 + 2 * Math.PI * 0.78)).toFixed(1)} cy={(128 + 78 * Math.sin(-Math.PI / 2 + 2 * Math.PI * 0.78)).toFixed(1)} r="15" fill="#ffe08a" />
+          {mark('#ffffff', 0.34, 2)}
         </>
       )}
     </svg>

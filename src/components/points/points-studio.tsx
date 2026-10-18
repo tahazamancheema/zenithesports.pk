@@ -50,7 +50,7 @@ const rankBefore = (team: number) => BEFORE.findIndex((r) => r.team === team)
 export const THEMES = [
   { id: 'meridian', label: 'Meridian', bg: 'linear-gradient(160deg,#1d170d 0%,#0b0a08 55%,#14100a 100%)', panel: 'rgba(226,187,99,0.08)', accent: '#e8c06a', accent2: '#fff1cc', ink: '#fff7e6', muted: 'rgba(255,247,230,0.6)' },
   { id: 'inferno', label: 'Inferno', bg: 'linear-gradient(160deg,#2d090c 0%,#110405 55%,#240709 100%)', panel: 'rgba(255,77,94,0.1)', accent: '#ff4d5e', accent2: '#ffd2d6', ink: '#fff0f1', muted: 'rgba(255,240,241,0.6)' },
-  { id: 'nebula', label: 'Nebula', bg: 'linear-gradient(160deg,#1a1240 0%,#07061a 55%,#120c33 100%)', panel: 'rgba(160,140,255,0.11)', accent: '#a693ff', accent2: '#e6e0ff', ink: '#f2efff', muted: 'rgba(242,239,255,0.62)' },
+  { id: 'emerald', label: 'Emerald', bg: 'linear-gradient(160deg,#0b2c20 0%,#04110c 55%,#0a2419 100%)', panel: 'rgba(62,213,152,0.1)', accent: '#3ed598', accent2: '#c9f7df', ink: '#effcf5', muted: 'rgba(239,252,245,0.62)' },
   { id: 'glacier', label: 'Glacier', bg: 'linear-gradient(160deg,#f1f6fa 0%,#d6e3ec 60%,#e9f0f5 100%)', panel: 'rgba(13,110,168,0.08)', accent: '#0d6ea8', accent2: '#0a3e5f', ink: '#0b1a26', muted: 'rgba(11,26,38,0.6)' },
 ] as const
 type Theme = (typeof THEMES)[number]
@@ -86,7 +86,7 @@ function useTicker(key: unknown, run: boolean, ms: number, max: number) {
   return run ? n : max
 }
 
-const VIOLET = '#9d8cff'
+const VIOLET = '#3ed598'
 
 // ─── phone screens ──────────────────────────────────────────────────────────
 
@@ -101,11 +101,11 @@ function Dashboard({ t }: { t: number }) {
         </div>
         <span className="rounded-full bg-[#6fd39a]/15 px-2 py-0.5 text-[10.5px] font-semibold text-[#6fd39a]">● Live</span>
       </div>
-      <div className="rounded-2xl p-3" style={{ background: 'linear-gradient(140deg,#3b2f8f,#1b1546)' }}>
+      <div className="rounded-2xl p-3" style={{ background: 'linear-gradient(140deg,#0f5e44,#082a1f)' }}>
         <div className="flex items-center gap-3">
           <svg viewBox="0 0 36 36" className="h-14 w-14 -rotate-90" aria-hidden>
             <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="4" />
-            <circle cx="18" cy="18" r="15" fill="none" stroke="#c6bdff" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(progress / 6) * 94.2} 94.2`} style={{ transition: 'stroke-dasharray .8s' }} />
+            <circle cx="18" cy="18" r="15" fill="none" stroke="#a7f3cc" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(progress / 6) * 94.2} 94.2`} style={{ transition: 'stroke-dasharray .8s' }} />
           </svg>
           <div>
             <p className="text-[11px] text-white/60">Grand final · Day 2</p>
@@ -121,7 +121,7 @@ function Dashboard({ t }: { t: number }) {
           ['M4 4h16v16H4zM4 15l5-5 4 4 3-3 4 4', 'Design'],
           ['M12 4v12m0 0-4-4m4 4 4-4M5 20h14', 'Export'],
         ].map(([d, l], i) => (
-          <div key={l} className={`grid place-items-center gap-1 rounded-xl py-2 ${i === 0 && t % 4 < 2 ? 'bg-[#9d8cff]/25' : 'bg-white/[0.05]'}`}>
+          <div key={l} className={`grid place-items-center gap-1 rounded-xl py-2 ${i === 0 && t % 4 < 2 ? 'bg-[#3ed598]/25' : 'bg-white/[0.05]'}`}>
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke={VIOLET} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d={d} />
             </svg>
@@ -136,7 +136,7 @@ function Dashboard({ t }: { t: number }) {
             <span className="w-3 font-mono text-white/50">{i + 1}</span>
             <Badge team={r.team} size={18} radius={5} />
             <span className="flex-1 truncate font-medium">Team {NAMES[r.team]}</span>
-            <span className="font-mono font-bold text-[#c6bdff]">{r.total}</span>
+            <span className="font-mono font-bold text-[#a7f3cc]">{r.total}</span>
           </li>
         ))}
       </ul>
@@ -150,7 +150,7 @@ function Capture({ t }: { t: number }) {
   const done = boxes >= 16
   return (
     <div className="flex h-full flex-col gap-2 p-3 text-[#e9edf3]">
-      <p className="text-[10.5px] uppercase tracking-[0.16em] text-[#c6bdff]">Match 4 · read results</p>
+      <p className="text-[10.5px] uppercase tracking-[0.16em] text-[#a7f3cc]">Match 4 · read results</p>
       {/* the results screenshot being read */}
       <div className="relative overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(160deg,#20262f,#11151b)] p-2">
         <p className="mb-1 text-center text-[9px] font-bold tracking-[0.2em] text-[#f2b33d]">MATCH RESULTS · ERANGEL</p>
@@ -172,7 +172,7 @@ function Capture({ t }: { t: number }) {
             )
           })}
         </div>
-        {!done && <div className="pts-scan absolute inset-x-0 h-10 bg-gradient-to-b from-transparent via-[#9d8cff]/45 to-transparent" />}
+        {!done && <div className="pts-scan absolute inset-x-0 h-10 bg-gradient-to-b from-transparent via-[#3ed598]/45 to-transparent" />}
       </div>
       <div className="rounded-lg bg-white/[0.05] px-2.5 py-2 text-[11.5px]">
         {done ? (
@@ -184,7 +184,7 @@ function Capture({ t }: { t: number }) {
           <>
             <p className="font-semibold">Reading screenshot… {Math.round((boxes / 16) * 100)}%</p>
             <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-[#9d8cff] transition-[width] duration-200" style={{ width: `${(boxes / 16) * 100}%` }} />
+              <div className="h-full rounded-full bg-[#3ed598] transition-[width] duration-200" style={{ width: `${(boxes / 16) * 100}%` }} />
             </div>
           </>
         )}
@@ -198,7 +198,7 @@ function Review({ t }: { t: number }) {
   return (
     <div className="flex h-full flex-col gap-2 p-3 text-[#e9edf3]">
       <div className="flex items-center justify-between">
-        <p className="text-[10.5px] uppercase tracking-[0.16em] text-[#c6bdff]">Review · Match 4</p>
+        <p className="text-[10.5px] uppercase tracking-[0.16em] text-[#a7f3cc]">Review · Match 4</p>
         <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/70">{fixed ? '0' : '2'} to check</span>
       </div>
       <div className="grid grid-cols-[22px_1fr_28px_30px] gap-x-1.5 px-1.5 text-[9.5px] uppercase tracking-wider text-white/45">
@@ -222,7 +222,7 @@ function Review({ t }: { t: number }) {
                 <span className="truncate">Team {NAMES[team]}</span>
               </span>
               <span className={`text-right font-mono ${unsure ? 'font-bold text-[#f0c060]' : ''}`}>{MATCH4.kills[team]}</span>
-              <span className="text-right font-mono font-semibold text-[#c6bdff]">+{PLACEMENT[place] + MATCH4.kills[team]}</span>
+              <span className="text-right font-mono font-semibold text-[#a7f3cc]">+{PLACEMENT[place] + MATCH4.kills[team]}</span>
             </li>
           )
         })}
@@ -232,7 +232,7 @@ function Review({ t }: { t: number }) {
       ) : (
         <p className="rounded-lg border border-[#6fd39a]/40 bg-[#6fd39a]/10 px-2 py-1.5 text-[11px] text-[#9ce6bd]">Checked by you · ready to confirm</p>
       )}
-      <button type="button" tabIndex={-1} className={`mt-auto rounded-xl py-2.5 text-[12.5px] font-bold transition-colors ${fixed ? 'bg-[#9d8cff] text-[#0d0b1d]' : 'bg-white/10 text-white/50'}`}>
+      <button type="button" tabIndex={-1} className={`mt-auto rounded-xl py-2.5 text-[12.5px] font-bold transition-colors ${fixed ? 'bg-[#3ed598] text-[#03140d]' : 'bg-white/10 text-white/50'}`}>
         Confirm match 4
       </button>
     </div>
@@ -247,7 +247,7 @@ function Standings({ t }: { t: number }) {
     <div className="flex h-full flex-col gap-2 p-3 text-[#e9edf3]">
       <div className="flex gap-1 rounded-lg bg-white/[0.05] p-0.5 text-[10.5px]">
         {['Overall', 'Match 4', 'MVP race'].map((x, i) => (
-          <span key={x} className={`flex-1 rounded-md py-1 text-center ${i === 0 ? 'bg-[#9d8cff] font-semibold text-[#0d0b1d]' : 'text-white/60'}`}>
+          <span key={x} className={`flex-1 rounded-md py-1 text-center ${i === 0 ? 'bg-[#3ed598] font-semibold text-[#03140d]' : 'text-white/60'}`}>
             {x}
           </span>
         ))}
@@ -274,7 +274,7 @@ function Standings({ t }: { t: number }) {
                   {Math.abs(delta)}
                 </span>
               )}
-              <span className="w-7 text-right font-mono font-bold text-[#c6bdff]">{total}</span>
+              <span className="w-7 text-right font-mono font-bold text-[#a7f3cc]">{total}</span>
             </div>
           )
         })}
@@ -288,12 +288,12 @@ function Rules({ t }: { t: number }) {
   const hi = t % 8
   return (
     <div className="flex h-full flex-col gap-2 p-3 text-[#e9edf3]">
-      <p className="text-[10.5px] uppercase tracking-[0.16em] text-[#c6bdff]">Scoring rules</p>
+      <p className="text-[10.5px] uppercase tracking-[0.16em] text-[#a7f3cc]">Scoring rules</p>
       <div className="rounded-xl bg-white/[0.04] p-2">
         <p className="mb-1.5 text-[11px] text-white/60">Placement points</p>
         <div className="grid grid-cols-4 gap-1">
           {PLACEMENT.slice(0, 8).map((p, i) => (
-            <div key={i} className={`rounded-md py-1 text-center transition-colors ${i === hi ? 'bg-[#9d8cff]/30 ring-1 ring-[#9d8cff]' : 'bg-white/[0.05]'}`}>
+            <div key={i} className={`rounded-md py-1 text-center transition-colors ${i === hi ? 'bg-[#3ed598]/30 ring-1 ring-[#3ed598]' : 'bg-white/[0.05]'}`}>
               <p className="text-[9px] text-white/50">#{i + 1}</p>
               <p className="font-mono text-[13px] font-bold">{p}</p>
             </div>
@@ -324,10 +324,10 @@ function Rules({ t }: { t: number }) {
 function Studio({ theme, setTheme, layout, setLayout }: { theme: number; setTheme: (n: number) => void; layout: number; setLayout: (n: number) => void }) {
   return (
     <div className="flex h-full flex-col gap-2 p-3 text-[#e9edf3]">
-      <p className="text-[10.5px] uppercase tracking-[0.16em] text-[#c6bdff]">Design studio</p>
+      <p className="text-[10.5px] uppercase tracking-[0.16em] text-[#a7f3cc]">Design studio</p>
       <div className="grid grid-cols-3 gap-1.5">
         {['Table', 'Podium', 'Cards'].map((l, i) => (
-          <button key={l} type="button" onClick={() => setLayout(i)} className={`rounded-lg py-1.5 text-[11px] ${layout === i ? 'bg-[#9d8cff] font-semibold text-[#0d0b1d]' : 'bg-white/[0.06] text-white/70'}`}>
+          <button key={l} type="button" onClick={() => setLayout(i)} className={`rounded-lg py-1.5 text-[11px] ${layout === i ? 'bg-[#3ed598] font-semibold text-[#03140d]' : 'bg-white/[0.06] text-white/70'}`}>
             {l}
           </button>
         ))}
@@ -335,7 +335,7 @@ function Studio({ theme, setTheme, layout, setLayout }: { theme: number; setThem
       <p className="text-[11px] text-white/60">Theme</p>
       <div className="grid grid-cols-4 gap-1.5">
         {THEMES.map((th, i) => (
-          <button key={th.id} type="button" onClick={() => setTheme(i)} className={`h-10 rounded-lg ring-offset-2 ring-offset-black ${theme === i ? 'ring-2 ring-[#9d8cff]' : ''}`} style={{ background: th.bg }} aria-label={th.label}>
+          <button key={th.id} type="button" onClick={() => setTheme(i)} className={`h-10 rounded-lg ring-offset-2 ring-offset-black ${theme === i ? 'ring-2 ring-[#3ed598]' : ''}`} style={{ background: th.bg }} aria-label={th.label}>
             <span className="mx-auto block h-2 w-5 rounded-full" style={{ background: th.accent }} />
           </button>
         ))}
@@ -693,7 +693,7 @@ export function PointsStudio() {
                   type="button"
                   onClick={() => regenerate(() => (setAuto(false), setStep((x) => Math.max(x, 3)), setPoster(i)))}
                   aria-pressed={shownPoster === i}
-                  className={`rounded-md px-2.5 py-1 text-[12.5px] transition-colors ${shownPoster === i ? 'bg-[var(--color-pts)] text-[#0d0b1d]' : 'text-fg-2 hover:text-fg'}`}
+                  className={`rounded-md px-2.5 py-1 text-[12.5px] transition-colors ${shownPoster === i ? 'bg-[var(--color-pts)] text-[#03140d]' : 'text-fg-2 hover:text-fg'}`}
                 >
                   {p}
                 </button>

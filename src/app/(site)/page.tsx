@@ -1,6 +1,7 @@
 import { Altitude } from '@/components/brand'
 import { ProductIcon, ProductLockup } from '@/components/brand/product-logos'
 import { GameMark, GameWordmark } from '@/components/game-mark'
+import { Finale } from '@/components/home/finale'
 import { Zenith3D } from '@/components/home/zenith-3d'
 import { InViewVideo, ScrollStatement, SplitText, TiltCard, VelocityMarquee, WordCycle } from '@/components/kinetic'
 import { ZLink } from '@/components/link'
@@ -157,11 +158,11 @@ export default async function Home() {
               <div className="relative">
                 <InViewVideo
                   className="aspect-video w-full object-cover"
-                  poster="/products/production/walkthrough-poster.webp"
-                  label="ZenithProduction walkthrough with the software's built-in sample data"
+                  poster="/products/production/teaser-poster.webp"
+                  label="ZenithProduction on-air scenes with the software's built-in sample data"
                   sources={[
-                    { src: '/products/production/walkthrough.webm', type: 'video/webm' },
-                    { src: '/products/production/walkthrough.mp4', type: 'video/mp4' },
+                    { src: '/products/production/teaser.webm', type: 'video/webm' },
+                    { src: '/products/production/teaser.mp4', type: 'video/mp4' },
                   ]}
                 />
                 <span className="chip absolute right-3 top-3 border-white/20 bg-black/65 text-white">Real software · sample data</span>
@@ -252,15 +253,9 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ALT 75 / 90 — community and the zenith */}
-      <section className="relative isolate overflow-hidden border-t border-line py-32" aria-labelledby="zenith-title">
-        <img src="/visuals/arena.webp" alt="" loading="lazy" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-45" />
-        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,#06070a,rgba(6,7,10,0.55)_40%,#06070a)]" />
-        <div className="shell text-center" data-reveal>
-          <Altitude deg={90} className="justify-center">Zenith</Altitude>
-          <h2 id="zenith-title" className="t-display mx-auto mt-8 max-w-4xl text-[clamp(2rem,5vw,3.8rem)]">
-            Compete at the <span className="t-chrome">highest point</span>
-          </h2>
+      {/* ALT 90 — the zenith */}
+      <section className="border-t border-line" aria-labelledby="zenith-title">
+        <Finale>
           <p className="t-lede mx-auto mt-6 max-w-xl">Announcements, schedules and broadcasts go out on our official channels first.</p>
           <div className="mt-10 flex justify-center">
             <SocialLinks social={settings.social} size="lg" />
@@ -269,7 +264,7 @@ export default async function Home() {
             <ZLink surface="registrations" to="/" className="btn btn-primary">Enter a tournament <span className="arrow">→</span></ZLink>
             <ZLink surface="hq" to="/contact" className="btn btn-ghost">Talk to the team</ZLink>
           </div>
-        </div>
+        </Finale>
       </section>
     </>
   )

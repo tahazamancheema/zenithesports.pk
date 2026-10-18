@@ -1,18 +1,18 @@
 import { LEGAL_LINKS, PRODUCTS } from '@/config/products'
-import { getGames, mediaUrl } from '@/server/services/catalog'
+import { getGames } from '@/server/services/catalog'
 import { getSettings } from '@/server/settings'
 import { ProductIcon } from './brand/product-logos'
-import { GameMark } from './game-mark'
+import { MARK_PATH, MARK_VIEWBOX } from './brand/mark-path'
 import { ZLink } from './link'
 import { SocialLinks } from './social'
 
 const FALLBACK_GAMES = [
-  { id: 'pubg-mobile', name: 'PUBG Mobile', logoFileId: null },
-  { id: 'free-fire', name: 'Free Fire', logoFileId: null },
-  { id: 'valorant', name: 'VALORANT', logoFileId: null },
-  { id: 'honor-of-kings', name: 'Honor of Kings', logoFileId: null },
-  { id: 'tekken-8', name: 'TEKKEN 8', logoFileId: null },
-  { id: 'ea-fc', name: 'EA SPORTS FC', logoFileId: null },
+  { id: 'pubg-mobile', name: 'PUBG Mobile' },
+  { id: 'free-fire', name: 'Free Fire' },
+  { id: 'valorant', name: 'VALORANT' },
+  { id: 'honor-of-kings', name: 'Honor of Kings' },
+  { id: 'tekken-8', name: 'TEKKEN 8' },
+  { id: 'ea-fc', name: 'EA SPORTS FC' },
 ]
 
 export async function SiteFooter() {
@@ -26,7 +26,8 @@ export async function SiteFooter() {
       <div className="shell grid gap-12 pb-12 pt-20 lg:grid-cols-12">
         <div className="lg:col-span-4">
           <div className="flex items-center gap-4">
-            <ProductIcon product="zenith" size={52} />
+            {/* eslint-disable-next-line @next/next/no-img-element -- static brand mark */}
+            <img src="/brand/zenith-mark-160.webp" alt="" width={52} height={52} className="h-[52px] w-[52px] drop-shadow-[0_8px_24px_rgba(217,178,95,0.25)]" />
             <div>
               <p className="font-display text-[15px] tracking-[0.28em]">ZENITH</p>
               <p className="font-mono text-[12px] uppercase tracking-[0.18em] text-fg-3">Esports · Pakistan</p>
@@ -65,12 +66,15 @@ export async function SiteFooter() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-[1.35fr_1fr_1fr] lg:col-span-5">
           <div>
             <p className="t-label mb-4">Games</p>
-            <ul className="grid gap-1.5">
+            <ul className="flex flex-wrap gap-2">
               {games.map((g) => (
                 <li key={g.id}>
-                  <ZLink surface="registrations" to={`/games/${g.id}`} className="flex items-center gap-2 py-0.5 text-[14px] text-fg-2 hover:text-fg">
-                    <GameMark gameId={g.id} name={g.name} logoUrl={mediaUrl(g.logoFileId)} size={22} />
-                    <span className="truncate">{g.name}</span>
+                  <ZLink
+                    surface="registrations"
+                    to={`/games/${g.id}`}
+                    className="inline-flex rounded-full border border-line-2 bg-white/[0.02] px-3 py-1.5 text-[13px] text-fg-2 transition-colors hover:border-[var(--color-gold)] hover:bg-[color-mix(in_oklab,var(--color-gold)_10%,transparent)] hover:text-fg"
+                  >
+                    {g.name}
                   </ZLink>
                 </li>
               ))}
@@ -90,14 +94,31 @@ export async function SiteFooter() {
         </div>
       </div>
 
-      {/* The signature: the name, set large and cut off by the edge of the page. */}
+      {/* The signature: mark and name as crisp vector art, fading into the edge of the page. */}
       <div aria-hidden className="pointer-events-none select-none overflow-hidden">
-        <p className="t-display t-outline translate-y-[22%] text-center text-[clamp(4rem,19vw,17rem)] leading-none tracking-[0.06em] opacity-70">ZENITH</p>
+        <svg viewBox="0 0 1600 300" className="mx-auto block w-full max-w-[1320px] translate-y-[14%]" preserveAspectRatio="xMidYMax meet">
+          <defs>
+            <linearGradient id="footer-sig" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#f0d594" stopOpacity="0.55" />
+              <stop offset="0.55" stopColor="#c9cfd9" stopOpacity="0.16" />
+              <stop offset="1" stopColor="#c9cfd9" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <svg x="40" y="20" width="300" height="264" viewBox={MARK_VIEWBOX}>
+            <path d={MARK_PATH} fillRule="evenodd" fill="url(#footer-sig)" stroke="#f0d594" strokeOpacity="0.25" strokeWidth="4" />
+          </svg>
+          <text x="380" y="262" fill="url(#footer-sig)" stroke="#f0d594" strokeOpacity="0.2" strokeWidth="1.5" style={{ fontFamily: 'var(--ff-display), Michroma, sans-serif', fontSize: 236, letterSpacing: 18 }}>
+            ZENITH
+          </text>
+        </svg>
       </div>
 
       <div className="relative border-t border-line bg-[#07080b]">
         <div className="shell flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <p className="font-mono text-[12px] uppercase tracking-[0.14em] text-fg-3">© {year} Zenith Esports · Made in Pakistan</p>
+          <p className="flex items-center gap-3 font-mono text-[12px] uppercase tracking-[0.14em] text-fg-3">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static brand mark */}
+            <img src="/brand/zenith-mark-160.webp" alt="" width={20} height={20} className="h-5 w-5 opacity-80" />© {year} Zenith Esports · Made in Pakistan
+          </p>
           <a href="#main" className="font-mono text-[12px] uppercase tracking-[0.14em] text-fg-3 transition-colors hover:text-fg">
             Back to top ↑
           </a>

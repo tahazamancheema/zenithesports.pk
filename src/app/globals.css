@@ -37,7 +37,7 @@
   --color-reg: #d9b25f;
   --color-prod: #ff5a44;
   --color-ac: #3fd8c0;
-  --color-pts: #9d8cff;
+  --color-pts: #3ed598;
 
   /* semantics — thin borders, chips and text only, never large fills */
   --color-ok: #6fd39a;
@@ -70,7 +70,7 @@
 [data-surface='registrations'] { --accent: var(--color-reg); --accent-hi: var(--color-gold-hi); }
 [data-surface='production'] { --accent: var(--color-prod); --accent-hi: #ff8d7b; }
 [data-surface='anticheat'] { --accent: var(--color-ac); --accent-hi: #8cf0df; }
-[data-surface='points'] { --accent: var(--color-pts); --accent-hi: #c6bdff; }
+[data-surface='points'] { --accent: var(--color-pts); --accent-hi: #a7f3cc; }
 
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
@@ -341,6 +341,38 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .bezel { position: relative; border-radius: 14px; padding: 6px; background: linear-gradient(160deg, #2a2f39, #0c0e12 40%, #171b22); box-shadow: 0 1px 0 rgb(255 255 255 / 0.08) inset, 0 40px 90px -30px rgb(0 0 0 / 0.9); }
 .bezel > * { border-radius: 9px; overflow: hidden; }
 .tilt { transition: transform 0.6s var(--ease-out-expo); transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+
+
+/* ─── closing scene (home) ─────────────────────────────────────────────── */
+.kx-hold .kx-letter { animation-play-state: paused; opacity: 0; }
+.finale-grid {
+  background-image: linear-gradient(rgb(217 178 95 / 0.22) 1px, transparent 1px), linear-gradient(90deg, rgb(217 178 95 / 0.22) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(0deg, #000 10%, transparent 85%);
+  -webkit-mask-image: linear-gradient(0deg, #000 10%, transparent 85%);
+  animation: finale-floor 6s linear infinite;
+  animation-play-state: paused;
+}
+@keyframes finale-floor { to { background-position: 0 64px; } }
+.finale-sheen { background: conic-gradient(from 0deg, transparent 0 20%, rgb(217 178 95 / 0.25) 30%, transparent 42%, transparent 70%, rgb(201 207 217 / 0.12) 80%, transparent 90%); filter: blur(40px); animation: sweep 40s linear infinite; animation-play-state: paused; }
+.finale-particle { opacity: 0; box-shadow: 0 0 10px var(--color-gold); animation: finale-rise linear infinite; animation-play-state: paused; }
+@keyframes finale-rise {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  12% { opacity: 0.9; }
+  80% { opacity: 0.5; }
+  100% { transform: translate3d(var(--drift, 0), -70vh, 0); opacity: 0; }
+}
+.finale.is-live .finale-grid, .finale.is-live .finale-sheen, .finale.is-live .finale-particle { animation-play-state: running; }
+.finale-mark-line { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.finale-mark-fill { opacity: 0; transition: opacity 1.2s var(--ease-out-expo) 1.6s; }
+.finale.is-seen .finale-mark-line { animation: finale-draw 2.2s var(--ease-draw) forwards; }
+.finale.is-seen .finale-mark-fill { opacity: 1; }
+@keyframes finale-draw { 0% { stroke-dashoffset: 1; opacity: 1; } 75% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) {
+  .finale-particle { display: none; }
+  .finale-mark-fill { opacity: 1; }
+  .kx-hold .kx-letter { opacity: 1; }
+}
 
 /* Page transitions (React <ViewTransition>) */
 ::view-transition-old(.zx-page) { animation: 180ms ease-in both vt-out; }

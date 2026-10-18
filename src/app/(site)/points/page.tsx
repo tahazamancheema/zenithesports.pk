@@ -13,7 +13,7 @@ import { getSettings } from '@/server/settings'
 
 const OUTPUTS = [
   { text: 'Slot lists', color: 'var(--color-pts)' },
-  { text: 'Standings', color: '#c6bdff' },
+  { text: 'Standings', color: '#a7f3cc' },
   { text: 'Champions', color: 'var(--color-gold)' },
   { text: 'MVPs', color: '#8cf0df' },
 ]
