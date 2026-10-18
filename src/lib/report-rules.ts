@@ -82,7 +82,7 @@ export const REPORT_RULES: Record<string, ReportRule> = {
     clip: true,
     matchDetails: true,
   },
-  'ea-fc-26': {
+  'ea-fc': {
     evidence: [
       { kind: 'uid_proof', label: 'Screenshot showing their EA ID', hint: 'The match result or opponent profile with their EA ID or platform name readable.', required: true },
       EXTRA,

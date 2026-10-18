@@ -12,7 +12,7 @@ const FALLBACK_GAMES = [
   { id: 'valorant', name: 'VALORANT', logoFileId: null },
   { id: 'honor-of-kings', name: 'Honor of Kings', logoFileId: null },
   { id: 'tekken-8', name: 'TEKKEN 8', logoFileId: null },
-  { id: 'ea-fc-26', name: 'EA SPORTS FC', logoFileId: null },
+  { id: 'ea-fc', name: 'EA SPORTS FC', logoFileId: null },
 ]
 
 export async function SiteFooter() {

@@ -18,4 +18,4 @@ elsewhere, check that publisher's community or tournament guidelines.
 | `public/products/production/*` | ZenithProduction operator screens (captured at 2× density), overlays and the 1920×1080 walkthrough | Captured from the real software with its built-in sample data | Zenith |
 
 Generated renders made for Zenith (no game trademarks): `public/visuals/{summit,arena,production,points,anticheat,trophy}.webp`
-and `public/visuals/games/ea-fc-26*.webp`. The `src/config/game-glyphs.ts` icons are Simple Icons (CC0 data; marks are their owners' trademarks).
+and `public/visuals/games/ea-fc*.webp`. The `src/config/game-glyphs.ts` icons are Simple Icons (CC0 data; marks are their owners' trademarks).

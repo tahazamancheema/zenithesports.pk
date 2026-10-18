@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { ZLink } from '@/components/link'
 import { PageIntro } from '@/components/page-intro'
 import { AVAILABILITY } from '@/components/portfolio'
@@ -7,6 +7,7 @@ import { GameMark } from '@/components/game-mark'
 import { TournamentGrid } from '@/components/tournament-cards'
 import { EmptySignal } from '@/components/tournament-list'
 import { gameArt } from '@/config/game-art'
+import { href } from '@/server/link'
 import { getFormats, getGame, getGames, getSponsors, listPublicTournaments, mediaUrl } from '@/server/services/catalog'
 
 export async function generateMetadata(props: PageProps<'/registrations/games/[game]'>): Promise<Metadata> {
@@ -14,8 +15,13 @@ export async function generateMetadata(props: PageProps<'/registrations/games/[g
   return { title: g ? `${g.name} tournaments` : 'Game not found' }
 }
 
+/** Old game links that moved. */
+const MOVED: Record<string, string> = { 'ea-fc-26': 'ea-fc' }
+
 export default async function GamePage(props: PageProps<'/registrations/games/[game]'>) {
-  const g = await getGame((await props.params).game)
+  const id = (await props.params).game
+  if (MOVED[id]) permanentRedirect(await href('registrations', `/games/${MOVED[id]}`))
+  const g = await getGame(id)
   if (!g) notFound()
   const [formats, tournaments, games] = await Promise.all([getFormats(), listPublicTournaments(g.id), getGames()])
   const sponsors = await getSponsors(tournaments.map((t) => t.id))

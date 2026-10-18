@@ -51,7 +51,7 @@ describe('migration safety', () => {
     expect(by('pubg-mobile')).toEqual(['duo', 'solo', 'squad'])
     expect(by('free-fire')).toEqual(['duo', 'solo', 'squad'])
     expect(by('tekken-8')).toEqual(['solo'])
-    expect(by('ea-fc-26')).toEqual(['duo', 'solo'])
+    expect(by('ea-fc')).toEqual(['duo', 'solo'])
     expect(by('valorant')).toEqual(['lft', 'team5'])
     expect(by('honor-of-kings')).toEqual(['lft', 'team5'])
     // Reference data only: no invented tournaments, players, teams or statistics.

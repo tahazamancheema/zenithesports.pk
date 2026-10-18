@@ -107,37 +107,47 @@ export function ProductIcon({ product, size = 48, className = '' }: { product: P
 
       {product === 'points' && (
         <>
-          {/* A "P" built from a rising leaderboard: two bars climb into the stem, the bowl is a
-              scoring loop, and a gold first-place spark sits inside it. No Zenith mark: the app
-              stands on its own in app stores. */}
+          {/* A rank emblem: a faceted hexagonal gem holding three rank-up chevrons, with a gold
+              spark at the apex. Standings are about climbing, so the icon is a climb. */}
           <defs>
-            <linearGradient id={`${id}-tile`} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#8f7dff" />
-              <stop offset="0.55" stopColor="#4a35d4" />
-              <stop offset="1" stopColor="#1e1466" />
+            <linearGradient id={`${id}-night`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#1c1450" />
+              <stop offset="1" stopColor="#07051a" />
             </linearGradient>
-            <linearGradient id={`${id}-gloss`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#fff" stopOpacity="0.16" />
-              <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
+            <radialGradient id={`${id}-halo`} cx="0.5" cy="0.52" r="0.5">
+              <stop offset="0" stopColor="#8b74ff" stopOpacity="0.55" />
+              <stop offset="1" stopColor="#8b74ff" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id={`${id}-core`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#140d3a" />
+              <stop offset="1" stopColor="#0a0722" />
             </linearGradient>
-            <linearGradient id={`${id}-ink`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#ffffff" />
-              <stop offset="1" stopColor="#ddd6ff" />
-            </linearGradient>
-            <linearGradient id={`${id}-spark`} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#fff1b8" />
-              <stop offset="1" stopColor="#f3b73f" />
+            <linearGradient id={`${id}-gold2`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#fff3c4" />
+              <stop offset="1" stopColor="#f0b23a" />
             </linearGradient>
           </defs>
-          <rect x="4" y="4" width="248" height="248" rx="58" fill={`url(#${id}-tile)`} />
-          <rect x="4" y="4" width="248" height="248" rx="58" fill={`url(#${id}-gloss)`} />
-          <g fill={`url(#${id}-ink)`}>
-            <rect x="46" y="166" width="30" height="46" rx="9" opacity="0.5" />
-            <rect x="86" y="132" width="30" height="80" rx="9" opacity="0.75" />
-            <rect x="126" y="50" width="34" height="162" rx="11" />
-            <path d="M146 50h30a54 54 0 0 1 0 108h-30v-28h30a26 26 0 0 0 0-52h-30z" />
+          <rect x="4" y="4" width="248" height="248" rx="58" fill={`url(#${id}-night)`} />
+          <circle cx="128" cy="134" r="112" fill={`url(#${id}-halo)`} />
+          {/* gem facets, lit from the top left */}
+          <g strokeLinejoin="round">
+            <path d="M128 40 L208 86 L128 134 Z" fill="#7d68ff" />
+            <path d="M208 86 L208 180 L128 134 Z" fill="#4c37d6" />
+            <path d="M208 180 L128 226 L128 134 Z" fill="#33239f" />
+            <path d="M128 226 L48 180 L128 134 Z" fill="#4430c4" />
+            <path d="M48 180 L48 86 L128 134 Z" fill="#6c56f5" />
+            <path d="M48 86 L128 40 L128 134 Z" fill="#a898ff" />
           </g>
-          <path d="M176 86l5 13 13 5-13 5-5 13-5-13-13-5 13-5z" fill={`url(#${id}-spark)`} />
+          <path d="M128 40 L208 86 L208 180 L128 226 L48 180 L48 86 Z" fill="none" stroke="#ddd5ff" strokeOpacity="0.55" strokeWidth="3" strokeLinejoin="round" />
+          {/* inner well */}
+          <path d="M128 70 L182 101 L182 165 L128 196 L74 165 L74 101 Z" fill={`url(#${id}-core)`} stroke="#fff" strokeOpacity="0.12" strokeWidth="2" strokeLinejoin="round" />
+          {/* rank-up chevrons */}
+          <g fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13">
+            <path d="M98 170 L128 150 L158 170" stroke="#7b66ff" />
+            <path d="M98 146 L128 126 L158 146" stroke="#bdb1ff" />
+            <path d="M98 122 L128 102 L158 122" stroke="#ffffff" />
+          </g>
+          <path d="M128 66 l6 14 14 6 -14 6 -6 14 -6 -14 -14 -6 14 -6z" fill={`url(#${id}-gold2)`} transform="translate(0 -40) scale(1) " />
         </>
       )}
     </svg>

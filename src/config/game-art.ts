@@ -28,7 +28,7 @@ export const GAME_ART: Record<string, GameArt> = {
   valorant: { art: '/visuals/games/valorant.webp', thumb: '/visuals/games/valorant-sm.webp', accent: '#ff4655', word: ['VALORANT'], genre: 'Tactical shooter', logo: '/games/valorant-logo.png', emblem: '/games/valorant-emblem.png', emblemFill: true, named: true },
   'honor-of-kings': { art: '/visuals/games/honor-of-kings.webp', thumb: '/visuals/games/honor-of-kings-sm.webp', accent: '#e9c46a', word: ['HONOR', 'OF KINGS'], genre: 'Mobile MOBA', logo: '/games/honor-of-kings-logo.png', emblem: '/games/honor-of-kings-emblem.png', named: true },
   'tekken-8': { art: '/visuals/games/tekken-8.webp', thumb: '/visuals/games/tekken-8-sm.webp', accent: '#5b8cff', word: ['TEKKEN', '8'], genre: 'Fighting', logo: '/games/tekken-8-logo.png', named: true },
-  'ea-fc-26': { art: '/visuals/games/ea-fc-26.webp', thumb: '/visuals/games/ea-fc-26-sm.webp', accent: '#3ddc84', word: ['EA SPORTS', 'FC'], genre: 'Football', logo: '/games/ea-fc-logo.png', emblem: '/games/ea-fc-emblem.png', named: true },
+  'ea-fc': { art: '/visuals/games/ea-fc.webp', thumb: '/visuals/games/ea-fc-sm.webp', accent: '#3ddc84', word: ['EA SPORTS', 'FC'], genre: 'Football', logo: '/games/ea-fc-logo.png', emblem: '/games/ea-fc-emblem.png', named: true },
 }
 
 const FALLBACK: GameArt = { art: '/visuals/arena.webp', thumb: '/visuals/arena.webp', accent: '#d9b25f', word: ['ZENITH'], genre: 'Esports' }

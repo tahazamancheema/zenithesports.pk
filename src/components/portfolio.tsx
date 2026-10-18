@@ -64,7 +64,7 @@ export async function GameShowcase() {
   const [games, formats, tournaments] = await Promise.all([getGames(), getFormats(), listPublicTournaments()])
   const list = games.length
     ? games
-    : FALLBACK.map((name, i) => ({ id: ['pubg-mobile', 'free-fire', 'valorant', 'honor-of-kings', 'tekken-8', 'ea-fc-26'][i], name, availability: null, logoFileId: null }))
+    : FALLBACK.map((name, i) => ({ id: ['pubg-mobile', 'free-fire', 'valorant', 'honor-of-kings', 'tekken-8', 'ea-fc'][i], name, availability: null, logoFileId: null }))
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">
       {list.map((g, i) => {

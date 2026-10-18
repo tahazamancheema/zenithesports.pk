@@ -106,17 +106,20 @@ export default async function PointsPage() {
       </section>
 
       <section className="border-b border-line py-20" aria-label="Why ZenithPoints">
-        <ul className="shell grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-5">
-          {PROMISES.map((p, i) => (
-            <li key={p.t} className="bg-ink-1 p-6" data-reveal style={{ '--i': i } as React.CSSProperties}>
-              <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="var(--color-pts)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" aria-hidden>
-                <path d={p.icon} />
-              </svg>
-              <p className="t-title mt-5 text-lg">{p.t}</p>
-              <p className="mt-2 text-[15px] text-fg-2">{p.d}</p>
-            </li>
-          ))}
-        </ul>
+        <div className="shell">
+          <ul className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-5">
+            {PROMISES.map((p, i) => (
+              <li key={p.t} className="group relative bg-ink-1 p-6 transition-colors duration-500 hover:bg-ink-2 sm:last:col-span-2 lg:last:col-span-1" data-reveal style={{ '--i': i } as React.CSSProperties}>
+                <span aria-hidden className="absolute inset-x-0 top-0 h-px origin-left scale-x-0 bg-gradient-to-r from-[var(--color-pts)] to-transparent transition-transform duration-700 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-x-100" />
+                <svg viewBox="0 0 24 24" className="h-8 w-8 transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)] group-hover:-translate-y-1" fill="none" stroke="var(--color-pts)" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" aria-hidden>
+                  <path d={p.icon} pathLength={100} className="draw-path" style={{ '--len': 100, '--d': 250 + i * 120 } as React.CSSProperties} />
+                </svg>
+                <p className="t-title mt-5 text-lg">{p.t}</p>
+                <p className="mt-2 text-[15px] text-fg-2">{p.d}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
 
       <section className="border-b border-line py-24" aria-labelledby="tour-title">

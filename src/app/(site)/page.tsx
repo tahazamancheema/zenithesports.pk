@@ -29,7 +29,7 @@ const FALLBACK_GAMES = [
   { id: 'valorant', name: 'VALORANT' },
   { id: 'honor-of-kings', name: 'Honor of Kings' },
   { id: 'tekken-8', name: 'TEKKEN 8' },
-  { id: 'ea-fc-26', name: 'EA SPORTS FC' },
+  { id: 'ea-fc', name: 'EA SPORTS FC' },
 ]
 
 export default async function Home() {
