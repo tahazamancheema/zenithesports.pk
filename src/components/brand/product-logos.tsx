@@ -1,3 +1,6 @@
+'use client'
+
+import { useId } from 'react'
 import { MARK_PATH, MARK_VIEWBOX } from './mark-path'
 
 export type ProductKey = 'zenith' | 'registrations' | 'production' | 'anticheat' | 'points'
@@ -26,7 +29,9 @@ const NAME: Record<ProductKey, string> = {
  * its own frequency colour so they read as siblings.
  */
 export function ProductIcon({ product, size = 48, className = '' }: { product: ProductKey; size?: number; className?: string }) {
-  const id = `zi-${product}`
+  // Unique per instance: the same icon can appear twice on a page (one copy hidden), and SVG
+  // gradient ids must not collide or the hidden copy's definitions win.
+  const id = `zi-${product}-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`
   // The mark occupies the centre; badges sit bottom-right.
   const mark = (fill: string, s = 0.62, dy = 0) => {
     const w = 256 * s
@@ -59,9 +64,32 @@ export function ProductIcon({ product, size = 48, className = '' }: { product: P
 
       {product === 'registrations' && (
         <>
-          {mark(`url(#${id}-gold)`, 0.58, -8)}
-          {/* bracket rails: the path to a final */}
-          <path d="M34 196h26v-26M222 196h-26v-26M60 196h136" fill="none" stroke="#d9b25f" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+          {/* An entry pass: the mark printed on a gold tournament ticket, with punched notches,
+              a perforation and a barcode stub. */}
+          <defs>
+            <linearGradient id={`${id}-pass`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#3a2c12" />
+              <stop offset="1" stopColor="#15110a" />
+            </linearGradient>
+            <mask id={`${id}-notch`}>
+              <rect width="256" height="256" fill="#fff" />
+              <circle cx="170" cy="64" r="14" fill="#000" />
+              <circle cx="170" cy="192" r="14" fill="#000" />
+            </mask>
+          </defs>
+          <g transform="rotate(-9 128 128)">
+            <rect x="30" y="64" width="196" height="128" rx="18" fill={`url(#${id}-pass)`} stroke={`url(#${id}-gold)`} strokeWidth="6" mask={`url(#${id}-notch)`} />
+            <path d="M156 64a14 14 0 0 0 28 0M156 192a14 14 0 0 1 28 0" fill="none" stroke={`url(#${id}-gold)`} strokeWidth="6" />
+            <path d="M170 84v88" stroke="#d9b25f" strokeWidth="4" strokeDasharray="7 7" strokeLinecap="round" opacity="0.8" />
+            <svg x="44" y="84" width="104" height="92" viewBox={MARK_VIEWBOX}>
+              <path d={MARK_PATH} fill={`url(#${id}-gold)`} fillRule="evenodd" />
+            </svg>
+            <g fill="#e9c97f">
+              <rect x="186" y="98" width="5" height="60" rx="1" />
+              <rect x="195" y="98" width="9" height="60" rx="1" />
+              <rect x="208" y="98" width="4" height="60" rx="1" />
+            </g>
+          </g>
         </>
       )}
 
@@ -79,12 +107,35 @@ export function ProductIcon({ product, size = 48, className = '' }: { product: P
 
       {product === 'points' && (
         <>
-          {mark('#ffffff', 0.54, -14)}
-          {/* rising standings */}
-          <g transform="translate(70 214)" fill="#9d8cff">
-            <rect x="0" y="-22" width="30" height="22" rx="5" opacity="0.55" />
-            <rect x="43" y="-40" width="30" height="40" rx="5" opacity="0.8" />
-            <rect x="86" y="-58" width="30" height="58" rx="5" />
+          {/* The podium: first, second and third, with the mark standing on the top step. */}
+          <defs>
+            <linearGradient id={`${id}-step`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#b9adff" />
+              <stop offset="1" stopColor="#5b47d6" />
+            </linearGradient>
+            <radialGradient id={`${id}-glow`} cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" stopColor="#9d8cff" stopOpacity="0.75" />
+              <stop offset="1" stopColor="#9d8cff" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <circle cx="128" cy="92" r="70" fill={`url(#${id}-glow)`} />
+          <g>
+            <rect x="42" y="160" width="58" height="56" rx="6" fill={`url(#${id}-step)`} opacity="0.85" />
+            <rect x="99" y="132" width="58" height="84" rx="6" fill={`url(#${id}-step)`} />
+            <rect x="156" y="178" width="58" height="38" rx="6" fill={`url(#${id}-step)`} opacity="0.7" />
+            <rect x="42" y="160" width="58" height="7" rx="3" fill="#ddd6ff" opacity="0.7" />
+            <rect x="99" y="132" width="58" height="7" rx="3" fill="#ece8ff" />
+            <rect x="156" y="178" width="58" height="7" rx="3" fill="#ddd6ff" opacity="0.6" />
+            <g fill="#241a63" fontFamily="Arial, sans-serif" fontWeight="800" textAnchor="middle">
+              <text x="71" y="199" fontSize="26">2</text>
+              <text x="128" y="186" fontSize="34">1</text>
+              <text x="185" y="208" fontSize="22">3</text>
+            </g>
+          </g>
+          {mark(`url(#${id}-chrome)`, 0.4, -50)}
+          <g fill="#e2dcff">
+            <path d="M52 70l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" />
+            <path d="M205 52l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" opacity="0.8" />
           </g>
         </>
       )}

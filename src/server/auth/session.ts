@@ -11,7 +11,7 @@ import { consume, resetLimit } from '../rate-limit'
 import { ipHash, userAgent } from '../request'
 
 const ABSOLUTE_HOURS = 12
-const IDLE_MINUTES = 120
+const IDLE_MINUTES = 60
 const LOCK_AFTER = 8
 const LOCK_MINUTES = 15
 
@@ -197,7 +197,10 @@ async function startSession(surface: ConsoleSurface, userId: string, actor: Acto
  * The staff record is matched by its linked Supabase user, or — the first time —
  * by the same verified email, and then linked so the email alone never matters again.
  */
-export async function enterWithAccount(surface: ConsoleSurface, account: { id: string; email: string; emailVerified: boolean }): Promise<LoginResult> {
+export async function enterWithAccount(
+  surface: ConsoleSurface,
+  account: { id: string; email: string; emailVerified: boolean; providers: string[] },
+): Promise<LoginResult> {
   const ip = await ipHash()
   if (!account.emailVerified) return { ok: false, error: 'Verify your email address with the sign-in provider first.' }
   try {
@@ -226,7 +229,15 @@ export async function enterWithAccount(surface: ConsoleSurface, account: { id: s
     return { ok: false, error: 'Your account does not have access to this console.' }
   }
   if (!user.authUserId) {
-    // A sign-in provider proves the email; any bootstrap password is no longer needed.
+    // First link of a staff record to a sign-in. Google proves the address belongs to this person.
+    // An email/password account only proves it if the Supabase project requires email confirmation,
+    // which the website cannot check, so that route stays off unless explicitly enabled.
+    const trusted = account.providers.includes('google') || account.providers.includes('local') || process.env.STAFF_EMAIL_LINKING === '1'
+    if (!trusted) {
+      await audit(db(), actor, 'auth.sso_link_refused', { type: 'staff_user', id: user.id })
+      return { ok: false, error: 'For your first staff sign-in, use “Sign in with Google” with this email address.' }
+    }
+    // Any bootstrap password is no longer needed.
     await db()`update zenith.staff_users set auth_user_id = ${account.id}, must_change_password = false where id = ${user.id} and auth_user_id is null`
     await audit(db(), actor, 'auth.sso_linked', { type: 'staff_user', id: user.id })
   }

@@ -4,7 +4,7 @@ import { GameMark } from '@/components/game-mark'
 import { Zenith3D } from '@/components/home/zenith-3d'
 import { InViewVideo, ScrollStatement, SplitText, TiltCard, VelocityMarquee, WordCycle } from '@/components/kinetic'
 import { ZLink } from '@/components/link'
-import { PointsTour } from '@/components/points/points-mock'
+import { PointsPhoneDemo } from '@/components/points/points-studio'
 import { GameShowcase } from '@/components/portfolio'
 import { SocialLinks } from '@/components/social'
 import { TournamentGrid } from '@/components/tournament-cards'
@@ -46,7 +46,15 @@ export default async function Home() {
     <>
       {/* ALT 00 — hero */}
       <section className="relative isolate overflow-hidden" aria-labelledby="hero-title">
-        <img src="/visuals/summit.webp" alt="" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-40 [mask-image:linear-gradient(180deg,#000_30%,transparent)]" fetchPriority="high" />
+        <img
+          src="/visuals/hero-arena.webp"
+          srcSet="/visuals/hero-arena-sm.webp 1280w, /visuals/hero-arena.webp 2880w"
+          sizes="100vw"
+          alt=""
+          aria-hidden
+          className="absolute inset-0 -z-20 h-full w-full object-cover object-[60%_40%] opacity-60 [mask-image:linear-gradient(180deg,#000_55%,transparent)]"
+          fetchPriority="high"
+        />
         <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_70%_45%,rgba(217,178,95,0.16),transparent_55%),linear-gradient(90deg,#06070a_15%,rgba(6,7,10,0.4)_60%,rgba(6,7,10,0.2))]" />
         <div aria-hidden className="grid-field absolute inset-0 -z-10 opacity-40" />
 
@@ -199,7 +207,7 @@ export default async function Home() {
                 </ZLink>
               </div>
               <div className="mx-auto w-[200px]">
-                <PointsTour compact />
+                <PointsPhoneDemo className="w-full" />
               </div>
             </article>
           </div>

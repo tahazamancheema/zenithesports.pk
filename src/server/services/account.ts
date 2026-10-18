@@ -1,4 +1,5 @@
 import 'server-only'
+import { can, SURFACE_GATE, type ConsoleSurface, type Role } from '@/lib/permissions'
 import { LEGAL_TRANSITIONS, phaseOf, type RegistrationStatus } from '@/lib/tournament'
 import { PUBLIC_ACTOR } from '../audit'
 import { db } from '../db'
@@ -72,4 +73,20 @@ export async function updateMyMember(accountId: string, registrationId: string, 
   if (!canEditRoster(r)) return { ok: false as const, error: 'The roster can only be changed while registration is open.' }
   if (!r.members.some((m) => m.id === memberId && m.active)) return { ok: false as const, error: 'Player not found.' }
   return updateMember(memberId, patch, { ...PUBLIC_ACTOR, label: `account:${accountId}`, surface: 'registrations', ipHash })
+}
+
+/**
+ * The consoles this signed-in person may enter, if they are on the staff list.
+ * Matching by email here only decides which links to show; entering a console
+ * still goes through enterWithAccount and its own checks.
+ */
+export async function staffConsolesFor(account: { id: string; email: string }): Promise<ConsoleSurface[]> {
+  const [row] = await db()<{ roles: Role[] }[]>`
+    select coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles
+      from zenith.staff_users u left join zenith.staff_roles r on r.user_id = u.id
+     where u.status = 'active' and (u.auth_user_id = ${account.id} or (u.auth_user_id is null and lower(u.email) = ${account.email.toLowerCase()}))
+     group by u.id limit 1
+  `
+  if (!row) return []
+  return (Object.keys(SURFACE_GATE) as ConsoleSurface[]).filter((s) => can(row.roles, SURFACE_GATE[s]))
 }

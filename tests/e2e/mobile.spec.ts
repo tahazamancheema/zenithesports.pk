@@ -14,10 +14,10 @@ test('the mobile menu opens, lists every platform and closes on navigation', asy
   await page.goto('/')
   await page.getByRole('button', { name: 'Open menu' }).click()
   const nav = page.locator('#mobile-nav')
-  for (const name of ['Ecosystem', 'Registrations', 'AntiCheat', 'Production', 'Points']) {
+  for (const name of ['Zenith Registrations', 'ZenithAntiCheat', 'ZenithProduction', 'ZenithPoints']) {
     await expect(nav.getByText(name, { exact: true })).toBeVisible()
   }
-  await nav.getByText('Points', { exact: true }).click()
+  await nav.getByText('ZenithPoints', { exact: true }).click()
   await expect(page).toHaveURL(/\/points/)
   await expect(page.getByRole('button', { name: 'Open menu' })).toBeVisible()
 })

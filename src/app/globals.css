@@ -330,6 +330,8 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .kx-slot > span[data-state='after'] { transform: translateY(-100%); opacity: 0; filter: blur(6px); }
 .t-outline { color: transparent; -webkit-text-stroke: 1px color-mix(in oklab, var(--color-chrome) 55%, transparent); }
 .marquee { display: flex; width: max-content; will-change: transform; }
+.pts-progress { transform-origin: left; animation: pts-progress linear both; }
+@keyframes pts-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .pts-scan { animation: pts-scan 2.4s var(--ease-in-out-quint) infinite; top: -30%; }
 @keyframes pts-scan { to { top: 110%; } }
 .glow-prod { box-shadow: 0 0 0 1px rgb(255 90 68 / 0.2), 0 40px 120px -40px rgb(255 90 68 / 0.45); }

@@ -1,6 +1,6 @@
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
-import { safeNext, supabaseConfigured, supabaseServer } from '@/server/auth/account'
+import { markActive, safeNext, supabaseConfigured, supabaseServer } from '@/server/auth/account'
 
 /**
  * Where Supabase sends people back: after Google sign-in (`code`), after
@@ -27,5 +27,6 @@ export async function GET(req: NextRequest) {
   } else {
     return fail('missing')
   }
+  await markActive()
   return NextResponse.redirect(new URL(next, url))
 }

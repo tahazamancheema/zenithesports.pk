@@ -137,6 +137,16 @@ Add other staff from **HQ console → Staff & roles** with their Google (or emai
 They sign in the same way. Each console — HQ (`/admin`), Registrations, AntiCheat — asks you to enter
 it separately; being signed in to one never opens the others.
 
+### Sessions and time-outs
+
+- **Players** are signed out after **2 hours without activity** on any Zenith site, and must sign in
+  again. (A signed "last active" cookie is checked on every request; editing it signs you out.)
+- **Consoles** end after **1 hour without activity** and after 12 hours in any case.
+- The **first** time a staff record is linked to a sign-in it must be **Sign in with Google** with
+  the staff email. Google proves the address belongs to that person; an email/password account only
+  proves it if *Confirm email* is on in Supabase, which the website cannot check. If your staff do
+  not use Google, keep *Confirm email* on and set `STAFF_EMAIL_LINKING=1` in Vercel.
+
 ---
 
 ## Part 6 — Check it works

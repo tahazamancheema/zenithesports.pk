@@ -7,7 +7,8 @@ import { ZLink } from '@/components/link'
 import { EmptySignal } from '@/components/tournament-list'
 import { formatInZone, LEGAL_TRANSITIONS, STATUS_LABEL, tzAbbrev } from '@/lib/tournament'
 import { requireAccount } from '@/server/auth/account'
-import { canEditRoster, listMyRegistrations } from '@/server/services/account'
+import { href } from '@/server/link'
+import { canEditRoster, listMyRegistrations, staffConsolesFor } from '@/server/services/account'
 
 export const metadata: Metadata = { title: 'My registrations', robots: { index: false } }
 
@@ -25,7 +26,10 @@ const TONE: Record<string, string> = {
 
 export default async function AccountPage() {
   const account = await requireAccount('/account')
-  const regs = await listMyRegistrations(account.id)
+  const [regs, consoles] = await Promise.all([listMyRegistrations(account.id), staffConsolesFor(account)])
+  const consoleLinks = await Promise.all(
+    consoles.map(async (c) => ({ surface: c, href: await href(c === 'hq' ? 'hq' : c, '/admin'), label: { hq: 'HQ console', registrations: 'Registrations console', anticheat: 'AntiCheat console' }[c] })),
+  )
 
   return (
     <section className="shell py-14 md:py-20">
@@ -57,6 +61,22 @@ export default async function AccountPage() {
           </form>
         </div>
       </div>
+
+      {consoleLinks.length > 0 && (
+        <div className="panel-raised mt-10 flex flex-wrap items-center gap-4 p-5">
+          <div className="min-w-0 flex-1">
+            <p className="t-title text-lg">Staff consoles</p>
+            <p className="text-[14px] text-fg-2">You are on the Zenith staff list. Each console asks you to enter it separately.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {consoleLinks.map((c) => (
+              <a key={c.surface} href={c.href} className="btn btn-sm btn-primary">
+                {c.label} <span className="arrow">→</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       <h2 className="t-label mt-14 flex items-center gap-3">
         <span className="node node-fill" /> My registrations · {regs.length}

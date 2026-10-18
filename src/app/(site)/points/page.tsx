@@ -3,7 +3,7 @@ import { ProductLockup } from '@/components/brand/product-logos'
 import { Faq } from '@/components/faq'
 import { SplitText, WordCycle } from '@/components/kinetic'
 import { Extraction } from '@/components/points/extraction'
-import { PointsTour } from '@/components/points/points-mock'
+import { PointsPhoneDemo, PointsStudio } from '@/components/points/points-studio'
 import { WaitlistForm } from '@/components/points/waitlist'
 import { issueFormToken } from '@/server/crypto'
 import { WAITLIST_CONSENT } from '@/server/services/intake'
@@ -99,7 +99,7 @@ export default async function PointsPage() {
             </div>
           </div>
           <div className="relative flex flex-col items-center lg:col-span-4 lg:col-start-9" style={{ animation: 'rise 1100ms var(--ease-out-expo) 300ms both' }}>
-            <PointsTour compact />
+            <PointsPhoneDemo className="w-[270px]" />
             <p className="t-label mt-4">Concept preview · sample teams</p>
           </div>
         </div>
@@ -128,10 +128,10 @@ export default async function PointsPage() {
                 Every graphic your tournament needs
               </h2>
             </div>
-            <p className="t-lede md:col-span-5 md:col-start-8 md:pt-10">Tap through the screens and switch themes — this is how ZenithPoints is being designed to look and work.</p>
+            <p className="t-lede md:col-span-5 md:col-start-8 md:pt-10">Watch a match go from a results screenshot to finished graphics, or tap any step, layout or theme to try it yourself.</p>
           </div>
-          <div className="mt-14" data-reveal>
-            <PointsTour />
+          <div className="mt-14">
+            <PointsStudio />
           </div>
         </div>
       </section>

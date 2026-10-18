@@ -188,4 +188,71 @@ test.describe.serial('ecosystem flows', () => {
     await page.goto('/anticheat/admin/alerts?status=open')
     await expect(page.getByText(`Meridian ${run}`).first()).toBeVisible()
   })
+  test('a production booking and a purchase inquiry reach the HQ console', async () => {
+    const event = `E2E Broadcast Cup ${run}`
+    const buyer = `E2E Buyer ${run}`
+    await page.goto('/production/book')
+    await page.getByLabel('Tournament name').fill(event)
+    const day = new Date(Date.now() + 20 * 86400_000).toISOString().slice(0, 10)
+    await page.getByLabel('Date').fill(day)
+    await page.getByLabel('Start time').fill('19:30')
+    await page.getByLabel('Your name').fill('E2E Organiser')
+    await page.getByLabel('Email').fill(`organiser-${run}@test.local`)
+    await page.getByLabel('Broadcast requirements').fill('YouTube stream, two casters, full graphics package.')
+    await page.waitForTimeout(2600)
+    await page.getByRole('button', { name: /Request this booking/ }).click()
+    await expect(page.getByText('Booking request received')).toBeVisible()
+
+    await page.goto('/production/inquire')
+    await page.getByLabel('Your name').fill(buyer)
+    await page.getByLabel('Email').fill(`buyer-${run}@test.local`)
+    await page.getByLabel('What do you need?').fill('Licence for our weekly PUBG Mobile scrims.')
+    await page.waitForTimeout(2600)
+    await page.getByRole('button', { name: /Send inquiry/ }).click()
+    await expect(page.getByText('Inquiry received')).toBeVisible()
+
+    await signIn(page, '/admin')
+    await page.goto('/admin/bookings')
+    const booking = page.locator('li', { hasText: event })
+    await expect(booking).toBeVisible()
+    await booking.getByLabel('New status').selectOption('confirmed')
+    await booking.getByRole('button', { name: 'Update' }).click()
+    await expect(booking.getByText('confirmed', { exact: true }).first()).toBeVisible()
+
+    await page.goto('/admin/inquiries')
+    await expect(page.getByText(buyer)).toBeVisible()
+  })
+  test('every console page opens for an administrator', async () => {
+    const consoles: [string, string[]][] = [
+      ['/admin', ['', '/inquiries', '/bookings', '/messages', '/waitlist', '/settings', '/content', '/staff', '/audit']],
+      ['/registrations/admin', ['', '/registrations', '/tournaments', '/tournaments/new', '/forms', '/lft', '/games']],
+      ['/anticheat/admin', ['', '/reports', '/alerts', '/flags', '/flags/new', '/entry', '/scans']],
+    ]
+    for (const [base, pages] of consoles) {
+      await signIn(page, base)
+      for (const path of pages) {
+        const res = await page.goto(base + path)
+        expect(res?.status(), base + path).toBe(200)
+        await expect(page).toHaveURL(new RegExp(`${base}${path}$`))
+        await expect(page.getByText(/Something went wrong|could not be found/i)).toHaveCount(0)
+        await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
+      }
+    }
+  })
+  test('a player is signed out after inactivity', async () => {
+    await page.goto('/login?next=/account')
+    if (await page.getByLabel('Email').isVisible()) {
+      await page.getByLabel('Email').fill(`idle-${run}@test.local`)
+      await page.getByLabel('Name').fill('Idle Player')
+      await page.getByRole('button', { name: /Sign in \(local test\)/ }).click()
+    }
+    await page.goto('/account')
+    await expect(page).toHaveURL(/\/account$/)
+    // An activity stamp that is stale or not signed by the server ends the session.
+    const url = new URL(page.url())
+    await context.addCookies([{ name: 'zx_seen', value: `${Date.now() - 3 * 3600_000}.forged`, domain: url.hostname, path: '/' }])
+    await page.goto('/account')
+    await expect(page).toHaveURL(/\/login/)
+    await expect(page.getByRole('button', { name: /Sign in \(local test\)/ })).toBeVisible()
+  })
 })

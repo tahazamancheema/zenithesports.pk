@@ -5,6 +5,8 @@ import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto'
 import { db, hasDatabase } from '../db'
+import { requestHost } from '../request'
+import { IDLE_COOKIE, IDLE_NOTICE_COOKIE, PLAYER_IDLE_SECONDS, signSeen } from '@/lib/idle'
 import { appSecret, env, isProd } from '../env'
 
 /**
@@ -29,6 +31,8 @@ export type Account = {
   displayName: string | null
   avatarUrl: string | null
   provider: string | null
+  /** Identity providers on this account (e.g. ['google', 'email']). */
+  providers: string[]
 }
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
@@ -45,17 +49,18 @@ export function localAuthEnabled() {
   }
 }
 
-/** Parent-domain cookies in production (`.zenithesports.pk`); host-only elsewhere. */
-function cookieDomain() {
+/** Parent-domain cookies on the production domain (one sign-in for every subdomain); host-only elsewhere. */
+async function cookieDomain() {
   if (process.env.AUTH_COOKIE_DOMAIN) return process.env.AUTH_COOKIE_DOMAIN
-  return isProd ? `.${env.ROOT_DOMAIN}` : undefined
+  const host = (await requestHost()).split(':')[0]
+  return host === env.ROOT_DOMAIN || host.endsWith(`.${env.ROOT_DOMAIN}`) ? `.${env.ROOT_DOMAIN}` : undefined
 }
 
 export async function supabaseServer() {
   if (!supabaseConfigured()) throw new Error('Sign-in is not configured.')
   const jar = await cookies()
   return createServerClient(SUPABASE_URL, SUPABASE_KEY, {
-    cookieOptions: { domain: cookieDomain(), path: '/', sameSite: 'lax', secure: isProd },
+    cookieOptions: { domain: await cookieDomain(), path: '/', sameSite: 'lax', secure: isProd },
     cookies: {
       getAll: () => jar.getAll(),
       setAll: (list) => {
@@ -86,6 +91,7 @@ export async function localSignIn(emailRaw: string, name: string) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid email address.')
   const payload = Buffer.from(JSON.stringify({ email, name: name.trim().slice(0, 80) || null, exp: Date.now() + 7 * 86400_000 })).toString('base64url')
   ;(await cookies()).set(LOCAL_COOKIE, `${payload}.${sign(payload)}`, { httpOnly: true, sameSite: 'lax', path: '/', secure: false, maxAge: 7 * 86400 })
+  await markActive()
 }
 
 async function readLocal(): Promise<Account | null> {
@@ -98,7 +104,7 @@ async function readLocal(): Promise<Account | null> {
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null
   const d = JSON.parse(Buffer.from(payload, 'base64url').toString()) as { email: string; name: string | null; exp: number }
   if (d.exp < Date.now()) return null
-  return { id: localId(d.email), email: d.email, emailVerified: true, displayName: d.name, avatarUrl: null, provider: 'local' }
+  return { id: localId(d.email), email: d.email, emailVerified: true, displayName: d.name, avatarUrl: null, provider: 'local', providers: ['local'] }
 }
 
 // ─── the signed-in account ──────────────────────────────────────────────────
@@ -139,6 +145,12 @@ export const getAccount = cache(async (): Promise<Account | null> => {
       displayName: name?.trim().slice(0, 80) ?? null,
       avatarUrl: safeAvatar(meta.avatar_url ?? meta.picture),
       provider: typeof u.app_metadata?.provider === 'string' ? u.app_metadata.provider : null,
+      providers: [
+        ...new Set([
+          ...(Array.isArray(u.app_metadata?.providers) ? (u.app_metadata.providers as unknown[]).filter((x): x is string => typeof x === 'string') : []),
+          ...(u.identities ?? []).map((i) => i.provider),
+        ]),
+      ],
     })
   }
   if (localAuthEnabled()) {
@@ -147,6 +159,13 @@ export const getAccount = cache(async (): Promise<Account | null> => {
   }
   return null
 })
+
+/** Stamps the activity cookie when a session starts (the proxy keeps it fresh afterwards). */
+export async function markActive() {
+  const jar = await cookies()
+  jar.set(IDLE_COOKIE, await signSeen(Date.now()), { httpOnly: true, sameSite: 'lax', secure: isProd, path: '/', maxAge: PLAYER_IDLE_SECONDS, domain: await cookieDomain() })
+  jar.delete(IDLE_NOTICE_COOKIE)
+}
 
 export const authAvailable = () => supabaseConfigured() || localAuthEnabled()
 
@@ -165,5 +184,7 @@ export async function requireAccount(next: string) {
 
 export async function signOutEverywhere() {
   if (supabaseConfigured()) await (await supabaseServer()).auth.signOut({ scope: 'local' })
-  ;(await cookies()).delete(LOCAL_COOKIE)
+  const jar = await cookies()
+  jar.delete(LOCAL_COOKIE)
+  jar.delete(IDLE_COOKIE)
 }

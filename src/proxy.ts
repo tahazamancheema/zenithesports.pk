@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { IDLE_COOKIE, IDLE_NOTICE_COOKIE, IDLE_TOUCH_MS, isAuthTokenCookie, PLAYER_IDLE_SECONDS, readSeen, signSeen } from '@/lib/idle'
 import { PRODUCT_SURFACES, SURFACES, surfaceForHost, surfaceForPath, type Surface } from '@/lib/surfaces'
 
 /**
@@ -23,35 +24,72 @@ const isShared = (p: string) => p === '/login' || p === '/account' || p.startsWi
 
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
-const SB_DOMAIN = process.env.AUTH_COOKIE_DOMAIN || (isDev ? undefined : `.${ROOT}`)
+/** Parent-domain cookies only on the production domain; host-only on localhost and previews. */
+const cookieDomainFor = (host: string) => {
+  const h = host.split(':')[0]
+  if (process.env.AUTH_COOKIE_DOMAIN) return process.env.AUTH_COOKIE_DOMAIN
+  return h === ROOT || h.endsWith(`.${ROOT}`) ? `.${ROOT}` : undefined
+}
 
 type CookieSet = { name: string; value: string; options: Record<string, unknown> }[]
 
 /**
- * Keeps a Supabase session fresh: when the access token has expired it is
- * refreshed once here (server components cannot write cookies). Runs only
- * when an auth cookie is present, so anonymous traffic pays nothing.
+ * Signed-in visitors: ends the session after PLAYER_IDLE_SECONDS without a
+ * request, otherwise keeps the Supabase token fresh (server components cannot
+ * write cookies) and stamps the activity time. Anonymous traffic pays nothing.
  */
-async function refreshAuth(req: NextRequest): Promise<CookieSet> {
-  if (!SB_URL || !SB_KEY || !req.cookies.getAll().some((c) => c.name.startsWith('sb-'))) return []
+async function authGate(req: NextRequest, host: string): Promise<CookieSet> {
+  const SB_DOMAIN = cookieDomainFor(host)
+  const sbSession = req.cookies.getAll().some((c) => isAuthTokenCookie(c.name))
+  const localSession = req.cookies.has('zx_local_auth')
+  if (!sbSession && !localSession) return []
   const out: CookieSet = []
-  const sb = createServerClient(SB_URL, SB_KEY, {
-    cookieOptions: { domain: SB_DOMAIN, path: '/', sameSite: 'lax', secure: !isDev },
-    cookies: {
-      getAll: () => req.cookies.getAll(),
-      setAll: (list) => {
-        for (const c of list) {
-          req.cookies.set(c.name, c.value) // the page rendering this request sees the fresh token
-          out.push({ name: c.name, value: c.value, options: c.options as Record<string, unknown> })
-        }
-      },
-    },
-  })
-  try {
-    await sb.auth.getClaims()
-  } catch {
-    // Auth outage or a malformed cookie: render signed-out rather than failing the page.
+  const base = { path: '/', sameSite: 'lax', secure: !isDev, httpOnly: true, ...(SB_DOMAIN ? { domain: SB_DOMAIN } : {}) }
+  const sb =
+    sbSession && SB_URL && SB_KEY
+      ? createServerClient(SB_URL, SB_KEY, {
+          cookieOptions: { domain: SB_DOMAIN, path: '/', sameSite: 'lax', secure: !isDev },
+          cookies: {
+            getAll: () => req.cookies.getAll(),
+            setAll: (list) => {
+              for (const c of list) {
+                // The page rendering this request sees the fresh (or removed) token.
+                if (c.value) req.cookies.set(c.name, c.value)
+                else req.cookies.delete(c.name)
+                out.push({ name: c.name, value: c.value, options: c.options as Record<string, unknown> })
+              }
+            },
+          },
+        })
+      : null
+
+  const now = Date.now()
+  const seen = await readSeen(req.cookies.get(IDLE_COOKIE)?.value)
+  if (seen === null || now - seen > PLAYER_IDLE_SECONDS * 1000) {
+    // Idle too long (or no valid activity stamp): sign out here, before anything renders.
+    try {
+      await sb?.auth.signOut({ scope: 'local' })
+    } catch {
+      // Even if Supabase is unreachable the cookies below are removed.
+    }
+    for (const c of req.cookies.getAll()) {
+      if (isAuthTokenCookie(c.name) || c.name === 'zx_local_auth') {
+        req.cookies.delete(c.name)
+        out.push({ name: c.name, value: '', options: { path: '/', maxAge: 0, ...(SB_DOMAIN && c.name !== 'zx_local_auth' ? { domain: SB_DOMAIN } : {}) } })
+      }
+    }
+    out.push({ name: IDLE_COOKIE, value: '', options: { ...base, maxAge: 0 } })
+    if (seen !== null) out.push({ name: IDLE_NOTICE_COOKIE, value: '1', options: { ...base, maxAge: 600 } })
+    return out
   }
+  if (sb) {
+    try {
+      await sb.auth.getClaims()
+    } catch {
+      // Auth outage or a malformed cookie: render signed-out rather than failing the page.
+    }
+  }
+  if (now - seen > IDLE_TOUCH_MS) out.push({ name: IDLE_COOKIE, value: await signSeen(now), options: { ...base, maxAge: PLAYER_IDLE_SECONDS } })
   return out
 }
 
@@ -108,7 +146,8 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  const auth = hasExtension(pathname) ? [] : await refreshAuth(req)
+  // The sign-in callback creates the session itself; everything else passes the idle gate.
+  const auth = hasExtension(pathname) || pathname === '/auth/callback' ? [] : await authGate(req, host)
 
   // Not the production domain: path mode.
   if (target === null) return withCookies(withCsp(req, 'path', surfaceForPath(pathname)), auth)

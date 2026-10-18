@@ -1,4 +1,6 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
+import { IDLE_NOTICE_COOKIE } from '@/lib/idle'
 import { signOutAction } from '@/app/actions/auth'
 import { ProductIcon } from '@/components/brand/product-logos'
 import { EmailAuth, GoogleButton, LocalSignIn } from '@/components/auth/sign-in'
@@ -21,6 +23,7 @@ export default async function LoginPage(props: { searchParams: Promise<{ next?: 
   const { next: rawNext, error } = await props.searchParams
   const next = safeNext(rawNext)
   const account = await getAccount()
+  const timedOut = (await cookies()).has(IDLE_NOTICE_COOKIE)
 
   return (
     <section className="relative isolate overflow-hidden">
@@ -55,6 +58,11 @@ export default async function LoginPage(props: { searchParams: Promise<{ next?: 
             <div className="mt-8">
               <h1 className="t-title text-2xl">Sign in to Zenith</h1>
               <p className="mt-2 text-[15px] text-fg-2">One account for tournament registrations, your entries and reports — on every Zenith site.</p>
+              {timedOut && !error && (
+                <p role="status" className="mt-5 rounded-md border border-warn/40 px-3 py-2 text-[14px] text-warn">
+                  You were signed out after 2 hours without activity. Sign in again to continue.
+                </p>
+              )}
               {error && ERRORS[error] && (
                 <p role="alert" className="mt-5 rounded-md border border-bad/40 px-3 py-2 text-[14px] text-bad">
                   {ERRORS[error]}

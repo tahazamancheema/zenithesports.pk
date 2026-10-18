@@ -4,7 +4,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ConsoleSurface } from '@/lib/permissions'
 import { failure, type ActionState } from '@/server/action-guard'
-import { getAccount, localAuthEnabled, localSignIn, safeNext, signOutEverywhere, supabaseConfigured, supabaseServer } from '@/server/auth/account'
+import { getAccount, localAuthEnabled, localSignIn, markActive, safeNext, signOutEverywhere, supabaseConfigured, supabaseServer } from '@/server/auth/account'
 import { enterWithAccount } from '@/server/auth/session'
 import { consoleBase } from '@/server/console-base'
 import { env } from '@/server/env'
@@ -58,6 +58,7 @@ export async function emailSignInAction(_: ActionState, fd: FormData): Promise<A
     if (!supabaseConfigured()) return { status: 'error', message: 'Sign-in is not configured yet.', values }
     const { error } = await (await supabaseServer()).auth.signInWithPassword({ email: values.email, password: String(fd.get('password') ?? '') })
     if (error) return { status: 'error', message: authMessage(error.message), values }
+    await markActive()
   } catch (e) {
     return failure(e, values)
   }
@@ -79,7 +80,11 @@ export async function emailSignUpAction(_: ActionState, fd: FormData): Promise<A
       options: { emailRedirectTo: `${await origin()}/auth/callback?next=${encodeURIComponent(next)}`, data: { full_name: values.name.slice(0, 80) } },
     })
     if (error) return { status: 'error', message: authMessage(error.message), values }
-    if (data.session) redirect(next) // confirmation disabled in the project: signed in straight away
+    if (data.session) {
+      // Confirmation is disabled in the project: signed in straight away.
+      await markActive()
+      redirect(next)
+    }
     return { status: 'success', message: 'Check your inbox — we sent a link to confirm your email.' }
   } catch (e) {
     if (e && typeof e === 'object' && 'digest' in e) throw e // redirect
