@@ -37,7 +37,7 @@ export function GameMark({
     return (
       <span className={frame} style={{ ...box, background: bg }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- static official mark */}
-        <img src={art.emblem ?? art.logo} alt={`${name} logo`} className={art.emblem ? 'h-[68%] w-[68%] object-contain' : 'w-[86%] object-contain'} />
+        <img src={art.emblem ?? art.logo} alt={`${name} logo`} className={art.emblemFill ? 'h-full w-full object-cover' : art.emblem ? 'h-[68%] w-[68%] object-contain' : 'w-[86%] object-contain'} />
       </span>
     )
   }

@@ -7,7 +7,7 @@
  * - VALORANT: players are identified by Riot ID (Name#TAG). The in-game report
  *   screen does not show it, so the evidence is the scoreboard or match history
  *   where the Riot ID is readable; the report confirmation is optional.
- * - Honor of Kings, TEKKEN 8, EA SPORTS FC 26: one screenshot where the
+ * - Honor of Kings, TEKKEN 8, EA SPORTS FC: one screenshot where the
  *   player's ID is readable (profile, player card or result screen), plus an
  *   optional clip link.
  */

@@ -12,7 +12,7 @@ export const AVAILABILITY: Record<Game['availability'], { label: string; chip: s
   paused: { label: 'Paused', chip: 'chip chip-warn' },
 }
 
-const FALLBACK = ['PUBG Mobile', 'Free Fire', 'VALORANT', 'Honor of Kings', 'TEKKEN 8', 'EA SPORTS FC 26']
+const FALLBACK = ['PUBG Mobile', 'Free Fire', 'VALORANT', 'Honor of Kings', 'TEKKEN 8', 'EA SPORTS FC']
 
 /** The six-game portfolio with live availability, formats and open events — all from the database. */
 export async function PortfolioTable() {
