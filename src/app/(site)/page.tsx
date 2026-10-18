@@ -135,7 +135,7 @@ export default async function Home() {
           <div className="mt-16 grid gap-5 lg:grid-cols-12">
             {/* Registrations */}
             <article id="registrations" data-surface="registrations" data-reveal className="group relative isolate flex min-h-[420px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-2xl border border-line-2 p-7 lg:col-span-5">
-              <img src="/visuals/trophy.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover object-[70%_30%] opacity-95 transition-transform duration-1000 group-hover:scale-105" />
+              <img src="/visuals/registrations.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-80 transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/70 to-transparent" />
               <ProductLockup product="registrations" size={48} />
               <p className="mt-5 max-w-md text-fg-2">Find a tournament for your game, read its rules and roster requirements, and enter your team in minutes — signed in, with your status always one tap away.</p>

@@ -39,7 +39,7 @@ export default async function RegistrationsHub(props: PageProps<'/registrations'
     <>
       <PageIntro
         top={<ProductLockup product="registrations" size={52} />}
-        image={art ? art.art : '/visuals/trophy.webp'}
+        image={art ? art.art : '/visuals/registrations.webp'}
         eyebrow={selected ? `${selected.name} tournaments` : 'Every Zenith competition'}
         title={
           selected ? (

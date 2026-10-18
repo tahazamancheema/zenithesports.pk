@@ -17,7 +17,7 @@ const STEPS = [
 const EVENTS = ['Elimination · Squad 07', 'Zone · phase 4 closing', 'Team eliminated · #12', 'Knock · Squad 03', 'Placement · 9 teams left']
 const SCENES = [
   { label: 'Starting soon', src: `${P}/starting-soon.webp` },
-  { label: 'Gameplay', src: '/visuals/games/pubg-mobile-sm.webp' },
+  { label: 'Gameplay', src: '/products/production/gameplay-frame.webp' },
   { label: 'Standings', src: `${P}/overall-standings.webp` },
   { label: 'Chicken dinner', src: `${P}/chicken-dinner.webp` },
   { label: 'After match', src: `${P}/match-mvp.webp` },
@@ -179,7 +179,7 @@ export function BroadcastBuild() {
                 ))}
               </div>
             </div>
-            <p className="mt-3 text-[13px] text-fg-3">Overlays and screens are real ZenithProduction output with its built-in sample data. The gameplay frame is an illustrative render.</p>
+            <p className="mt-3 text-[13px] text-fg-3">Overlays and screens are real ZenithProduction output with its built-in sample data. The gameplay frame is a real PUBG Mobile (BGMI) screenshot from its official store listing.</p>
           </div>
         </div>
       </div>

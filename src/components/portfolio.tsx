@@ -85,7 +85,7 @@ export async function GameShowcase() {
             <img src={art.thumb} alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/55 to-[#06070a]/5" />
             <div className="absolute left-4 top-4 md:left-5 md:top-5">
-              <GameWordmark gameId={g.id} name={g.name} logoUrl={mediaUrl(g.logoFileId)} height={36} className="drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" />
+              <GameWordmark gameId={g.id} name={g.name} logoUrl={mediaUrl(g.logoFileId)} height={36} className="!max-w-[58%] drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" />
             </div>
             {a && <span className={`${a.chip} absolute right-3 top-4 bg-black/50 backdrop-blur md:right-5 md:top-5`}>{a.label}</span>}
             <p className="font-mono text-[12px] uppercase tracking-[0.14em]" style={{ color: art.accent }}>{art.genre}</p>
