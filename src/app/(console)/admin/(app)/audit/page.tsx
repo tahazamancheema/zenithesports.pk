@@ -41,10 +41,10 @@ export default async function Audit(props: { searchParams: Promise<{ action?: st
                 <td className="font-mono text-xs">{r.actorLabel}</td>
                 <td className="text-xs text-fg-3">{r.surface ?? '—'}</td>
                 <td className="font-mono text-xs">{r.action}</td>
-                <td className="font-mono text-[11px] text-fg-3">
+                <td className="font-mono text-[12px] text-fg-3">
                   {r.entityType ?? ''} {r.entityId?.slice(0, 8)}
                 </td>
-                <td className="max-w-xs truncate font-mono text-[11px] text-fg-3">{Object.keys(r.details ?? {}).length ? JSON.stringify(r.details) : ''}</td>
+                <td className="max-w-xs truncate font-mono text-[12px] text-fg-3">{Object.keys(r.details ?? {}).length ? JSON.stringify(r.details) : ''}</td>
               </tr>
             ))}
           </tbody>

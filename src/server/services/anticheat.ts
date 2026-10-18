@@ -3,7 +3,9 @@ import { cleanText, normId, normName, toE164 } from '@/lib/normalize'
 import { audit, PUBLIC_ACTOR, type Actor } from '../audit'
 import { referenceCode } from '../crypto'
 import { db, type Db } from '../db'
-import { inspectImage, storeImage, UploadError } from '../files'
+import { cleanClipUrl, reportRule, type EvidenceKind } from '@/lib/report-rules'
+import { inspectImage, storeImage, UploadError, type InspectedImage } from '../files'
+import { getSettings } from '../settings'
 import { enqueue } from '../notify'
 import { getGame } from './catalog'
 import { addMembership, linkPhone, upsertPlayer, upsertTeam } from './identity'
@@ -24,12 +26,16 @@ export async function submitReport(input: {
   ign?: string
   explanation?: string
   contact?: string
-  reportScreenshot: File | null
-  uidScreenshot: File | null
+  clipUrl?: string
+  matchDetails?: string
+  evidence: Partial<Record<EvidenceKind, File | null>>
   ipHash: string
+  accountId?: string | null
 }): Promise<{ ok: true; reference: string } | { ok: false; error: string; fieldErrors?: Record<string, string> }> {
   const game = await getGame(input.gameId)
-  if (!game) return { ok: false, error: 'Reports for this game are not open yet.' }
+  const enabled = (await getSettings())['product.anticheat'].games
+  if (!game || !enabled.includes(game.id)) return { ok: false, error: 'Reports for this game are not open yet.' }
+  const rule = reportRule(game.id)
   const fe: Record<string, string> = {}
   const uidRaw = input.uid.trim()
   if (!new RegExp(game.uidPattern).test(uidRaw)) fe.uid = `Enter the player's ${game.uidLabel} exactly as shown in game.`
@@ -39,18 +45,27 @@ export async function submitReport(input: {
   if (explanation.length > 2000) fe.explanation = 'Keep the explanation under 2,000 characters.'
   const contact = cleanText(input.contact)
   if (contact.length > 120) fe.contact = 'Contact details are too long.'
+  const matchDetails = rule.matchDetails ? cleanText(input.matchDetails) : ''
+  if (matchDetails.length > 300) fe.matchDetails = 'Keep the match details under 300 characters.'
+  const clip = rule.clip ? cleanClipUrl(input.clipUrl) : { ok: true as const, url: null }
+  if (!clip.ok) fe.clipUrl = 'Paste a full https:// link to the clip, or leave it empty.'
   if (Object.keys(fe).length) return { ok: false, error: 'Please fix the highlighted fields.', fieldErrors: fe }
 
-  let reportImg, uidImg
+  // Each evidence slot the game defines: required ones must be present; optional ones are kept if attached.
+  const images: { kind: EvidenceKind; img: InspectedImage }[] = []
   try {
-    reportImg = await inspectImage(input.reportScreenshot, { maxBytes: EVIDENCE_MAX_BYTES, label: 'Report screenshot' })
-    uidImg = await inspectImage(input.uidScreenshot, { maxBytes: EVIDENCE_MAX_BYTES, label: 'UID screenshot' })
+    for (const slot of rule.evidence) {
+      const f = input.evidence[slot.kind]
+      const attached = f && typeof f !== 'string' && f.size > 0
+      if (!attached && !slot.required) continue
+      images.push({ kind: slot.kind, img: await inspectImage(f, { maxBytes: EVIDENCE_MAX_BYTES, label: slot.label }) })
+    }
   } catch (e) {
     if (e instanceof UploadError) return { ok: false, error: e.message }
     throw e
   }
-  if (reportImg.sha256 === uidImg.sha256) {
-    return { ok: false, error: 'The two screenshots are identical. Upload the report confirmation and the UID proof separately.' }
+  if (new Set(images.map((x) => x.img.sha256)).size !== images.length) {
+    return { ok: false, error: 'Two of the screenshots are identical. Upload each screenshot once.' }
   }
 
   const uidNorm = normId(uidRaw)!
@@ -64,27 +79,28 @@ export async function submitReport(input: {
     `
     const [reused] = await tx`
       select 1 from zenith.files f join zenith.ac_report_evidence e on e.file_id = f.id
-       where f.sha256 in (${reportImg.sha256}, ${uidImg.sha256}) limit 1
+       where f.sha256 = any(${images.map((x) => x.img.sha256)}::text[]) limit 1
     `
     const [r] = await tx<{ id: string }[]>`
       insert into zenith.ac_reports
         (reference, game_id, reported_uid_raw, reported_uid_norm, reported_ign, explanation, reporter_contact,
-         duplicate_of, evidence_reused, retention_until, ip_hash)
+         match_details, video_url, account_id, duplicate_of, evidence_reused, retention_until, ip_hash)
       values
         (${reference}, ${game.id}, ${uidRaw}, ${uidNorm}, ${ign || null}, ${explanation || null}, ${contact || null},
+         ${matchDetails || null}, ${clip.ok ? clip.url : null}, ${input.accountId ?? null},
          ${dup?.id ?? null}, ${Boolean(reused)}, now() + make_interval(days => ${EVIDENCE_RETENTION_DAYS}), ${input.ipHash})
       returning id
     `
-    const reportFile = await storeImage(tx, reportImg, 'evidence', EVIDENCE_RETENTION_DAYS)
-    const uidFile = await storeImage(tx, uidImg, 'evidence', EVIDENCE_RETENTION_DAYS)
-    await tx`
-      insert into zenith.ac_report_evidence (report_id, kind, file_id)
-      values (${r.id}, 'report_confirmation', ${reportFile}), (${r.id}, 'uid_proof', ${uidFile})
-    `
+    for (const x of images) {
+      const fileId = await storeImage(tx, x.img, 'evidence', EVIDENCE_RETENTION_DAYS)
+      await tx`insert into zenith.ac_report_evidence (report_id, kind, file_id) values (${r.id}, ${x.kind}, ${fileId})`
+    }
     await audit(tx, { ...PUBLIC_ACTOR, surface: 'anticheat', ipHash: input.ipHash }, 'report.submitted', { type: 'ac_report', id: r.id }, {
       game: game.id,
+      evidence: images.map((x) => x.kind),
       duplicate: Boolean(dup),
       evidenceReused: Boolean(reused),
+      signedIn: Boolean(input.accountId),
     })
     await enqueue(tx, { channel: 'discord', subject: 'AntiCheat report received', body: `${game.name} · ${reference} · awaiting review` })
   })
@@ -134,6 +150,8 @@ export async function getReport(id: string) {
       reportedIgn: string | null
       explanation: string | null
       reporterContact: string | null
+      matchDetails: string | null
+      videoUrl: string | null
       status: ReportStatus
       uidMatchVerified: boolean | null
       duplicateOf: string | null

@@ -1,257 +1,263 @@
 import { Altitude } from '@/components/brand'
-import { Ascent } from '@/components/home/ascent'
-import { Circuit } from '@/components/home/circuit'
-import { BroadcastFrame, IllustrationTag, PointsPhone } from '@/components/illustrations'
+import { ProductIcon, ProductLockup } from '@/components/brand/product-logos'
+import { GameMark } from '@/components/game-mark'
+import { Zenith3D } from '@/components/home/zenith-3d'
+import { InViewVideo, ScrollStatement, SplitText, TiltCard, VelocityMarquee, WordCycle } from '@/components/kinetic'
 import { ZLink } from '@/components/link'
+import { PointsTour } from '@/components/points/points-mock'
+import { GameShowcase } from '@/components/portfolio'
 import { SocialLinks } from '@/components/social'
-import { EmptySignal, TournamentRows } from '@/components/tournament-list'
-import { PortfolioTable } from '@/components/portfolio'
+import { TournamentGrid } from '@/components/tournament-cards'
+import { EmptySignal } from '@/components/tournament-list'
+import { gameArt } from '@/config/game-art'
 import { phaseOf } from '@/lib/tournament'
-import { listPublicTournaments } from '@/server/services/catalog'
+import { getGames, getSponsors, listPublicTournaments } from '@/server/services/catalog'
 import { getSettings } from '@/server/settings'
 
+/* eslint-disable @next/next/no-img-element -- static, pre-optimised visuals under /visuals and /products */
+
+const VERBS = [
+  { text: 'Enter', color: 'var(--color-reg)' },
+  { text: 'Verify', color: 'var(--color-ac)' },
+  { text: 'Broadcast', color: 'var(--color-prod)' },
+  { text: 'Score', color: 'var(--color-pts)' },
+]
+
+const FALLBACK_GAMES = [
+  { id: 'pubg-mobile', name: 'PUBG Mobile' },
+  { id: 'free-fire', name: 'Free Fire' },
+  { id: 'valorant', name: 'VALORANT' },
+  { id: 'honor-of-kings', name: 'Honor of Kings' },
+  { id: 'tekken-8', name: 'TEKKEN 8' },
+  { id: 'ea-fc-26', name: 'EA SPORTS FC 26' },
+]
+
 export default async function Home() {
-  const [tournaments, settings] = await Promise.all([listPublicTournaments(), getSettings()])
+  const [tournaments, settings, games] = await Promise.all([listPublicTournaments(), getSettings(), getGames()])
   const current = tournaments
     .filter((t) => ['registration_open', 'live', 'announced', 'registration_closed'].includes(phaseOf(t)))
-    .sort((a, b) => new Date(a.startsAt ?? 0).getTime() - new Date(b.startsAt ?? 0).getTime())
-    .slice(0, 4)
+    .sort((a, b) => Number(b.featured) - Number(a.featured) || new Date(a.startsAt ?? 0).getTime() - new Date(b.startsAt ?? 0).getTime())
+    .slice(0, 6)
+  const sponsors = await getSponsors(current.map((t) => t.id))
   const points = settings['product.points']
+  const marqueeGames = games.length ? games : FALLBACK_GAMES
 
   return (
     <>
-      {/* ALT 00 — the ascent */}
+      {/* ALT 00 — hero */}
       <section className="relative isolate overflow-hidden" aria-labelledby="hero-title">
-        <div aria-hidden className="grid-field absolute inset-0 -z-10 opacity-60" />
-        <div className="shell grid min-h-[calc(100svh-4rem)] items-center gap-10 py-14 lg:grid-cols-12 lg:py-10">
-          <div className="lg:col-span-6">
-            <p className="t-label flex items-center gap-3" style={{ animation: 'fade 900ms var(--ease-out-expo) both' }}>
+        <img src="/visuals/summit.webp" alt="" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-40 [mask-image:linear-gradient(180deg,#000_30%,transparent)]" fetchPriority="high" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_70%_45%,rgba(217,178,95,0.16),transparent_55%),linear-gradient(90deg,#06070a_15%,rgba(6,7,10,0.4)_60%,rgba(6,7,10,0.2))]" />
+        <div aria-hidden className="grid-field absolute inset-0 -z-10 opacity-40" />
+
+        <div className="shell grid min-h-[calc(100svh-4rem)] items-center gap-6 py-12 lg:grid-cols-12 lg:py-8">
+          <div className="relative z-10 lg:col-span-6">
+            <p className="t-label flex items-center gap-3 text-fg-2" style={{ animation: 'fade 900ms var(--ease-out-expo) both' }}>
               <span className="node node-fill" />
-              Zenith Esports · Multi-gaming organisation · Pakistan
+              Zenith Esports · Pakistan
             </p>
-            <h1 id="hero-title" className="t-display mt-8 text-[clamp(1.75rem,4.1vw,3.55rem)]">
-              <span className="line-mask" style={{ '--i': 0 } as React.CSSProperties}>
-                <span>Beyond</span>
-              </span>
-              <span className="line-mask" style={{ '--i': 1 } as React.CSSProperties}>
-                <span>the game.</span>
-              </span>
-              <span className="line-mask" style={{ '--i': 2 } as React.CSSProperties}>
-                <span className="t-chrome">Built for</span>
-              </span>
-              <span className="line-mask" style={{ '--i': 3 } as React.CSSProperties}>
-                <span className="t-chrome">the ecosystem.</span>
-              </span>
+            <h1 id="hero-title" className="t-display mt-7 text-[clamp(2.1rem,5.2vw,4.4rem)] leading-[1.02]">
+              <SplitText text="Beyond the game." />
+              <br />
+              <SplitText text="Built for esports." delay={380} letterClassName="t-chrome" />
             </h1>
-            <p className="t-lede mt-8 max-w-xl" style={{ animation: 'rise 900ms var(--ease-out-expo) 600ms both' }}>
-              Competition, production, integrity and scoring — connected in one ecosystem, built to move Pakistani esports forward.
+            <p className="mt-7 text-[clamp(1.15rem,1.6vw,1.45rem)] font-medium text-fg" style={{ animation: 'rise 900ms var(--ease-out-expo) 700ms both' }}>
+              For the competitive scene, we <WordCycle words={VERBS} className="font-display uppercase" />
             </p>
-            <div className="mt-10 flex flex-wrap gap-3" style={{ animation: 'rise 900ms var(--ease-out-expo) 750ms both' }}>
-              <a href="#ecosystem" className="btn btn-primary">
-                Explore the ecosystem <span className="arrow">↓</span>
-              </a>
-              <ZLink surface="registrations" to="/" className="btn btn-ghost">
-                Enter tournaments <span className="arrow">→</span>
+            <p className="t-lede mt-4 max-w-xl" style={{ animation: 'rise 900ms var(--ease-out-expo) 800ms both' }}>
+              Tournaments, broadcast production, competitive integrity and scoring — four platforms built by one organisation, connected end to end.
+            </p>
+            <div className="mt-9 flex flex-wrap gap-3" style={{ animation: 'rise 900ms var(--ease-out-expo) 900ms both' }}>
+              <ZLink surface="registrations" to="/" className="btn btn-primary">
+                Enter a tournament <span className="arrow">→</span>
               </ZLink>
-              <a href="#products" className="btn btn-ghost">
-                Discover our products
+              <a href="#platforms" className="btn btn-ghost">
+                Explore the platforms <span className="arrow">↓</span>
               </a>
             </div>
+            <ul className="mt-10 flex flex-wrap gap-2" style={{ animation: 'rise 900ms var(--ease-out-expo) 1000ms both' }} aria-label="Platforms">
+              {(['registrations', 'anticheat', 'production', 'points'] as const).map((p) => (
+                <li key={p}>
+                  <a href={`#${p}`} className="flex items-center gap-2 rounded-full border border-line-2 bg-black/30 py-1 pl-1 pr-3 text-[13px] text-fg-2 backdrop-blur transition-colors hover:border-line-3 hover:text-fg">
+                    <ProductIcon product={p} size={26} />
+                    {{ registrations: 'Registrations', anticheat: 'AntiCheat', production: 'Production', points: 'Points' }[p]}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="lg:col-span-6 lg:pl-6">
-            <Ascent />
+          <div className="relative -order-1 lg:order-none lg:col-span-6">
+            <Zenith3D className="mx-auto aspect-square w-full max-w-[min(640px,80vw)] lg:max-w-none" />
           </div>
         </div>
       </section>
 
-      {/* ALT 15 — the circuit */}
-      <section id="ecosystem" className="relative scroll-mt-20 border-t border-line py-28" aria-labelledby="eco-title">
-        <div className="shell">
-          <div className="grid gap-8 md:grid-cols-12">
-            <div className="md:col-span-5" data-reveal>
+      {/* the games, in motion */}
+      <section className="border-y border-line bg-ink-1/60 py-6" aria-label="Games we run">
+        <VelocityMarquee speed={0.6}>
+          {marqueeGames.map((g) => (
+            <span key={g.id} className="flex items-center gap-4 px-8">
+              <GameMark gameId={g.id} name={g.name} size={40} />
+              <span className="t-display whitespace-nowrap text-[clamp(1.1rem,2.2vw,1.8rem)]" style={{ color: gameArt(g.id).accent }}>
+                {g.name}
+              </span>
+              <span aria-hidden className="node ml-4 opacity-50" />
+            </span>
+          ))}
+        </VelocityMarquee>
+      </section>
+
+      {/* ALT 15 — platforms */}
+      <section id="platforms" className="relative scroll-mt-20 py-24" aria-labelledby="eco-title">
+        <ScrollStatement lines={['Compete · Verify ·', 'Broadcast · Score ·']} />
+        <div className="shell mt-14">
+          <div className="grid gap-8 md:grid-cols-12" data-reveal>
+            <div className="md:col-span-6">
               <Altitude deg={15}>The ecosystem</Altitude>
-              <h2 id="eco-title" className="t-display mt-6 text-[clamp(1.6rem,3.4vw,2.6rem)]">
+              <h2 id="eco-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">
                 One tournament.
                 <br />
-                Four systems.
+                <span className="t-chrome">Four systems.</span>
               </h2>
             </div>
-            <p className="t-lede md:col-span-6 md:col-start-7 md:pt-12" data-reveal style={{ '--i': 1 } as React.CSSProperties}>
-              Most organisations stop at the bracket. Zenith builds the infrastructure around it — so the same team that enters a tournament is
-              integrity-checked, broadcast and scored inside one connected system.
+            <p className="t-lede md:col-span-6 md:pt-12">
+              Most organisations stop at the bracket. Zenith builds the infrastructure around it — the same team that enters is integrity-checked,
+              broadcast and scored inside one connected system.
             </p>
           </div>
-          <div className="mt-20" data-reveal>
-            <Circuit />
-          </div>
-        </div>
-      </section>
 
-      {/* ALT 30 — competition */}
-      <section className="border-t border-line py-28" aria-labelledby="comp-title" data-surface="registrations">
-        <div className="shell">
-          <div className="flex flex-wrap items-end justify-between gap-6" data-reveal>
-            <div>
-              <Altitude deg={30}>Competition</Altitude>
-              <h2 id="comp-title" className="t-display mt-6 text-[clamp(1.6rem,3.4vw,2.6rem)]">
-                On the circuit
-              </h2>
-            </div>
-            <ZLink surface="registrations" to="/" className="btn btn-ghost">
-              All tournaments <span className="arrow">→</span>
-            </ZLink>
-          </div>
-          <div className="mt-12">
-            {current.length ? (
-              <TournamentRows items={current} />
-            ) : (
-              <EmptySignal
-                title="No events on the board right now"
-                body="New tournaments are announced here and on our channels first. Check the portfolio below for the games we run."
-              >
-                <ZLink surface="registrations" to="/" className="btn btn-sm btn-ghost">
-                  Tournament hub
-                </ZLink>
-              </EmptySignal>
-            )}
-          </div>
+          <div className="mt-16 grid gap-5 lg:grid-cols-12">
+            {/* Registrations */}
+            <article id="registrations" data-surface="registrations" data-reveal className="group relative isolate flex min-h-[420px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-2xl border border-line-2 p-7 lg:col-span-5">
+              <img src="/visuals/trophy.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover object-[70%_30%] opacity-95 transition-transform duration-1000 group-hover:scale-105" />
+              <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/70 to-transparent" />
+              <ProductLockup product="registrations" size={48} />
+              <p className="mt-5 max-w-md text-fg-2">Find a tournament for your game, read its rules and roster requirements, and enter your team in minutes — signed in, with your status always one tap away.</p>
+              <ZLink surface="registrations" to="/" className="btn btn-primary mt-6 self-start">
+                Browse tournaments <span className="arrow">→</span>
+              </ZLink>
+            </article>
 
-          <div className="mt-24" data-reveal>
-            <p className="t-label">The portfolio</p>
-            <PortfolioTable />
-          </div>
-        </div>
-      </section>
-
-      {/* ALT 45 / 60 — products */}
-      <section id="products" className="scroll-mt-20 border-t border-line py-28" aria-labelledby="products-title">
-        <div className="shell">
-          <div data-reveal>
-            <Altitude deg={45}>Products</Altitude>
-            <h2 id="products-title" className="t-display mt-6 max-w-3xl text-[clamp(1.6rem,3.4vw,2.6rem)]">
-              Tools we built because esports needed them
-            </h2>
-          </div>
-
-          <div className="mt-16 grid gap-6 lg:grid-cols-12">
-            <article data-surface="production" className="panel-raised relative overflow-hidden lg:col-span-7" data-reveal aria-labelledby="zp-title">
-              <div className="relative border-b border-line">
-                <IllustrationTag>Illustration · not a screenshot</IllustrationTag>
-                <BroadcastFrame />
+            {/* Production — real software footage */}
+            <article id="production" data-surface="production" data-reveal style={{ '--i': 1 } as React.CSSProperties} className="relative scroll-mt-24 overflow-hidden rounded-2xl border border-line-2 bg-ink-1 lg:col-span-7">
+              <div className="relative">
+                <InViewVideo
+                  className="aspect-video w-full object-cover"
+                  poster="/products/production/walkthrough-poster.webp"
+                  label="ZenithProduction walkthrough with the software's built-in sample data"
+                  sources={[
+                    { src: '/products/production/walkthrough.webm', type: 'video/webm' },
+                    { src: '/products/production/walkthrough.mp4', type: 'video/mp4' },
+                  ]}
+                />
+                <span className="chip absolute right-3 top-3 border-white/20 bg-black/65 text-white">Real software · sample data</span>
               </div>
-              <div className="p-8">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="chip chip-accent">Desktop software</span>
-                  <span className="chip">PUBG Mobile</span>
-                  <span className="chip">{settings['product.production'].status === 'paused' ? 'Inquiries paused' : 'Available'}</span>
+              <div className="flex flex-wrap items-end justify-between gap-6 p-7">
+                <div className="max-w-lg">
+                  <ProductLockup product="production" size={48} />
+                  <p className="mt-5 text-fg-2">A broadcast command centre: live standings, player pop-ups and after-match scenes driven from observer data, straight into OBS.</p>
                 </div>
-                <h3 id="zp-title" className="t-display mt-6 text-2xl">
-                  ZenithProduction
-                </h3>
-                <p className="mt-4 max-w-xl text-fg-2">
-                  A broadcast command centre for esports. It reads live observer data and drives animated standings, player pop-ups and after-match
-                  scenes through OBS — the full on-air package from one operator seat.
-                </p>
-                <div className="mt-8 flex flex-wrap gap-3">
-                  <ZLink surface="production" to="/" className="btn btn-primary">
-                    See how it works <span className="arrow">→</span>
-                  </ZLink>
-                  <ZLink surface="production" to="/book" className="btn btn-ghost">
-                    Book production
-                  </ZLink>
-                </div>
+                <ZLink surface="production" to="/" className="btn btn-primary">
+                  See it in action <span className="arrow">→</span>
+                </ZLink>
               </div>
             </article>
 
-            <article data-surface="points" className="panel-raised relative overflow-hidden lg:col-span-5" data-reveal style={{ '--i': 1 } as React.CSSProperties} aria-labelledby="pts-title">
-              <div className="relative flex justify-center border-b border-line bg-ink-1 px-10 pt-10">
-                <IllustrationTag>Illustration · app in development</IllustrationTag>
-                <div className="w-44 translate-y-6">
-                  <PointsPhone />
-                </div>
+            {/* AntiCheat */}
+            <article id="anticheat" data-surface="anticheat" data-reveal className="group relative isolate flex min-h-[420px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-2xl border border-line-2 p-7 lg:col-span-6">
+              <img src="/visuals/anticheat.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-75 transition-transform duration-1000 group-hover:scale-105" />
+              <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/65 to-transparent" />
+              <ProductLockup product="anticheat" size={48} />
+              <p className="mt-5 max-w-md text-fg-2">Report a cheater in any game we run with one screenshot and their ID. Every report is reviewed by a person and matched across all our competitions.</p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <ZLink surface="anticheat" to="/report" className="btn btn-primary">
+                  Report a player <span className="arrow">→</span>
+                </ZLink>
+                <ZLink surface="anticheat" to="/" className="btn btn-ghost">How it works</ZLink>
               </div>
-              <div className="p-8">
-                <div className="flex flex-wrap items-center gap-3">
+            </article>
+
+            {/* Points — concept interface */}
+            <article id="points" data-surface="points" data-reveal style={{ '--i': 1 } as React.CSSProperties} className="relative isolate grid scroll-mt-24 items-center gap-6 overflow-hidden rounded-2xl border border-line-2 p-7 sm:grid-cols-[1fr_auto] lg:col-span-6">
+              <img src="/visuals/points.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-50" />
+              <div className="absolute inset-0 -z-10 bg-gradient-to-r from-[#06070a] via-[#06070a]/80 to-[#06070a]/30" />
+              <div>
+                <ProductLockup product="points" size={48} />
+                <p className="mt-5 text-fg-2">Slot lists, standings, champions and MVP graphics in your own design — calculated and ready in seconds. No graphic designer needed.</p>
+                <div className="mt-5 flex flex-wrap gap-2">
                   <span className="chip chip-accent">{points.status === 'available' ? 'Available' : points.status === 'beta' ? 'Beta' : 'Coming soon'}</span>
                   <span className="chip">Android · iOS</span>
                 </div>
-                <h3 id="pts-title" className="t-display mt-6 text-2xl">
-                  ZenithPoints
-                </h3>
-                <p className="mt-4 text-fg-2">
-                  Scoring for PUBG Mobile and Free Fire organisers: placement and kill points, your own designs, and AI-assisted extraction from
-                  results screenshots — always reviewed before it counts.
-                </p>
-                <ZLink surface="points" to="/" className="btn btn-primary mt-8">
+                <ZLink surface="points" to="/" className="btn btn-primary mt-6">
                   {points.status === 'coming_soon' ? 'Get launch updates' : 'Learn more'} <span className="arrow">→</span>
                 </ZLink>
               </div>
+              <div className="mx-auto w-[200px]">
+                <PointsTour compact />
+              </div>
             </article>
           </div>
+        </div>
+      </section>
 
-          <div className="mt-6 grid gap-6 md:grid-cols-2">
-            <ZLink surface="registrations" to="/" data-surface="registrations" className="panel group flex items-start gap-5 p-7 transition-colors hover:border-line-3" data-reveal>
-              <span className="node mt-2" />
-              <span>
-                <span className="t-display block text-base">Zenith Registrations</span>
-                <span className="mt-2 block text-fg-2">Find a tournament, read its rules and roster requirements, and enter your team in minutes.</span>
-              </span>
-            </ZLink>
-            <ZLink surface="anticheat" to="/" data-surface="anticheat" className="panel group flex items-start gap-5 p-7 transition-colors hover:border-line-3" data-reveal style={{ '--i': 1 } as React.CSSProperties}>
-              <span className="node mt-2" />
-              <span>
-                <span className="t-display block text-base">ZenithAntiCheat</span>
-                <span className="mt-2 block text-fg-2">Report a banned player with evidence. Reviewed by people, matched across every competition we run.</span>
-              </span>
-            </ZLink>
+      {/* ALT 30 — games */}
+      <section className="border-t border-line py-24" aria-labelledby="games-title">
+        <div className="shell">
+          <div className="flex flex-wrap items-end justify-between gap-6" data-reveal>
+            <div>
+              <Altitude deg={30}>The portfolio</Altitude>
+              <h2 id="games-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">Six games. One standard.</h2>
+            </div>
+            <ZLink surface="hq" to="/games" className="btn btn-ghost">All games <span className="arrow">→</span></ZLink>
+          </div>
+          <div className="mt-12">
+            <GameShowcase />
           </div>
         </div>
       </section>
 
-      {/* ALT 75 — community */}
-      <section className="border-t border-line py-28" aria-labelledby="community-title">
-        <div className="shell grid gap-12 md:grid-cols-12">
-          <div className="md:col-span-6" data-reveal>
-            <Altitude deg={75}>Community</Altitude>
-            <h2 id="community-title" className="t-display mt-6 text-[clamp(1.6rem,3.4vw,2.6rem)]">
-              Follow the signal
-            </h2>
-            <p className="t-lede mt-6 max-w-lg">
-              Announcements, schedules and broadcasts go out on our official channels first. Join them so you never miss a registration window.
-            </p>
+      {/* ALT 45 — tournaments */}
+      <section className="border-t border-line py-24" aria-labelledby="comp-title" data-surface="registrations">
+        <div className="shell">
+          <div className="flex flex-wrap items-end justify-between gap-6" data-reveal>
+            <div>
+              <Altitude deg={45}>Competition</Altitude>
+              <h2 id="comp-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">On the circuit</h2>
+            </div>
+            <ZLink surface="registrations" to="/" className="btn btn-ghost">All tournaments <span className="arrow">→</span></ZLink>
           </div>
-          <div className="flex flex-col justify-end gap-8 md:col-span-5 md:col-start-8" data-reveal style={{ '--i': 1 } as React.CSSProperties}>
-            <SocialLinks social={settings.social} size="lg" />
-            <ZLink surface="hq" to="/contact" className="btn btn-ghost self-start">
-              Talk to the team <span className="arrow">→</span>
-            </ZLink>
+          <div className="mt-12">
+            {current.length ? (
+              <TournamentGrid items={current} games={games} sponsors={sponsors} />
+            ) : (
+              <EmptySignal title="No events on the board right now" body="New tournaments are announced here and on our channels first. Follow us below so you never miss a registration window.">
+                <ZLink surface="registrations" to="/" className="btn btn-sm btn-ghost">Tournament hub</ZLink>
+              </EmptySignal>
+            )}
           </div>
         </div>
       </section>
 
-      {/* ALT 90 — the zenith */}
-      <section className="relative overflow-hidden border-t border-line py-32 text-center" aria-labelledby="zenith-title">
-        <div aria-hidden className="meridian" style={{ '--meridian-x': '50%' } as React.CSSProperties} />
-        <div className="shell relative" data-reveal>
-          <div className="mx-auto mb-10 grid h-16 w-16 place-items-center">
-            <span className="node node-fill" style={{ width: 16, height: 16 }} />
-          </div>
-          <Altitude deg={90} className="justify-center">
-            Zenith
-          </Altitude>
-          <h2 id="zenith-title" className="t-display mx-auto mt-8 max-w-3xl text-[clamp(1.7rem,4vw,3rem)]">
+      {/* ALT 75 / 90 — community and the zenith */}
+      <section className="relative isolate overflow-hidden border-t border-line py-32" aria-labelledby="zenith-title">
+        <img src="/visuals/arena.webp" alt="" loading="lazy" className="absolute inset-0 -z-20 h-full w-full object-cover opacity-45" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(180deg,#06070a,rgba(6,7,10,0.55)_40%,#06070a)]" />
+        <div className="shell text-center" data-reveal>
+          <Altitude deg={90} className="justify-center">Zenith</Altitude>
+          <h2 id="zenith-title" className="t-display mx-auto mt-8 max-w-4xl text-[clamp(2rem,5vw,3.8rem)]">
             Compete at the <span className="t-chrome">highest point</span>
           </h2>
-          <div className="mt-12 flex flex-wrap justify-center gap-3">
-            <ZLink surface="registrations" to="/" className="btn btn-primary">
-              Enter a tournament <span className="arrow">→</span>
-            </ZLink>
-            <ZLink surface="hq" to="/about" className="btn btn-ghost">
-              About Zenith
-            </ZLink>
+          <p className="t-lede mx-auto mt-6 max-w-xl">Announcements, schedules and broadcasts go out on our official channels first.</p>
+          <div className="mt-10 flex justify-center">
+            <SocialLinks social={settings.social} size="lg" />
+          </div>
+          <div className="mt-10 flex flex-wrap justify-center gap-3">
+            <ZLink surface="registrations" to="/" className="btn btn-primary">Enter a tournament <span className="arrow">→</span></ZLink>
+            <ZLink surface="hq" to="/contact" className="btn btn-ghost">Talk to the team</ZLink>
           </div>
         </div>
       </section>
     </>
   )
 }
+

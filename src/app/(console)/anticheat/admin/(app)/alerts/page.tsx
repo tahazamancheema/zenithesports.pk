@@ -52,7 +52,7 @@ export default async function Alerts(props: { searchParams: Promise<{ status?: s
                   {a.teamName && `· ${a.teamName}`} {a.tournamentName && `· ${a.tournamentName}`}
                 </p>
               )}
-              <p className="font-mono text-[11px] text-fg-3">
+              <p className="font-mono text-[12px] text-fg-3">
                 first {fmt(a.firstDetectedAt)} · last {fmt(a.lastDetectedAt)} · detected ×{a.detectionCount}
               </p>
             </div>

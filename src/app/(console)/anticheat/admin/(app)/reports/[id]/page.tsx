@@ -5,6 +5,7 @@ import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
 import { fmt, StatusChip } from '@/components/console/status-chip'
 import { can } from '@/lib/permissions'
+import { EVIDENCE_LABEL, type EvidenceKind } from '@/lib/report-rules'
 import { getStaff } from '@/server/auth/session'
 import { consoleBase } from '@/server/console-base'
 import { getReport } from '@/server/services/anticheat'
@@ -33,7 +34,7 @@ export default async function ReviewReport(props: { params: Promise<{ id: string
         <div className="grid content-start gap-6">
           <div className="panel-raised flex flex-wrap items-center gap-6 p-5">
             <div>
-              <p className="t-label">Reported UID (as typed)</p>
+              <p className="t-label">Reported ID (as typed)</p>
               <p className="mt-1 font-mono text-2xl tracking-wider">{r.reportedUidRaw}</p>
             </div>
             {r.reportedIgn && (
@@ -42,33 +43,51 @@ export default async function ReviewReport(props: { params: Promise<{ id: string
                 <p className="mt-1">{r.reportedIgn}</p>
               </div>
             )}
-            <p className="ml-auto max-w-xs text-sm text-fg-2">Find this exact UID in the evidence before approving. If it isn’t clearly visible, ask for clarification or reject.</p>
+            <p className="ml-auto max-w-xs text-sm text-fg-2">Find this exact ID in the evidence before approving. If it isn’t clearly visible, ask for clarification or reject.</p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            {(['report_confirmation', 'uid_proof'] as const).map((kind) => {
-              const e = r.evidence.find((x) => x.kind === kind)
+            {r.evidence.map((e) => {
+              const label = EVIDENCE_LABEL[e.kind as EvidenceKind] ?? e.kind
               return (
-                <figure key={kind} className="panel overflow-hidden">
+                <figure key={e.kind} className="panel overflow-hidden">
                   <figcaption className="flex items-center justify-between border-b border-line px-4 py-2.5">
-                    <span className="t-label">{kind === 'report_confirmation' ? 'In-game report confirmation' : 'UID proof'}</span>
-                    {e && !e.purgedAt && (
+                    <span className="t-label">{label}</span>
+                    {!e.purgedAt && (
                       <a href={`${base}/evidence/${e.fileId}`} target="_blank" rel="noopener" className="t-label hover:text-fg">
                         Full size ↗
                       </a>
                     )}
                   </figcaption>
-                  {e && !e.purgedAt ? (
+                  {!e.purgedAt ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={`${base}/evidence/${e.fileId}`} alt={kind === 'report_confirmation' ? 'Report confirmation evidence' : 'UID evidence'} className="max-h-[520px] w-full bg-ink-2 object-contain" />
+                    <img src={`${base}/evidence/${e.fileId}`} alt={`${label} evidence`} className="max-h-[520px] w-full bg-ink-2 object-contain" />
                   ) : (
-                    <p className="p-8 text-center text-sm text-fg-3">{e ? `Purged ${fmt(e.purgedAt)}` : 'Missing'}</p>
+                    <p className="p-8 text-center text-sm text-fg-3">Purged {fmt(e.purgedAt)}</p>
                   )}
-                  {e && <p className="border-t border-line px-4 py-2 font-mono text-[11px] text-fg-3">{e.width} × {e.height}</p>}
+                  <p className="border-t border-line px-4 py-2 font-mono text-[12px] text-fg-3">{e.width} × {e.height}</p>
                 </figure>
               )
             })}
+            {r.evidence.length === 0 && <p className="panel p-8 text-center text-sm text-fg-3">No evidence attached.</p>}
           </div>
+
+          {(r.matchDetails || r.videoUrl) && (
+            <div className="panel grid gap-4 p-5 sm:grid-cols-2">
+              {r.matchDetails && (
+                <div>
+                  <p className="t-label">Match details</p>
+                  <p className="mt-2 text-fg-2">{r.matchDetails}</p>
+                </div>
+              )}
+              {r.videoUrl && (
+                <div className="min-w-0">
+                  <p className="t-label">Clip link (opened at your discretion)</p>
+                  <p className="mt-2 break-all font-mono text-[13px] text-fg-2">{r.videoUrl}</p>
+                </div>
+              )}
+            </div>
+          )}
 
           {r.explanation && (
             <div className="panel p-5">
@@ -180,7 +199,7 @@ export default async function ReviewReport(props: { params: Promise<{ id: string
             {r.notes.map((n) => (
               <div key={n.id} className="mb-3 border-l border-line-2 pl-3 text-sm">
                 <p className="whitespace-pre-line-safe">{n.body}</p>
-                <p className="mt-1 font-mono text-[11px] text-fg-3">
+                <p className="mt-1 font-mono text-[12px] text-fg-3">
                   {n.email} · {fmt(n.createdAt)}
                 </p>
               </div>

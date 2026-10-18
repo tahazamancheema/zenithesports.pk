@@ -24,8 +24,8 @@
   --color-line-3: rgb(208 216 229 / 0.26);
 
   --color-fg: #edf0f5;
-  --color-fg-2: #a6aebb;
-  --color-fg-3: #6e7684;
+  --color-fg-2: #b9c1cd;
+  --color-fg-3: #8d96a4;
   --color-chrome: #c9cfd9;
 
   /* the apex */
@@ -116,12 +116,14 @@ a { color: inherit; text-decoration: none; }
 }
 .t-label {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.4;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--color-fg-3);
 }
+/* Small headings use Geist: Michroma is reserved for large display sizes, where it stays legible. */
+.t-title { font-family: var(--font-sans); font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; text-wrap: balance; }
 .t-lede { font-size: clamp(1.05rem, 1.2vw + 0.7rem, 1.3rem); line-height: 1.55; color: var(--color-fg-2); text-wrap: pretty; }
 .t-chrome {
   background: linear-gradient(100deg, #8c939f 0%, #f4f6fa 22%, #9aa1ad 45%, #e9edf3 70%, #7d8490 100%);
@@ -230,13 +232,13 @@ a { color: inherit; text-decoration: none; }
 .btn-primary::before { background: var(--accent-hi); }
 .btn-primary:hover::before { transform: scaleX(1); transform-origin: left; }
 .btn-ghost:hover { color: var(--accent); }
-.btn-sm { min-height: 34px; padding: 0 0.8rem; font-size: 11px; }
+.btn-sm { min-height: 36px; padding: 0 0.85rem; font-size: 11.5px; }
 .btn[disabled], .btn[aria-disabled='true'] { opacity: 0.45; pointer-events: none; }
 .btn-danger { --b: color-mix(in oklab, var(--color-bad) 50%, transparent); color: var(--color-bad); }
 .btn-danger:hover { --b: var(--color-bad); }
 
 .field-label { display: block; font-size: 13px; font-weight: 500; color: var(--color-fg); margin-bottom: 6px; }
-.field-help { font-size: 12.5px; color: var(--color-fg-3); margin-top: 6px; line-height: 1.45; }
+.field-help { font-size: 13px; color: var(--color-fg-3); margin-top: 6px; line-height: 1.45; }
 .field-error { font-size: 12.5px; color: var(--color-bad); margin-top: 6px; }
 .input {
   width: 100%;
@@ -277,13 +279,13 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 24px;
-  padding: 0 8px;
+  height: 26px;
+  padding: 0 9px;
   border: 1px solid var(--color-line-2);
   border-radius: var(--radius-xs);
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.12em;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-fg-2);
   white-space: nowrap;
@@ -296,7 +298,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 
 /* ─── data tables (consoles) ────────────────────────────────────────────── */
 .table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.table th { text-align: left; font-family: var(--font-mono); font-weight: 400; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--color-fg-3); padding: 10px 12px; border-bottom: 1px solid var(--color-line-2); white-space: nowrap; }
+.table th { text-align: left; font-family: var(--font-mono); font-weight: 400; font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--color-fg-3); padding: 10px 12px; border-bottom: 1px solid var(--color-line-2); white-space: nowrap; }
 .table td { padding: 12px; border-bottom: 1px solid var(--color-line); vertical-align: top; }
 .table tbody tr { transition: background var(--dur-micro); }
 .table tbody tr:hover { background: var(--color-ink-2); }
@@ -318,6 +320,26 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .signal { offset-rotate: 0deg; animation: travel var(--t, 3.2s) var(--ease-in-out-quint) infinite; animation-delay: calc(var(--d, 0) * 1ms); }
 .skeleton { background: linear-gradient(90deg, var(--color-ink-2) 0%, var(--color-ink-3) 50%, var(--color-ink-2) 100%); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; border-radius: var(--radius-sm); }
 
+/* ─── kinetic typography ────────────────────────────────────────────────── */
+.kx-word { display: inline-block; white-space: nowrap; overflow: hidden; vertical-align: top; padding: 0.06em 0.02em 0.1em; margin: -0.06em -0.02em -0.1em; }
+.kx-letter { display: inline-block; transform-origin: 50% 100%; animation: kx-in 1s var(--ease-out-expo) both; animation-delay: calc(var(--d, 0ms) + var(--i, 0) * 26ms); }
+@keyframes kx-in { from { transform: translateY(105%) rotate(8deg); opacity: 0; } 60% { opacity: 1; } to { transform: none; opacity: 1; } }
+.kx-slot { display: inline-grid; vertical-align: bottom; overflow: hidden; }
+.kx-slot > span { grid-area: 1 / 1; transition: transform 0.7s var(--ease-out-expo), opacity 0.5s var(--ease-out-expo), filter 0.5s; }
+.kx-slot > span[data-state='before'] { transform: translateY(100%); opacity: 0; filter: blur(6px); }
+.kx-slot > span[data-state='after'] { transform: translateY(-100%); opacity: 0; filter: blur(6px); }
+.t-outline { color: transparent; -webkit-text-stroke: 1px color-mix(in oklab, var(--color-chrome) 55%, transparent); }
+.marquee { display: flex; width: max-content; will-change: transform; }
+.pts-scan { animation: pts-scan 2.4s var(--ease-in-out-quint) infinite; top: -30%; }
+@keyframes pts-scan { to { top: 110%; } }
+.glow-prod { box-shadow: 0 0 0 1px rgb(255 90 68 / 0.2), 0 40px 120px -40px rgb(255 90 68 / 0.45); }
+.glow-gold { box-shadow: 0 0 0 1px rgb(217 178 95 / 0.25), 0 30px 80px -30px rgb(217 178 95 / 0.35); }
+
+/* Media frames: real captures sit on a lit bezel. */
+.bezel { position: relative; border-radius: 14px; padding: 6px; background: linear-gradient(160deg, #2a2f39, #0c0e12 40%, #171b22); box-shadow: 0 1px 0 rgb(255 255 255 / 0.08) inset, 0 40px 90px -30px rgb(0 0 0 / 0.9); }
+.bezel > * { border-radius: 9px; overflow: hidden; }
+.tilt { transition: transform 0.6s var(--ease-out-expo); transform: perspective(1200px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+
 /* Page transitions (React <ViewTransition>) */
 ::view-transition-old(.zx-page) { animation: 180ms ease-in both vt-out; }
 ::view-transition-new(.zx-page) { animation: 520ms var(--ease-out-expo) 80ms both vt-in; }
@@ -328,6 +350,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; animation-delay: 0ms !important; }
   [data-reveal] { opacity: 1; transform: none; }
+  .kx-letter { animation: none; }
   .signal { display: none; }
   .draw-path { stroke-dashoffset: 0; }
   ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }

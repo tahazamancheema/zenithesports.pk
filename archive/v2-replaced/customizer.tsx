@@ -59,7 +59,7 @@ export function Customizer() {
           <span style={{ fontFamily: type.v, textTransform: type.up ? 'uppercase' : 'none', letterSpacing: type.up ? '0.06em' : 0 }} className="text-lg">
             Overall standings
           </span>
-          <span className="font-mono text-[11px] text-fg-3">Sample</span>
+          <span className="font-mono text-[12px] text-fg-3">Sample</span>
         </div>
         <ol>
           {rows.map((r, i) => (

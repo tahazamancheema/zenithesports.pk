@@ -2,19 +2,25 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Countdown } from '@/components/countdown'
 import { ZLink } from '@/components/link'
+import { GameMark } from '@/components/game-mark'
 import { PhaseChip } from '@/components/tournament-list'
+import { gameArt } from '@/config/game-art'
 import { formatInZone, phaseOf, tzAbbrev } from '@/lib/tournament'
-import { getGame, getPublicTournament } from '@/server/services/catalog'
+import { getGame, getPublicTournament, getSponsors, mediaUrl } from '@/server/services/catalog'
 
 export async function generateMetadata(props: PageProps<'/registrations/t/[slug]'>): Promise<Metadata> {
   const t = await getPublicTournament((await props.params).slug)
   return t ? { title: t.name, description: t.summary || `${t.gameName} ${t.formatLabel} tournament by Zenith Esports.` } : { title: 'Tournament not found' }
 }
 
+/* eslint-disable @next/next/no-img-element -- posters and logos are served by /media with their own caching */
+
 export default async function TournamentPage(props: PageProps<'/registrations/t/[slug]'>) {
   const t = await getPublicTournament((await props.params).slug)
   if (!t) notFound()
-  const game = await getGame(t.gameId)
+  const [game, sponsorMap] = await Promise.all([getGame(t.gameId), getSponsors([t.id])])
+  const sponsors = sponsorMap[t.id] ?? []
+  const poster = mediaUrl(t.posterFileId) ?? mediaUrl(game?.coverFileId) ?? gameArt(t.gameId).art
   const phase = phaseOf(t)
   const tz = tzAbbrev(t.timezone)
   const full = t.capacity !== null && t.activeCount >= t.capacity
@@ -24,22 +30,67 @@ export default async function TournamentPage(props: PageProps<'/registrations/t/
   return (
     <>
       <section className="relative isolate overflow-hidden border-b border-line">
-        <div aria-hidden className="grid-field absolute inset-0 -z-10 opacity-40" />
-        <div className="shell py-14 md:py-20">
+        <img src={poster} alt="" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-60" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#06070a_25%,rgba(6,7,10,0.7)_60%,rgba(6,7,10,0.35)),linear-gradient(0deg,#06070a,transparent_50%)]" />
+        <div className="shell py-12 md:py-16">
           <ZLink to="/" className="t-label hover:text-fg" transitionTypes={['nav-back']}>
             ← All tournaments
           </ZLink>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <PhaseChip phase={phase} />
-            <span className="chip">{t.gameName}</span>
-            <span className="chip">{t.formatLabel}</span>
+          <div className="mt-10 grid gap-10 lg:grid-cols-12 lg:items-end">
+            <div className="lg:col-span-8">
+              <div className="flex flex-wrap items-center gap-3">
+                <ZLink to={`/games/${t.gameId}`} className="flex items-center gap-2 rounded-full border border-white/15 bg-black/50 py-1 pl-1 pr-3 backdrop-blur hover:border-white/30">
+                  <GameMark gameId={t.gameId} name={t.gameName} logoUrl={mediaUrl(game?.logoFileId)} size={28} />
+                  <span className="text-[14px] font-semibold">{t.gameName}</span>
+                </ZLink>
+                <PhaseChip phase={phase} />
+                <span className="chip">{t.formatLabel}</span>
+              </div>
+              <div className="mt-6 flex items-center gap-5">
+                {t.logoFileId && <img src={mediaUrl(t.logoFileId)!} alt={`${t.name} logo`} className="h-20 w-20 shrink-0 rounded-xl border border-white/15 bg-black/40 object-contain p-2 md:h-24 md:w-24" />}
+                <h1 className="t-display max-w-4xl text-[clamp(1.6rem,4vw,3rem)]" style={{ animation: 'rise 800ms var(--ease-out-expo) both' }}>
+                  {t.name}
+                </h1>
+              </div>
+              {t.summary && <p className="t-lede mt-5 max-w-2xl">{t.summary}</p>}
+              {phase === 'cancelled' && t.cancelReason && (
+                <p className="mt-6 max-w-2xl rounded-sm border border-bad/40 px-4 py-3 text-sm text-fg">This tournament was cancelled: {t.cancelReason}</p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-4 lg:col-span-4 lg:justify-end">
+              <div>
+                <p className="t-label">Organised by</p>
+                <p className="mt-2 flex items-center gap-2 font-semibold">
+                  {t.organizerLogoFileId ? (
+                    <img src={mediaUrl(t.organizerLogoFileId)!} alt="" className="h-8 w-8 rounded object-contain" />
+                  ) : t.organizerName === 'Zenith Esports' ? (
+                    <img src="/brand/zenith-mark-160.webp" alt="" className="h-7 w-7" />
+                  ) : null}
+                  {t.organizerName}
+                </p>
+              </div>
+              {t.prizeInfo && (
+                <div>
+                  <p className="t-label">Prize</p>
+                  <p className="mt-2 font-semibold text-[var(--color-gold-hi)]">{t.prizeInfo.split(/\r?\n/)[0]}</p>
+                </div>
+              )}
+            </div>
           </div>
-          <h1 className="t-display mt-6 max-w-4xl text-[clamp(1.6rem,4vw,3rem)]" style={{ animation: 'rise 800ms var(--ease-out-expo) both' }}>
-            {t.name}
-          </h1>
-          {t.summary && <p className="t-lede mt-5 max-w-2xl">{t.summary}</p>}
-          {phase === 'cancelled' && t.cancelReason && (
-            <p className="mt-6 max-w-2xl rounded-sm border border-bad/40 px-4 py-3 text-sm text-fg">This tournament was cancelled: {t.cancelReason}</p>
+          {sponsors.length > 0 && (
+            <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 border-t border-white/10 pt-6">
+              <span className="t-label">Sponsors</span>
+              {sponsors.map((s) => {
+                const inner = s.logoFileId ? <img src={mediaUrl(s.logoFileId)!} alt={s.name} className="h-9 w-auto max-w-[140px] object-contain" /> : <span className="font-semibold">{s.name}</span>
+                return s.url ? (
+                  <a key={s.id} href={s.url} target="_blank" rel="noopener noreferrer sponsored" className="opacity-85 transition-opacity hover:opacity-100" title={`${s.name} · ${s.tier}`}>
+                    {inner}
+                  </a>
+                ) : (
+                  <span key={s.id} title={`${s.name} · ${s.tier}`}>{inner}</span>
+                )
+              })}
+            </div>
           )}
         </div>
       </section>

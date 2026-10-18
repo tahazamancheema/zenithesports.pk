@@ -5,19 +5,55 @@ import { getStaff, requirePage } from '@/server/auth/session'
 import { consoleBase } from '@/server/console-base'
 import { liveStream, type Topic } from '@/server/realtime'
 import { AuthPage } from './auth-page'
-import { LoginForm, PasswordForm } from './auth-forms'
+import { signOutAction } from '@/app/actions/auth'
+import { getAccount, supabaseConfigured } from '@/server/auth/account'
+import { staffPasswordLogin } from '@/server/auth/session'
+import { GoogleButton } from '../auth/sign-in'
+import { ConsoleEnterForm, LoginForm, PasswordForm } from './auth-forms'
 import { ConsoleShell, type ConsoleNav } from './shell'
 
 export async function ConsoleLogin({ surface, denied }: { surface: ConsoleSurface; denied?: boolean }) {
   const staff = await getStaff(surface)
-  if (staff && can(staff.roles, SURFACE_GATE[surface]) && !denied) redirect(await consoleBase(surface))
+  const base = await consoleBase(surface)
+  if (staff && can(staff.roles, SURFACE_GATE[surface]) && !denied) redirect(base)
+  const sso = supabaseConfigured()
+  const account = sso ? await getAccount() : null
+  const here = `${base}/login`
   return (
     <AuthPage
       surface={surface}
       title="Sign in"
-      note={denied ? <span className="text-warn">Your account does not have access to this console.</span> : 'This sign-in applies to this console only.'}
+      note={denied ? <span className="text-warn">Your account does not have access to this console.</span> : 'Each console has its own session: entering this one grants nothing in the others.'}
     >
-      <LoginForm surface={surface} />
+      <div className="grid gap-6">
+        {sso &&
+          (account ? (
+            <div className="grid gap-4">
+              <p className="text-sm text-fg-2">
+                Signed in as <span className="text-fg">{account.email}</span>
+              </p>
+              <ConsoleEnterForm surface={surface} label="Enter this console" />
+              <form action={signOutAction}>
+                <button type="submit" className="btn btn-sm btn-ghost w-full">
+                  Use a different account
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              <GoogleButton next={here} label="Sign in with Google" />
+              <a href={`/login?next=${encodeURIComponent(here)}`} className="btn btn-ghost w-full">
+                Sign in with email
+              </a>
+            </div>
+          ))}
+        {staffPasswordLogin() && (
+          <div className={sso ? 'border-t border-line pt-6' : ''}>
+            {sso && <p className="t-label mb-4">Password sign-in (local)</p>}
+            <LoginForm surface={surface} />
+          </div>
+        )}
+      </div>
     </AuthPage>
   )
 }

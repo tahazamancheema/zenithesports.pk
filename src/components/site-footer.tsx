@@ -14,7 +14,7 @@ export async function SiteFooter() {
           <div className="flex items-center gap-4">
             <ZenithMark size={44} />
             <div>
-              <p className="font-display text-sm tracking-[0.3em]">ZENITH ESPORTS</p>
+              <p className="font-title text-sm tracking-[0.3em]">ZENITH ESPORTS</p>
               <p className="t-label mt-1">Multi-gaming organisation · Pakistan</p>
             </div>
           </div>

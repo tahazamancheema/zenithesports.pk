@@ -57,7 +57,7 @@ export default async function AboutPage() {
           <dl className="mt-12 grid gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
             {PRINCIPLES.map(([k, v], i) => (
               <div key={k} className="bg-ink-1 p-7" data-reveal style={{ '--i': i } as React.CSSProperties}>
-                <dt className="t-display text-sm">{k}</dt>
+                <dt className="t-title text-sm">{k}</dt>
                 <dd className="mt-3 text-fg-2">{v}</dd>
               </div>
             ))}
@@ -78,7 +78,7 @@ export default async function AboutPage() {
                   <span className="t-label" style={{ color: p.color }}>
                     {p.index}
                   </span>
-                  <span className="t-display text-base">{p.name}</span>
+                  <span className="t-title text-base">{p.name}</span>
                   <span className="text-fg-2">{p.blurb}</span>
                   <span aria-hidden className="hidden text-fg-3 group-hover:text-fg md:block">
                     →

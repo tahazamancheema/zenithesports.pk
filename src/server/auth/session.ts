@@ -109,7 +109,17 @@ export async function requireStaff(surface: ConsoleSurface, permission: Permissi
 
 export type LoginResult = { ok: true } | { ok: false; error: string }
 
+/**
+ * Console passwords are for local development (and as an emergency switch).
+ * With Supabase configured, staff sign in with Google or email instead.
+ */
+export function staffPasswordLogin() {
+  const sso = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY))
+  return process.env.STAFF_PASSWORD_LOGIN === '1' || !sso
+}
+
 export async function login(surface: ConsoleSurface, emailRaw: string, password: string): Promise<LoginResult> {
+  if (!staffPasswordLogin()) return { ok: false, error: 'Sign in with Google or email above.' }
   const email = emailRaw.trim().toLowerCase()
   const ip = await ipHash()
   const generic = 'Email or password is incorrect.'
@@ -121,7 +131,7 @@ export async function login(surface: ConsoleSurface, emailRaw: string, password:
   }
 
   const [user] = await db()<
-    { id: string; passwordHash: string; status: string; lockedUntil: Date | null; roles: Role[] }[]
+    { id: string; passwordHash: string | null; status: string; lockedUntil: Date | null; roles: Role[] }[]
   >`
     select u.id, u.password_hash, u.status, u.locked_until,
            coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles
@@ -130,7 +140,7 @@ export async function login(surface: ConsoleSurface, emailRaw: string, password:
      where lower(u.email) = ${email}
      group by u.id
   `
-  if (!user) {
+  if (!user || !user.passwordHash) {
     await verifyAgainstDummy(password)
     return { ok: false, error: generic }
   }
@@ -156,16 +166,23 @@ export async function login(surface: ConsoleSurface, emailRaw: string, password:
     return { ok: false, error: 'Your account does not have access to this console.' }
   }
 
+  await startSession(surface, user.id, actor, 'auth.login')
+  await resetLimit(`login:acct:${email}`)
+  return { ok: true }
+}
+
+/** Creates the per-console session row and cookie. */
+async function startSession(surface: ConsoleSurface, userId: string, actor: Actor, action: string) {
   const token = randomToken(32)
+  const ip = await ipHash()
   await db().begin(async (tx) => {
-    await tx`update zenith.staff_users set failed_attempts = 0, locked_until = null, last_login_at = now() where id = ${user.id}`
+    await tx`update zenith.staff_users set failed_attempts = 0, locked_until = null, last_login_at = now() where id = ${userId}`
     await tx`
       insert into zenith.sessions (id, user_id, surface, expires_at, ip_hash, user_agent)
-      values (${sha256(token)}, ${user.id}, ${surface}, now() + make_interval(hours => ${ABSOLUTE_HOURS}), ${ip}, ${await userAgent()})
+      values (${sha256(token)}, ${userId}, ${surface}, now() + make_interval(hours => ${ABSOLUTE_HOURS}), ${ip}, ${await userAgent()})
     `
-    await audit(tx, actor, 'auth.login', { type: 'staff_user', id: user.id })
+    await audit(tx, actor, action, { type: 'staff_user', id: userId })
   })
-  await resetLimit(`login:acct:${email}`)
   ;(await cookies()).set(cookieName(surface), token, {
     httpOnly: true,
     secure: isProd,
@@ -173,6 +190,47 @@ export async function login(surface: ConsoleSurface, emailRaw: string, password:
     path: '/',
     maxAge: ABSOLUTE_HOURS * 3600,
   })
+}
+
+/**
+ * Opens a console session for someone already signed in with Supabase Auth.
+ * The staff record is matched by its linked Supabase user, or — the first time —
+ * by the same verified email, and then linked so the email alone never matters again.
+ */
+export async function enterWithAccount(surface: ConsoleSurface, account: { id: string; email: string; emailVerified: boolean }): Promise<LoginResult> {
+  const ip = await ipHash()
+  if (!account.emailVerified) return { ok: false, error: 'Verify your email address with the sign-in provider first.' }
+  try {
+    await consume(`login:ip:${ip}`, 20, 15 * 60)
+  } catch {
+    return { ok: false, error: 'Too many sign-in attempts. Wait 15 minutes and try again.' }
+  }
+  const email = account.email.toLowerCase()
+  const [user] = await db()<{ id: string; status: string; authUserId: string | null; roles: Role[] }[]>`
+    select u.id, u.status, u.auth_user_id,
+           coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles
+      from zenith.staff_users u
+      left join zenith.staff_roles r on r.user_id = u.id
+     where u.auth_user_id = ${account.id} or (u.auth_user_id is null and lower(u.email) = ${email})
+     group by u.id
+     order by (u.auth_user_id is not null) desc
+     limit 1
+  `
+  const actor: Actor = { id: user?.id ?? null, label: email, surface, ipHash: ip }
+  if (!user || user.status !== 'active') {
+    await audit(db(), actor, 'auth.sso_denied', { type: 'staff_user', id: user?.id ?? null })
+    return { ok: false, error: 'This account is not a Zenith staff account. Ask a super administrator to add your email.' }
+  }
+  if (!can(user.roles, SURFACE_GATE[surface])) {
+    await audit(db(), actor, 'auth.login_denied_surface', { type: 'staff_user', id: user.id })
+    return { ok: false, error: 'Your account does not have access to this console.' }
+  }
+  if (!user.authUserId) {
+    // A sign-in provider proves the email; any bootstrap password is no longer needed.
+    await db()`update zenith.staff_users set auth_user_id = ${account.id}, must_change_password = false where id = ${user.id} and auth_user_id is null`
+    await audit(db(), actor, 'auth.sso_linked', { type: 'staff_user', id: user.id })
+  }
+  await startSession(surface, user.id, actor, 'auth.login_sso')
   return { ok: true }
 }
 

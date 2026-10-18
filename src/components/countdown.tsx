@@ -35,7 +35,7 @@ export function Countdown({ to, label }: { to: string; label: string }) {
         {cells.map(([v, u]) => (
           <span key={u} className="flex items-baseline gap-1">
             <span className="text-2xl text-fg">{String(v).padStart(2, '0')}</span>
-            <span className="text-[11px] text-fg-3">{u}</span>
+            <span className="text-[12px] text-fg-3">{u}</span>
           </span>
         ))}
       </div>

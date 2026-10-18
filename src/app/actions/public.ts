@@ -6,6 +6,7 @@ import { failure, guardPublic, textValues, type ActionState } from '@/server/act
 import { absoluteUrl } from '@/server/link'
 import { deliverPending } from '@/server/notify'
 import { assertSameOrigin, ipHash } from '@/server/request'
+import { getAccount } from '@/server/auth/account'
 import { submitReport } from '@/server/services/anticheat'
 import { joinWaitlist, leaveWaitlist, submitBooking, submitContact, submitInquiry } from '@/server/services/intake'
 import { createLftProfile, requestContact, respondToRequest, setLftStatusByToken } from '@/server/services/lft'
@@ -93,9 +94,16 @@ export async function reportAction(_: ActionState, fd: FormData): Promise<Action
       ign: values.ign,
       explanation: values.explanation,
       contact: values.contact,
-      reportScreenshot: file('reportScreenshot'),
-      uidScreenshot: file('uidScreenshot'),
+      clipUrl: values.clipUrl,
+      matchDetails: values.matchDetails,
+      evidence: {
+        report_confirmation: file('evidence_report_confirmation'),
+        uid_proof: file('evidence_uid_proof'),
+        scoreboard: file('evidence_scoreboard'),
+        extra: file('evidence_extra'),
+      },
       ipHash: ip,
+      accountId: (await getAccount())?.id ?? null,
     })
     if (!r.ok) return { status: 'error', message: r.error, fieldErrors: r.fieldErrors, values }
     deliver()
@@ -117,6 +125,8 @@ export async function registerAction(_: ActionState, fd: FormData): Promise<Acti
   const values = textValues(fd)
   try {
     const ip = await guardPublic('register', fd, { max: 8, windowSeconds: HOUR })
+    const account = await getAccount()
+    if (!account) return { status: 'error', message: 'Your sign-in has expired. Sign in again to submit — what you typed is kept.', values }
     const entry: Answers = {}
     const members: MemberInput[] = []
     const files = new Map<string, File>()
@@ -152,6 +162,7 @@ export async function registerAction(_: ActionState, fd: FormData): Promise<Acti
       role: (['captain', 'player', 'substitute'].includes(m.role) ? m.role : 'player') as MemberInput['role'],
     }))
     const r = await submitRegistration({
+      accountId: account.id,
       tournamentSlug: values.tournament ?? '',
       teamName: values.teamName,
       contactPhone: values.contactPhone ?? '',

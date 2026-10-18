@@ -49,7 +49,7 @@ export function LiveUpdates({ src }: { src: string }) {
 
   return (
     <>
-      <span className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-fg-3" title="Realtime connection">
+      <span className="flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.14em] text-fg-3" title="Realtime connection">
         {status === 'live' ? <span className="live-dot" /> : <span className={`h-[7px] w-[7px] rounded-full ${status === 'offline' ? 'bg-bad' : 'bg-warn'}`} />}
         {status === 'live' ? 'Live' : status === 'offline' ? 'Offline' : 'Connecting'}
       </span>

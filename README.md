@@ -28,7 +28,9 @@ npm run admin:bootstrap -- --email you@example.com --name "You"   # with DATABAS
 ```
 
 Sign in at `/admin/login`, `/registrations/admin/login` or `/anticheat/admin/login` with the
-one-time password printed by the bootstrap command (you will be asked to change it).
+one-time password printed by the bootstrap command (you will be asked to change it). Player sign-in
+locally uses `LOCAL_DEV_AUTH=1`; production uses Supabase Auth with Google — see
+[docs/AUTH_SETUP.md](docs/AUTH_SETUP.md).
 
 ## Checks
 

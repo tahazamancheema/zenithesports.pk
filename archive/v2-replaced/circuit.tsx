@@ -97,11 +97,11 @@ export function Circuit() {
                 className="relative z-10 grid h-10 w-10 place-items-center border bg-void transition-all duration-500"
                 style={{ borderColor: on ? x.color : 'var(--color-line-3)', transform: 'rotate(45deg) scale(var(--s,1))', ['--s' as string]: on ? 1 : 0.8 }}
               >
-                <span className="-rotate-45 font-mono text-[11px]" style={{ color: on ? x.color : 'var(--color-fg-3)' }}>
+                <span className="-rotate-45 font-mono text-[12px]" style={{ color: on ? x.color : 'var(--color-fg-3)' }}>
                   {x.index}
                 </span>
               </span>
-              <span className={`font-mono text-[11px] uppercase tracking-[0.14em] transition-colors ${on ? 'text-fg' : 'text-fg-3 group-hover:text-fg-2'}`}>
+              <span className={`font-mono text-[12px] uppercase tracking-[0.14em] transition-colors ${on ? 'text-fg' : 'text-fg-3 group-hover:text-fg-2'}`}>
                 <span className="hidden sm:inline">{x.nav}</span>
                 <span className="sm:hidden">{x.verb}</span>
               </span>

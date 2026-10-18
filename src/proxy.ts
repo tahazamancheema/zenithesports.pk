@@ -1,3 +1,4 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { PRODUCT_SURFACES, SURFACES, surfaceForHost, surfaceForPath, type Surface } from '@/lib/surfaces'
 
@@ -17,6 +18,47 @@ import { PRODUCT_SURFACES, SURFACES, surfaceForHost, surfaceForPath, type Surfac
 const ROOT = process.env.ROOT_DOMAIN || 'zenithesports.pk'
 const isDev = process.env.NODE_ENV === 'development'
 const hasExtension = (p: string) => /\.[a-z0-9]{2,5}$/i.test(p)
+/** Account pages are shared by every host, so one sign-in works on every subdomain. */
+const isShared = (p: string) => p === '/login' || p === '/account' || p.startsWith('/account/') || p.startsWith('/auth/')
+
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+const SB_DOMAIN = process.env.AUTH_COOKIE_DOMAIN || (isDev ? undefined : `.${ROOT}`)
+
+type CookieSet = { name: string; value: string; options: Record<string, unknown> }[]
+
+/**
+ * Keeps a Supabase session fresh: when the access token has expired it is
+ * refreshed once here (server components cannot write cookies). Runs only
+ * when an auth cookie is present, so anonymous traffic pays nothing.
+ */
+async function refreshAuth(req: NextRequest): Promise<CookieSet> {
+  if (!SB_URL || !SB_KEY || !req.cookies.getAll().some((c) => c.name.startsWith('sb-'))) return []
+  const out: CookieSet = []
+  const sb = createServerClient(SB_URL, SB_KEY, {
+    cookieOptions: { domain: SB_DOMAIN, path: '/', sameSite: 'lax', secure: !isDev },
+    cookies: {
+      getAll: () => req.cookies.getAll(),
+      setAll: (list) => {
+        for (const c of list) {
+          req.cookies.set(c.name, c.value) // the page rendering this request sees the fresh token
+          out.push({ name: c.name, value: c.value, options: c.options as Record<string, unknown> })
+        }
+      },
+    },
+  })
+  try {
+    await sb.auth.getClaims()
+  } catch {
+    // Auth outage or a malformed cookie: render signed-out rather than failing the page.
+  }
+  return out
+}
+
+function withCookies(res: NextResponse, set: CookieSet) {
+  for (const c of set) res.cookies.set(c.name, c.value, c.options)
+  return res
+}
 
 function csp(nonce: string) {
   return [
@@ -30,7 +72,8 @@ function csp(nonce: string) {
     `media-src 'self'`,
     `object-src 'none'`,
     `base-uri 'self'`,
-    `form-action 'self'`,
+    // Without JavaScript, the Google sign-in form posts here and is redirected to Supabase Auth.
+    `form-action 'self'${SB_URL ? ` ${new URL(SB_URL).origin} https://accounts.google.com` : ''}`,
     `frame-ancestors 'none'`,
     ...(isDev ? [] : ['upgrade-insecure-requests']),
   ].join('; ')
@@ -49,7 +92,7 @@ function withCsp(req: NextRequest, mode: 'path' | 'subdomain', surface: Surface,
   return res
 }
 
-export function proxy(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const host = (req.headers.get('x-forwarded-host') ?? req.headers.get('host') ?? '').toLowerCase()
   const { pathname, search } = req.nextUrl
   const target = surfaceForHost(host, ROOT)
@@ -65,8 +108,10 @@ export function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
+  const auth = hasExtension(pathname) ? [] : await refreshAuth(req)
+
   // Not the production domain: path mode.
-  if (target === null) return withCsp(req, 'path', surfaceForPath(pathname))
+  if (target === null) return withCookies(withCsp(req, 'path', surfaceForPath(pathname)), auth)
 
   if (host.startsWith('www.')) return NextResponse.redirect(`https://${ROOT}${pathname}${search}`, 308)
 
@@ -76,7 +121,7 @@ export function proxy(req: NextRequest) {
       const rest = pathname.slice(SURFACES[owner].prefix.length) || '/'
       return NextResponse.redirect(`https://${SURFACES[owner].subdomain}.${ROOT}${rest}${search}`, 308)
     }
-    return withCsp(req, 'subdomain', 'hq')
+    return withCookies(withCsp(req, 'subdomain', 'hq'), auth)
   }
 
   // Product subdomain.
@@ -92,9 +137,10 @@ export function proxy(req: NextRequest) {
   }
   // Shared files (brand assets, icons, robots.txt, sitemap.xml — the last two are host-aware) pass through.
   if (hasExtension(pathname) || pathname.startsWith('/media/')) return NextResponse.next()
+  if (isShared(pathname)) return withCookies(withCsp(req, 'subdomain', target), auth)
   const url = req.nextUrl.clone()
   url.pathname = `${prefix}${pathname === '/' ? '' : pathname}`
-  return withCsp(req, 'subdomain', target, url)
+  return withCookies(withCsp(req, 'subdomain', target, url), auth)
 }
 
 export const config = {

@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { consoleEnterAction } from '@/app/actions/auth'
 import { changePasswordAction, loginAction } from '@/app/actions/console'
 import { IDLE } from '@/lib/action-state'
 import { FormAlert, SubmitButton } from '../form'
@@ -54,6 +55,18 @@ export function PasswordForm({ surface }: { surface: string }) {
         <input id="confirm" name="confirm" type="password" autoComplete="new-password" required className="input" />
       </div>
       <SubmitButton pendingLabel="Saving…">Change password</SubmitButton>
+    </form>
+  )
+}
+
+/** For someone already signed in with Supabase: open this console's own session. */
+export function ConsoleEnterForm({ surface, label }: { surface: string; label: string }) {
+  const [state, action] = useActionState(consoleEnterAction, IDLE)
+  return (
+    <form action={action} className="grid gap-4">
+      <input type="hidden" name="surface" value={surface} />
+      <FormAlert state={state} />
+      <SubmitButton pendingLabel="Checking access…">{label}</SubmitButton>
     </form>
   )
 }

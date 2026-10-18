@@ -1,12 +1,15 @@
-import { gameSettingsAction } from '@/app/actions/console'
+import { gameBrandingAction, gameSettingsAction } from '@/app/actions/console'
 import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
+import { GameMark } from '@/components/game-mark'
+import { gameArt } from '@/config/game-art'
+import { consoleBase } from '@/server/console-base'
 import { getFormats, getGames } from '@/server/services/catalog'
 
 export const metadata = { title: 'Games & formats' }
 
 export default async function GamesAdmin() {
-  const [games, formats] = await Promise.all([getGames(), getFormats()])
+  const [games, formats, base] = await Promise.all([getGames(), getFormats(), consoleBase('registrations')])
   return (
     <>
       <ConsoleTitle title="Games & formats" sub="Availability is shown publicly. Disabled formats cannot be used for new tournaments." />
@@ -14,8 +17,13 @@ export default async function GamesAdmin() {
         {games.map((g) => (
           <section key={g.id} className="panel grid gap-6 p-5 lg:grid-cols-3">
             <div>
-              <p className="t-display text-base">{g.name}</p>
-              <p className="font-mono text-xs text-fg-3">{g.id}</p>
+              <div className="flex items-center gap-3">
+                <GameMark gameId={g.id} name={g.name} logoUrl={g.logoFileId ? `${base}/files/${g.logoFileId}` : null} size={40} />
+                <div>
+                  <p className="t-title text-base">{g.name}</p>
+                  <p className="font-mono text-xs text-fg-3">{g.id}</p>
+                </div>
+              </div>
               <ActionForm action={gameSettingsAction} inline submit="Save" className="mt-4">
                 <input type="hidden" name="op" value="availability" />
                 <input type="hidden" name="gameId" value={g.id} />
@@ -53,6 +61,37 @@ export default async function GamesAdmin() {
               <input name="uidLabel" defaultValue={g.uidLabel} className="input" aria-label="ID label" />
               <input name="uidHint" defaultValue={g.uidHint} className="input" aria-label="ID hint" />
               <input name="uidPattern" defaultValue={g.uidPattern} className="input input-mono" aria-label="ID pattern (regular expression)" />
+            </ActionForm>
+            <ActionForm action={gameBrandingAction} submit="Save branding" submitClass="btn btn-sm btn-ghost justify-self-start" className="lg:col-span-3">
+              <input type="hidden" name="gameId" value={g.id} />
+              <p className="t-label">Branding</p>
+              <p className="text-sm text-fg-3">
+                Upload the official logo and cover art only where you have the right to use them. Without uploads the site shows a neutral glyph and Zenith’s generated key art.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <label className="grid gap-1.5 text-sm">
+                  <span className="field-label">Official logo</span>
+                  <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" />
+                  {g.logoFileId && (
+                    <span className="flex items-center gap-2 text-fg-3">
+                      <input type="checkbox" name="removeLogo" /> Remove current logo
+                    </span>
+                  )}
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  <span className="field-label">Cover art (16:9)</span>
+                  <input type="file" name="cover" accept="image/png,image/jpeg,image/webp" />
+                  {g.coverFileId && (
+                    <span className="flex items-center gap-2 text-fg-3">
+                      <input type="checkbox" name="removeCover" /> Remove current cover
+                    </span>
+                  )}
+                </label>
+                <label className="grid gap-1.5 text-sm">
+                  <span className="field-label">Accent colour</span>
+                  <input name="accent" defaultValue={g.accent ?? gameArt(g.id).accent} pattern="#[0-9a-fA-F]{6}" className="input input-mono" />
+                </label>
+              </div>
             </ActionForm>
           </section>
         ))}

@@ -12,6 +12,7 @@ import { UploadError } from '@/server/files'
 import { deliverPending } from '@/server/notify'
 import { OriginError, assertSameOrigin } from '@/server/request'
 import * as adminT from '@/server/services/admin-tournaments'
+import * as branding from '@/server/services/branding'
 import * as ac from '@/server/services/anticheat'
 import * as content from '@/server/services/content'
 import * as intake from '@/server/services/intake'
@@ -482,6 +483,7 @@ export async function staffAction(_: ActionState, fd: FormData): Promise<ActionS
     const roles = fd.getAll('roles').map(String).filter((r): r is Role => (ROLES as readonly string[]).includes(r))
     if (op === 'create') {
       const temp = await staffSvc.createStaff({ email: s(fd, 'email'), displayName: s(fd, 'displayName'), roles }, actor)
+      if (!temp) return ok('Account created. They sign in at the console with Google or email using exactly this address.')
       return ok('Account created. Share the one-time password privately; it must be changed at first sign-in.', { temp })
     }
     if (op === 'roles') {
@@ -491,6 +493,10 @@ export async function staffAction(_: ActionState, fd: FormData): Promise<ActionS
     if (op === 'disable' || op === 'enable') {
       await staffSvc.setStaffStatus(s(fd, 'id'), op === 'disable' ? 'disabled' : 'active', actor)
       return ok(op === 'disable' ? 'Account disabled.' : 'Account enabled.')
+    }
+    if (op === 'revoke') {
+      await staffSvc.endSessions(s(fd, 'id'), actor)
+      return ok('Signed out of every console.')
     }
     if (op === 'reset') {
       const temp = await staffSvc.resetPassword(s(fd, 'id'), actor)
@@ -506,3 +512,63 @@ function isRedirect(e: unknown) {
   return typeof e === 'object' && e !== null && 'digest' in e && String((e as { digest: unknown }).digest).startsWith('NEXT_REDIRECT')
 }
 
+
+// ─── branding: posters, logos, sponsors, game art ──────────────────────────
+
+const fileOf = (fd: FormData, k: string) => {
+  const f = fd.get(k)
+  return f instanceof File && f.size > 0 ? f : null
+}
+
+export async function tournamentImageAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const staff = await gate('registrations', 'tournaments.manage')
+    const slot = s(fd, 'slot') as branding.TournamentImageSlot
+    const remove = s(fd, 'remove') === '1'
+    const file = fileOf(fd, 'file')
+    if (!remove && !file) return { status: 'error', message: 'Choose an image to upload.' }
+    await branding.setTournamentImage(s(fd, 'id'), slot, remove ? null : file, await actorOf(staff))
+    return ok(remove ? 'Removed.' : 'Uploaded.')
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export async function tournamentPresentationAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const staff = await gate('registrations', 'tournaments.manage')
+    await branding.setTournamentPresentation(s(fd, 'id'), { organizerName: s(fd, 'organizerName'), featured: fd.get('featured') === 'on' }, await actorOf(staff))
+    return ok('Saved.')
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export async function sponsorAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const staff = await gate('registrations', 'tournaments.manage')
+    const actor = await actorOf(staff)
+    if (s(fd, 'op') === 'remove') {
+      await branding.removeSponsor(s(fd, 'sponsorId'), actor)
+      return ok('Sponsor removed.')
+    }
+    await branding.addSponsor(s(fd, 'id'), { name: s(fd, 'name'), tier: s(fd, 'tier'), url: s(fd, 'url'), logo: fileOf(fd, 'logo') }, actor)
+    return ok('Sponsor added.')
+  } catch (e) {
+    return fail(e)
+  }
+}
+
+export async function gameBrandingAction(_: ActionState, fd: FormData): Promise<ActionState> {
+  try {
+    const staff = await gate('registrations', 'tournaments.manage')
+    await branding.setGameBranding(
+      s(fd, 'gameId'),
+      { accent: s(fd, 'accent'), logo: fileOf(fd, 'logo'), cover: fileOf(fd, 'cover'), removeLogo: fd.get('removeLogo') === 'on', removeCover: fd.get('removeCover') === 'on' },
+      await actorOf(staff),
+    )
+    return ok('Saved.')
+  } catch (e) {
+    return fail(e)
+  }
+}

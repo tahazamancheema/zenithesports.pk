@@ -5,8 +5,12 @@
  *   DATABASE_URL=… npm run admin:bootstrap -- --email you@zenithesports.pk --name "Your Name"
  *
  * It refuses to run once a super administrator exists (further accounts are
- * created from the HQ console). A one-time password is printed once; it must
- * be changed at first sign-in.
+ * created from the HQ console).
+ *
+ * With Supabase Auth configured (NEXT_PUBLIC_SUPABASE_URL set, or --sso), no
+ * password is created: sign in at /admin/login with Google or email using the
+ * same address and the account links itself. Otherwise (local development) a
+ * one-time password is printed once and must be changed at first sign-in.
  */
 import { randomBytes, scrypt } from 'node:crypto'
 import { promisify } from 'node:util'
@@ -33,16 +37,17 @@ async function main() {
   if (!url) throw new Error('DATABASE_URL is not set')
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Pass --email you@example.com')
   if (!name) throw new Error('Pass --name "Display Name"')
+  const sso = process.argv.includes('--sso') || Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL)
   const sql = postgres(url, { max: 1, prepare: false, onnotice: () => {} })
   try {
-    const password = randomBytes(15).toString('base64url')
+    const password = sso ? null : randomBytes(15).toString('base64url')
     await sql.begin(async (tx) => {
       await tx`lock table zenith.staff_roles in exclusive mode`
       const [{ n }] = await tx<{ n: number }[]>`select count(*)::int as n from zenith.staff_roles where role = 'super_admin'`
       if (n > 0) throw new Error('A super administrator already exists. Create further accounts from the HQ console.')
       const [u] = await tx<{ id: string }[]>`
         insert into zenith.staff_users (email, display_name, password_hash, must_change_password)
-        values (${email}, ${name}, ${await hashPassword(password)}, true) returning id
+        values (${email}, ${name}, ${password ? await hashPassword(password) : null}, ${Boolean(password)}) returning id
       `
       await tx`insert into zenith.staff_roles (user_id, role) values (${u.id}, 'super_admin')`
       await tx`
@@ -50,7 +55,8 @@ async function main() {
         values ('bootstrap', 'staff.bootstrap', 'staff_user', ${u.id}, '{}'::jsonb)
       `
     })
-    console.log(`\nSuper administrator created: ${email}\nOne-time password (shown once): ${password}\nSign in at /admin/login and change it immediately.\n`)
+    if (password) console.log(`\nSuper administrator created: ${email}\nOne-time password (shown once): ${password}\nSign in at /admin/login and change it immediately.\n`)
+    else console.log(`\nSuper administrator created: ${email}\nSign in at /admin/login with Google (or email) using exactly this address.\n`)
   } finally {
     await sql.end()
   }

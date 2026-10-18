@@ -178,7 +178,7 @@ export function RegisterFlow({ t, game, schema, token }: { t: FlowTournament; ga
               <span className="block h-0.5 overflow-hidden bg-line-2">
                 <span className="block h-full bg-[var(--accent)] transition-transform duration-700" style={{ transform: `scaleX(${done || on ? 1 : 0})`, transformOrigin: 'left', transitionTimingFunction: 'var(--ease-out-expo)' }} />
               </span>
-              <span className={`mt-2 hidden font-mono text-[10.5px] uppercase tracking-[0.12em] sm:block ${on ? 'text-fg' : 'text-fg-3'}`}>{label}</span>
+              <span className={`mt-2 hidden font-mono text-[11.5px] uppercase tracking-[0.12em] sm:block ${on ? 'text-fg' : 'text-fg-3'}`}>{label}</span>
             </li>
           )
         })}

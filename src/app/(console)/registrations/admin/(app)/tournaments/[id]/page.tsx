@@ -4,11 +4,12 @@ import { tournamentStatusAction } from '@/app/actions/console'
 import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
 import { StatusChip } from '@/components/console/status-chip'
+import { TournamentBranding } from '@/components/console/tournament-branding'
 import { TournamentEditor } from '@/components/console/tournament-editor'
 import { phaseOf, PHASE_LABEL } from '@/lib/tournament'
 import { consoleBase } from '@/server/console-base'
 import { href } from '@/server/link'
-import { getTournamentForAdmin } from '@/server/services/catalog'
+import { getSponsors, getTournamentForAdmin } from '@/server/services/catalog'
 import { editorOptions, tournamentToValues } from '@/server/services/editor-data'
 
 export const metadata = { title: 'Edit tournament' }
@@ -16,7 +17,7 @@ export const metadata = { title: 'Edit tournament' }
 export default async function EditTournament(props: { params: Promise<{ id: string }> }) {
   const t = await getTournamentForAdmin((await props.params).id)
   if (!t) notFound()
-  const [{ formats, versions }, base, publicHref] = await Promise.all([editorOptions(), consoleBase('registrations'), href('registrations', `/t/${t.slug}`)])
+  const [{ formats, versions }, base, publicHref, sponsors] = await Promise.all([editorOptions(), consoleBase('registrations'), href('registrations', `/t/${t.slug}`), getSponsors([t.id])])
   return (
     <>
       <ConsoleTitle
@@ -72,6 +73,8 @@ export default async function EditTournament(props: { params: Promise<{ id: stri
           </ActionForm>
         )}
       </section>
+
+      <TournamentBranding t={t} sponsors={sponsors[t.id] ?? []} base={base} />
 
       <TournamentEditor initial={tournamentToValues(t)} formats={formats} versions={versions} />
     </>

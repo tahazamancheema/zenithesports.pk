@@ -162,7 +162,7 @@ export default async function RegistrationDetail(props: { params: Promise<{ id: 
                     {h.fromStatus ? `${h.fromStatus} → ` : ''}
                     {h.toStatus}
                   </p>
-                  <p className="font-mono text-[11px] text-fg-3">
+                  <p className="font-mono text-[12px] text-fg-3">
                     {fmt(h.at)} · {h.actorLabel}
                   </p>
                   {h.reason && <p className="mt-1 text-xs text-fg-2">{h.reason}</p>}

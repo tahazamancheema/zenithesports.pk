@@ -56,7 +56,7 @@ export async function inspectImage(
 export async function storeImage(
   conn: Db,
   img: InspectedImage,
-  purpose: 'evidence' | 'registration' | 'media',
+  purpose: 'evidence' | 'registration' | 'media' | 'branding',
   retentionDays?: number,
 ): Promise<string> {
   const [row] = await conn<{ id: string }[]>`

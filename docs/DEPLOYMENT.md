@@ -40,11 +40,11 @@ still required because it is portable and you control it.
 
 ```bash
 DATABASE_URL="$SUPABASE_DIRECT_URL" npm run db:status    # all PENDING
-DATABASE_URL="$SUPABASE_DIRECT_URL" npm run db:migrate   # applies 3 migrations in transactions
+DATABASE_URL="$SUPABASE_DIRECT_URL" npm run db:migrate   # applies 4 migrations in transactions
 ```
 
 Each migration runs in its own transaction and is recorded with a checksum in
-`zenith.schema_migrations`; editing an applied migration is refused. Alternatively paste the three
+`zenith.schema_migrations`; editing an applied migration is refused. Alternatively paste the four
 files from `supabase/migrations/` into the SQL editor in order.
 
 Then create the least-privilege login (recommended), after replacing the password placeholder:
@@ -76,6 +76,7 @@ Project → Settings → Environment Variables (Production and Preview). See `.e
 | `ROOT_DOMAIN` | `zenithesports.pk` |
 | `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL` | optional, for emails (verified sender domain in Resend) |
 | `DISCORD_WEBHOOK_URL` | optional, staff channel summaries (no personal data is sent) |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | the sign-in project (Google + email) — see [AUTH_SETUP.md](AUTH_SETUP.md) |
 
 Preview deployments run in path mode (`/registrations`, `/production`, …) on their `*.vercel.app`
 host. Point previews at a separate database if you do not want test data in production.
@@ -121,8 +122,9 @@ is not linked anywhere and not in `robots.txt` or sitemaps.
    ```bash
    DATABASE_URL="$SUPABASE_DIRECT_URL" npm run admin:bootstrap -- --email you@zenithesports.pk --name "Your Name"
    ```
-   It prints a one-time password once. Sign in at `https://zenithesports.pk/admin/login`; you must
-   change it immediately. Create other staff from HQ console → Staff & roles.
+   With `NEXT_PUBLIC_SUPABASE_URL` set it creates no password: sign in at
+   `https://zenithesports.pk/admin/login` with Google using the same email, then *Enter this console*.
+   Create other staff from HQ console → Staff & roles. Full walkthrough: [AUTH_SETUP.md](AUTH_SETUP.md).
 3. Each console has its own sign-in: `zenithesports.pk/admin` (HQ),
    `registrations.zenithesports.pk/admin`, `anticheat.zenithesports.pk/admin`.
 4. Fill in HQ console → Site settings: contact details, verified social URLs, product statuses.

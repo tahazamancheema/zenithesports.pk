@@ -112,7 +112,7 @@ export default async function FlagDetail(props: { params: Promise<{ id: string }
             {data.notes.map((n) => (
               <div key={n.id} className="mb-3 border-l border-line-2 pl-3 text-sm">
                 <p className="whitespace-pre-line-safe">{n.body}</p>
-                <p className="mt-1 font-mono text-[11px] text-fg-3">
+                <p className="mt-1 font-mono text-[12px] text-fg-3">
                   {n.email} · {fmt(n.createdAt)}
                 </p>
               </div>

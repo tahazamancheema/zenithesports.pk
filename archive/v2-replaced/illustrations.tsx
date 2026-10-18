@@ -5,7 +5,7 @@
 
 export function IllustrationTag({ children = 'Illustration' }: { children?: React.ReactNode }) {
   return (
-    <span className="t-label absolute top-3 left-3 z-10 rounded-xs border border-line-2 bg-void/80 px-2 py-1 !text-[10px] backdrop-blur">
+    <span className="t-label absolute top-3 left-3 z-10 rounded-xs border border-line-2 bg-void/80 px-2 py-1 !text-[11.5px] backdrop-blur">
       {children}
     </span>
   )

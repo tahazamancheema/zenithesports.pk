@@ -12,11 +12,11 @@ export function AuthPage({ surface, title, children, note }: { surface: keyof ty
         <div className="flex items-center gap-3">
           <Image src="/brand/zenith-mark-160.webp" alt="" width={30} height={30} unoptimized />
           <div>
-            <p className="font-display text-[11px] tracking-[0.28em]">ZENITH</p>
+            <p className="font-display text-[12px] tracking-[0.28em]">ZENITH</p>
             <p className="t-label !text-[var(--accent)]">{NAMES[surface]}</p>
           </div>
         </div>
-        <h1 className="t-display mt-8 text-lg">{title}</h1>
+        <h1 className="t-title mt-8 text-lg">{title}</h1>
         {note && <div className="mt-3 text-sm text-fg-2">{note}</div>}
         <div className="mt-7">{children}</div>
       </div>

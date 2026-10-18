@@ -1,5 +1,8 @@
 import { phaseOf } from '@/lib/tournament'
 import { getFormats, getGames, listPublicTournaments, type Game } from '@/server/services/catalog'
+import { gameArt } from '@/config/game-art'
+import { mediaUrl } from '@/server/services/catalog'
+import { GameMark } from './game-mark'
 import { ZLink } from './link'
 
 export const AVAILABILITY: Record<Game['availability'], { label: string; chip: string }> = {
@@ -20,7 +23,7 @@ export async function PortfolioTable() {
         {FALLBACK.map((name, i) => (
           <li key={name} className="flex items-center gap-6 py-5">
             <span className="t-label w-8">{String(i + 1).padStart(2, '0')}</span>
-            <span className="t-display text-lg">{name}</span>
+            <span className="t-title text-lg">{name}</span>
             <span className="chip ml-auto">Status unavailable</span>
           </li>
         ))}
@@ -53,5 +56,47 @@ export async function PortfolioTable() {
         )
       })}
     </ul>
+  )
+}
+
+/** The portfolio as key-art cards: game, genre, formats, availability and open events. */
+export async function GameShowcase() {
+  const [games, formats, tournaments] = await Promise.all([getGames(), getFormats(), listPublicTournaments()])
+  const list = games.length
+    ? games
+    : FALLBACK.map((name, i) => ({ id: ['pubg-mobile', 'free-fire', 'valorant', 'honor-of-kings', 'tekken-8', 'ea-fc-26'][i], name, availability: null, logoFileId: null }))
+  return (
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-5">
+      {list.map((g, i) => {
+        const art = gameArt(g.id)
+        const fmts = formats.filter((f) => f.gameId === g.id && f.enabled && f.code !== 'lft')
+        const open = tournaments.filter((t) => t.gameId === g.id && phaseOf(t) === 'registration_open').length
+        const a = g.availability ? AVAILABILITY[g.availability] : null
+        return (
+          <ZLink
+            key={g.id}
+            surface="registrations"
+            to={`/games/${g.id}`}
+            data-reveal
+            style={{ '--i': i % 3, '--g': art.accent } as React.CSSProperties}
+            className="group relative isolate flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-xl border border-line-2 p-4 transition-[border-color,transform] duration-500 hover:-translate-y-1 hover:border-[color:var(--g)] sm:aspect-[16/11] md:p-5"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- generated key art, already optimised */}
+            <img src={art.thumb} alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/55 to-[#06070a]/5" />
+            <div className="absolute left-4 top-4 md:left-5 md:top-5">
+              <GameMark gameId={g.id} name={g.name} logoUrl={mediaUrl(g.logoFileId)} size={44} />
+            </div>
+            {a && <span className={`${a.chip} absolute right-3 top-4 bg-black/50 backdrop-blur md:right-5 md:top-5`}>{a.label}</span>}
+            <p className="font-mono text-[12px] uppercase tracking-[0.14em]" style={{ color: art.accent }}>{art.genre}</p>
+            <p className="t-title mt-1 text-[clamp(1.05rem,2vw,1.5rem)] text-white">{g.name}</p>
+            <p className="mt-1 text-[13px] text-fg-2">
+              {fmts.map((f) => f.label).join(' · ') || 'Formats announced soon'}
+              {open ? <span className="text-[var(--color-ok)]"> · {open} open now</span> : null}
+            </p>
+          </ZLink>
+        )
+      })}
+    </div>
   )
 }

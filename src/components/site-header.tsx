@@ -65,6 +65,13 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-3">
+          {/* /account is served on every host; it asks signed-out visitors to sign in. */}
+          <a href="/account" className="grid h-10 w-10 place-items-center rounded-full border border-line-2 text-fg-2 transition-colors hover:border-line-3 hover:text-fg" aria-label="My account">
+            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+              <circle cx="12" cy="8.5" r="3.6" />
+              <path d="M4.8 19.5c1.2-3.4 4-5 7.2-5s6 1.6 7.2 5" strokeLinecap="round" />
+            </svg>
+          </a>
           <ZLink surface="registrations" to="/" className="btn btn-sm btn-primary hidden sm:inline-flex" style={{ '--accent': 'var(--color-gold)', '--accent-hi': 'var(--color-gold-hi)' } as React.CSSProperties}>
             Enter a tournament
           </ZLink>

@@ -88,6 +88,14 @@ test.describe.serial('ecosystem flows', () => {
     await expect(page.getByRole('heading', { name: new RegExp(`E2E Squad Cup ${run}`, 'i') })).toBeVisible()
     await page.getByRole('link', { name: /Register your team/ }).click()
 
+    // Registration needs a signed-in player (local test sign-in stands in for Supabase here).
+    await expect(page.getByText('Sign in to register')).toBeVisible()
+    await page.getByRole('link', { name: /Sign in/ }).click()
+    await page.getByLabel('Email').fill(`captain-${run}@test.local`)
+    await page.getByLabel('Name').fill('E2E Captain')
+    await page.getByRole('button', { name: /Sign in \(local test\)/ }).click()
+    await expect(page).toHaveURL(new RegExp(`/t/${slug}/register`))
+
     // Step 1: requirements
     await page.getByRole('button', { name: 'Continue' }).click()
     await expect(page.getByRole('alert').first()).toBeVisible() // must acknowledge rules first
@@ -116,6 +124,12 @@ test.describe.serial('ecosystem flows', () => {
     const manage = await page.locator('a[href*="/manage/"]').getAttribute('href')
     await page.goto(manage!)
     await expect(page.getByText('Pending review').first()).toBeVisible()
+
+    // And the entry is listed under the player's account, with an editable roster.
+    await page.goto('/account')
+    await expect(page.getByRole('link', { name: `E2E Squad Cup ${run}` })).toBeVisible()
+    await expect(page.getByText(`Meridian ${run}`)).toBeVisible()
+    await expect(page.getByLabel('In-game name').first()).toHaveValue(`Player1_${run}`)
   })
 
   test('the same players cannot register twice', async () => {
@@ -147,10 +161,10 @@ test.describe.serial('ecosystem flows', () => {
 
   test('a public report is reviewed into a verified flag that matches history', async () => {
     const reported = uid(2) // a player who already registered above
-    await page.goto('/anticheat/report')
+    await page.goto('/anticheat/report?game=pubg-mobile')
     await page.getByLabel('Player Character ID').fill(reported)
-    await page.locator('input[name="reportScreenshot"]').setInputFiles({ name: 'report.png', mimeType: 'image/png', buffer: await png(1) })
-    await page.locator('input[name="uidScreenshot"]').setInputFiles({ name: 'uid.png', mimeType: 'image/png', buffer: await png(2) })
+    // PUBG Mobile: one screenshot of the successful report, which shows the UID.
+    await page.locator('input[name="evidence_report_confirmation"]').setInputFiles({ name: 'report.png', mimeType: 'image/png', buffer: await png(1) })
     await page.waitForTimeout(2600) // the anti-spam timing token rejects instant submissions
     await page.getByRole('button', { name: /Submit report/ }).click()
     await expect(page.getByText('Report submitted for review')).toBeVisible()
@@ -158,7 +172,7 @@ test.describe.serial('ecosystem flows', () => {
     await signIn(page, '/anticheat/admin')
     await page.goto('/anticheat/admin/reports?status=pending')
     await page.getByRole('row', { name: new RegExp(reported) }).getByRole('link').click()
-    await expect(page.getByRole('img', { name: 'UID evidence' })).toBeVisible()
+    await expect(page.getByRole('img', { name: 'Report confirmation evidence' })).toBeVisible()
 
     // Approval without confirming the UID match is refused.
     await page.getByText('Approve — create a verified flag').click()

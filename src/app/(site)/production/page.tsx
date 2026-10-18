@@ -1,7 +1,9 @@
 import { Altitude } from '@/components/brand'
-import { BroadcastFrame, IllustrationTag } from '@/components/illustrations'
+import { ProductLockup } from '@/components/brand/product-logos'
+import { InViewVideo, SplitText, TiltCard } from '@/components/kinetic'
 import { ZLink } from '@/components/link'
-import { SignalChain } from '@/components/production/signal-chain'
+import { BroadcastBuild } from '@/components/production/broadcast-build'
+import { AppScreens, SceneStrip } from '@/components/production/gallery'
 import { Faq } from '@/components/faq'
 import { listMedia } from '@/server/services/content'
 import { getSettings } from '@/server/settings'
@@ -38,27 +40,29 @@ const FAQ = [
   },
 ]
 
+/* eslint-disable @next/next/no-img-element -- static visuals and /media images with their own caching */
+
 export default async function ProductionPage() {
   const [media, settings] = await Promise.all([listMedia('production'), getSettings()])
   const status = settings['product.production'].status
   return (
     <>
       <section className="relative isolate overflow-hidden border-b border-line">
-        <div aria-hidden className="grid-field absolute inset-0 -z-10 opacity-40" />
-        <div className="shell pt-16 pb-20 md:pt-24">
+        <img src="/visuals/production.webp" alt="" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-30 [mask-image:linear-gradient(180deg,#000,transparent_75%)]" />
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_20%_10%,rgba(255,90,68,0.18),transparent_50%)]" />
+        <div className="shell pb-20 pt-14 md:pt-20">
           <div className="grid gap-10 lg:grid-cols-12 lg:items-end">
             <div className="lg:col-span-7">
-              <p className="t-label flex items-center gap-3" style={{ animation: 'fade 700ms both' }}>
-                <span className="h-2 w-2 rounded-full bg-prod" style={{ animation: 'blink 1.6s steps(1) infinite' }} />
-                ZenithProduction · Desktop broadcast software
-              </p>
-              <h1 className="t-display mt-7 text-[clamp(1.8rem,4.4vw,3.4rem)]" style={{ animation: 'rise 900ms var(--ease-out-expo) 80ms both' }}>
-                The whole broadcast,
+              <div style={{ animation: 'fade 700ms both' }}>
+                <ProductLockup product="production" size={56} />
+              </div>
+              <h1 className="t-display mt-9 text-[clamp(2rem,4.8vw,3.8rem)] leading-[1.02]">
+                <SplitText text="The whole broadcast." />
                 <br />
-                <span className="text-prod">one operator seat.</span>
+                <SplitText text="One operator seat." delay={420} letterClassName="text-prod" />
               </h1>
             </div>
-            <div className="lg:col-span-5" style={{ animation: 'rise 900ms var(--ease-out-expo) 200ms both' }}>
+            <div className="lg:col-span-5" style={{ animation: 'rise 900ms var(--ease-out-expo) 300ms both' }}>
               <p className="t-lede">
                 {settings['product.production'].headline ||
                   'Live observer data in. Animated standings, player pop-ups and after-match scenes out — switched through OBS and streamed to your audience.'}
@@ -75,38 +79,38 @@ export default async function ProductionPage() {
             </div>
           </div>
 
-          {/* program monitor */}
-          <div className="mt-16" style={{ animation: 'rise 1100ms var(--ease-out-expo) 300ms both' }}>
-            <div className="flex items-center justify-between border border-b-0 border-line-2 bg-ink-1 px-4 py-2.5 rounded-t-md">
-              <span className="t-label">Program</span>
-              <span className="t-label hidden sm:block">1920 × 1080 · PUBG Mobile</span>
-              <span className="t-label !text-prod">● Live</span>
-            </div>
-            <div className="relative overflow-hidden rounded-b-md border border-line-2">
-              <IllustrationTag>Illustration · not a screenshot of the software</IllustrationTag>
-              <BroadcastFrame />
-            </div>
+          {/* the walkthrough */}
+          <div className="mt-14" style={{ animation: 'rise 1100ms var(--ease-out-expo) 400ms both' }}>
+            <TiltCard max={3}>
+              <div className="bezel glow-prod">
+                <div className="relative">
+                  <InViewVideo
+                    className="aspect-video w-full bg-black object-cover"
+                    poster="/products/production/walkthrough-poster.webp"
+                    label="Walkthrough of ZenithProduction: command centre, overlays and after-match scenes, with the software's built-in sample data"
+                    sources={[
+                      { src: '/products/production/walkthrough.webm', type: 'video/webm' },
+                      { src: '/products/production/walkthrough.mp4', type: 'video/mp4' },
+                    ]}
+                  />
+                  <span className="chip absolute right-3 top-3 border-white/20 bg-black/65 text-white">Real software · sample data</span>
+                </div>
+              </div>
+            </TiltCard>
           </div>
         </div>
       </section>
 
-      <section className="border-b border-line py-24" aria-labelledby="chain-title">
+      <BroadcastBuild />
+
+      <section className="border-y border-line py-24" aria-labelledby="inside-title">
         <div className="shell">
-          <div className="grid gap-6 md:grid-cols-12" data-reveal>
-            <div className="md:col-span-6">
-              <Altitude deg={15}>How it works</Altitude>
-              <h2 id="chain-title" className="t-display mt-6 text-[clamp(1.5rem,3vw,2.3rem)]">
-                From observer
-                <br />
-                to audience
-              </h2>
-            </div>
-            <p className="t-lede md:col-span-5 md:col-start-8 md:pt-10">
-              Five stages, one direction. ZenithProduction sits in the middle: it listens to the match, makes the graphics, and drives OBS.
-            </p>
+          <div data-reveal>
+            <Altitude deg={15}>Inside the software</Altitude>
+            <h2 id="inside-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">The operator’s view</h2>
           </div>
-          <div className="mt-14" data-reveal>
-            <SignalChain />
+          <div className="mt-12" data-reveal>
+            <AppScreens />
           </div>
         </div>
       </section>
@@ -115,7 +119,7 @@ export default async function ProductionPage() {
         <div className="shell">
           <div data-reveal>
             <Altitude deg={30}>Capabilities</Altitude>
-            <h2 id="cap-title" className="t-display mt-6 text-[clamp(1.5rem,3vw,2.3rem)]">
+            <h2 id="cap-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
               Built for match day
             </h2>
           </div>
@@ -124,7 +128,7 @@ export default async function ProductionPage() {
               <div key={c.k} className="group grid grid-cols-[3rem_1fr] gap-4 border-b border-line py-8 md:pr-10 md:odd:border-r md:even:pl-10" data-reveal style={{ '--i': i % 2 } as React.CSSProperties}>
                 <span className="t-label pt-1 !text-prod">{String(i + 1).padStart(2, '0')}</span>
                 <div>
-                  <dt className="text-lg font-medium">{c.k}</dt>
+                  <dt className="t-title text-lg">{c.k}</dt>
                   <dd className="mt-2 text-fg-2">{c.v}</dd>
                 </div>
               </div>
@@ -133,54 +137,36 @@ export default async function ProductionPage() {
         </div>
       </section>
 
-      <section className="border-b border-line py-24" aria-labelledby="gallery-title">
+      <section className="overflow-hidden border-b border-line py-24" aria-labelledby="gallery-title">
         <div className="shell">
           <div className="flex flex-wrap items-end justify-between gap-4" data-reveal>
             <div>
-              <Altitude deg={45}>Gallery</Altitude>
-              <h2 id="gallery-title" className="t-display mt-6 text-[clamp(1.5rem,3vw,2.3rem)]">
-                On screen
+              <Altitude deg={45}>On air</Altitude>
+              <h2 id="gallery-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
+                Every scene, ready
               </h2>
             </div>
-            <p className="max-w-md text-sm text-fg-3">
-              {media.length
-                ? 'Images marked “Screenshot” are approved captures of the software; others are illustrations.'
-                : 'Approved screenshots of the software will appear here. Until then, these are illustrations of the kind of output it produces.'}
-            </p>
+            <p className="max-w-md text-[14px] text-fg-2">Real scenes from ZenithProduction, shown with its built-in sample teams and players.</p>
           </div>
-          <div className="mt-12 grid gap-6 md:grid-cols-2">
-            {media.length
-              ? media.map((m, i) => (
-                  <figure key={m.id} className={`panel overflow-hidden ${i === 0 ? 'md:col-span-2' : ''}`} data-reveal>
-                    <div className="relative bg-ink-2">
-                      <span className="t-label absolute top-3 left-3 rounded-xs border border-line-2 bg-void/80 px-2 py-1 !text-[10px]">
-                        {m.isAuthentic ? 'Screenshot' : 'Illustration'}
-                      </span>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`/media/${m.fileId}`} alt={m.title} className="w-full" loading="lazy" />
-                    </div>
-                    <figcaption className="p-5">
-                      <p className="font-medium">{m.title}</p>
-                      {m.caption && <p className="mt-1 text-sm text-fg-2">{m.caption}</p>}
-                    </figcaption>
-                  </figure>
-                ))
-              : [
-                  { t: 'Broadcast layout', c: 'Standings column, lower third and a player pop-up over gameplay.' },
-                  { t: 'Observer to broadcast', c: 'The same signal chain shown above, as it runs during a match.' },
-                ].map((g, i) => (
-                  <figure key={g.t} className="panel overflow-hidden" data-reveal style={{ '--i': i } as React.CSSProperties}>
-                    <div className="relative">
-                      <IllustrationTag />
-                      <BroadcastFrame animated={false} />
-                    </div>
-                    <figcaption className="p-5">
-                      <p className="font-medium">{g.t}</p>
-                      <p className="mt-1 text-sm text-fg-2">{g.c}</p>
-                    </figcaption>
-                  </figure>
-                ))}
+          <div className="mt-10" data-reveal>
+            <SceneStrip />
           </div>
+          {media.length > 0 && (
+            <div className="mt-14 grid gap-6 md:grid-cols-2">
+              {media.map((m) => (
+                <figure key={m.id} className="panel overflow-hidden" data-reveal>
+                  <div className="relative bg-ink-2">
+                    <span className="chip absolute left-3 top-3 bg-void/80">{m.isAuthentic ? 'Screenshot' : 'Illustration'}</span>
+                    <img src={`/media/${m.fileId}`} alt={m.title} className="w-full" loading="lazy" />
+                  </div>
+                  <figcaption className="p-5">
+                    <p className="font-medium">{m.title}</p>
+                    {m.caption && <p className="mt-1 text-sm text-fg-2">{m.caption}</p>}
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -195,7 +181,7 @@ export default async function ProductionPage() {
           <div className="mt-12 grid gap-6 md:grid-cols-2">
             <ZLink to="/inquire" className="panel-raised group relative flex min-w-0 flex-col p-8 transition-colors hover:border-prod" data-reveal>
               <span className="t-label !text-prod">01 · Purchase</span>
-              <span className="t-display mt-5 text-xl">Run it yourself</span>
+              <span className="t-title mt-5 text-2xl">Run it yourself</span>
               <span className="mt-4 text-fg-2">License ZenithProduction for your own organisation or production crew. Tell us how you broadcast and the team will reply with options and pricing.</span>
               <span className="btn btn-primary mt-8 self-start whitespace-normal text-left">
                 Inquire about purchasing <span className="arrow">→</span>
@@ -203,7 +189,7 @@ export default async function ProductionPage() {
             </ZLink>
             <ZLink to="/book" className="panel-raised group relative flex min-w-0 flex-col p-8 transition-colors hover:border-prod" data-reveal style={{ '--i': 1 } as React.CSSProperties}>
               <span className="t-label !text-prod">02 · Production service</span>
-              <span className="t-display mt-5 text-xl">We run it for you</span>
+              <span className="t-title mt-5 text-2xl">We run it for you</span>
               <span className="mt-4 text-fg-2">Book the Zenith production crew for your upcoming tournament. Send the dates and requirements — we confirm after review.</span>
               <span className="btn btn-ghost mt-8 self-start whitespace-normal text-left">
                 Book production for your tournament <span className="arrow">→</span>

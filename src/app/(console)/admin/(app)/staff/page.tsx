@@ -3,7 +3,7 @@ import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
 import { fmt, StatusChip } from '@/components/console/status-chip'
 import { can, ROLE_LABEL, ROLES } from '@/lib/permissions'
-import { getStaff } from '@/server/auth/session'
+import { getStaff, staffPasswordLogin } from '@/server/auth/session'
 import { listStaff } from '@/server/services/staff'
 
 export const metadata = { title: 'Staff & roles' }
@@ -19,6 +19,7 @@ export default async function StaffPage() {
     )
   }
   const staff = await listStaff()
+  const passwords = staffPasswordLogin()
   return (
     <>
       <ConsoleTitle title="Staff & roles" sub="Least privilege: give each person only the roles their work needs. Role changes sign the person out everywhere." />
@@ -33,7 +34,7 @@ export default async function StaffPage() {
                   {u.id === me.id && <span className="chip">you</span>}
                 </div>
                 <p className="font-mono text-sm text-fg-2">{u.email}</p>
-                <p className="mt-1 font-mono text-[11px] text-fg-3">last sign-in {fmt(u.lastLoginAt)}</p>
+                <p className="mt-1 font-mono text-[12px] text-fg-3">last sign-in {fmt(u.lastLoginAt)}</p>
                 <ActionForm action={staffAction} className="mt-4" submit="Update roles" submitClass="btn btn-sm btn-ghost justify-self-start">
                   <input type="hidden" name="op" value="roles" />
                   <input type="hidden" name="id" value={u.id} />
@@ -54,10 +55,17 @@ export default async function StaffPage() {
                     <input type="hidden" name="id" value={u.id} />
                   </ActionForm>
                 )}
-                <ActionForm action={staffAction} inline submit="Reset password" submitClass="btn btn-sm btn-ghost" confirm="Issue a new one-time password and sign this person out?">
-                  <input type="hidden" name="op" value="reset" />
-                  <input type="hidden" name="id" value={u.id} />
-                </ActionForm>
+                {passwords ? (
+                  <ActionForm action={staffAction} inline submit="Reset password" submitClass="btn btn-sm btn-ghost" confirm="Issue a new one-time password and sign this person out?">
+                    <input type="hidden" name="op" value="reset" />
+                    <input type="hidden" name="id" value={u.id} />
+                  </ActionForm>
+                ) : (
+                  <ActionForm action={staffAction} inline submit="Sign out everywhere" submitClass="btn btn-sm btn-ghost" confirm="End this person's console sessions?">
+                    <input type="hidden" name="op" value="revoke" />
+                    <input type="hidden" name="id" value={u.id} />
+                  </ActionForm>
+                )}
               </div>
             </li>
           ))}
@@ -77,7 +85,11 @@ export default async function StaffPage() {
               ))}
             </div>
           </ActionForm>
-          <p className="mt-4 text-xs text-fg-3">A one-time password is shown once. Share it privately; it must be changed at first sign-in.</p>
+          <p className="mt-4 text-xs text-fg-3">
+            {passwords
+              ? 'A one-time password is shown once. Share it privately; it must be changed at first sign-in.'
+              : 'They sign in at any console with Google or email using exactly this address. The account links itself on first sign-in.'}
+          </p>
         </div>
       </div>
     </>

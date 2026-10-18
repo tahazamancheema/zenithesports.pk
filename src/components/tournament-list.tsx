@@ -71,7 +71,7 @@ export function EmptySignal({ title, body, children }: { title: string; body: st
           <rect x="-6" y="-6" width="12" height="12" fill="none" stroke="var(--accent)" />
         </g>
       </svg>
-      <p className="t-display mt-4 text-base">{title}</p>
+      <p className="t-title mt-4 text-base">{title}</p>
       <p className="mx-auto mt-3 max-w-md text-fg-2">{body}</p>
       {children && <div className="mt-6 flex flex-wrap justify-center gap-3">{children}</div>}
     </div>

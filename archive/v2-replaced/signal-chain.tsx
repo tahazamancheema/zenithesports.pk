@@ -227,7 +227,7 @@ export function SignalChain() {
               aria-pressed={i === active}
               className={`flex w-full items-center gap-4 rounded-sm border px-4 py-3 text-left transition-colors ${i === active ? 'border-prod bg-[color-mix(in_oklab,var(--color-prod)_8%,transparent)]' : 'border-line'}`}
             >
-              <span className={`font-mono text-[11px] ${i === active ? 'text-prod' : 'text-fg-3'}`}>{String(i + 1).padStart(2, '0')}</span>
+              <span className={`font-mono text-[12px] ${i === active ? 'text-prod' : 'text-fg-3'}`}>{String(i + 1).padStart(2, '0')}</span>
               <span className="font-mono text-[12px] tracking-[0.14em]">{st.key}</span>
               <span className="ml-auto text-xs text-fg-3">{st.kind}</span>
             </button>
@@ -240,7 +240,7 @@ export function SignalChain() {
           <p className="t-label !text-[var(--color-prod)]">
             Stage {active + 1} of 5 · {s.kind}
           </p>
-          <p className="t-display mt-3 text-lg">{s.name}</p>
+          <p className="t-title mt-3 text-lg">{s.name}</p>
           <p className="mt-3 max-w-2xl text-fg-2">{s.body}</p>
         </div>
         <div className="flex gap-2">

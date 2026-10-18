@@ -14,6 +14,9 @@ export type Game = {
   uidKind: 'game_uid' | 'riot_id' | 'platform_id'
   description: string
   sortOrder: number
+  logoFileId: string | null
+  coverFileId: string | null
+  accent: string | null
 }
 
 export type Format = {
@@ -63,6 +66,11 @@ export type Tournament = {
   createdAt: Date
   updatedAt: Date
   publishedAt: Date | null
+  posterFileId: string | null
+  logoFileId: string | null
+  organizerName: string
+  organizerLogoFileId: string | null
+  featured: boolean
   formatCode: Format['code']
   formatLabel: string
   gameName: string
@@ -147,3 +155,19 @@ export async function getFormSchema(versionId: string | null): Promise<FormSchem
     return EMPTY_FORM
   }
 }
+
+export type Sponsor = { id: string; tournamentId: string; name: string; tier: 'title' | 'presenting' | 'partner' | 'media'; url: string | null; logoFileId: string | null; sortOrder: number }
+
+/** Sponsors for a set of tournaments, grouped by tournament id. */
+export async function getSponsors(tournamentIds: string[]): Promise<Record<string, Sponsor[]>> {
+  if (!hasDatabase() || !tournamentIds.length) return {}
+  const rows = await db()<Sponsor[]>`
+    select * from zenith.tournament_sponsors where tournament_id = any(${tournamentIds}::uuid[]) order by sort_order, created_at
+  `
+  const out: Record<string, Sponsor[]> = {}
+  for (const r of rows) (out[r.tournamentId] ??= []).push(r)
+  return out
+}
+
+/** Public URL for an image attached to published content (see isPublicFile). */
+export const mediaUrl = (id: string | null | undefined) => (id ? `/media/${id}` : null)

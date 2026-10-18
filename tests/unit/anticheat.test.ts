@@ -11,7 +11,7 @@ import {
   submitReport,
 } from '@/server/services/anticheat'
 import { getRegistrationByToken, submitRegistration } from '@/server/services/registrations'
-import { openTournament, pkPhone, png, pubgUid, sql, squad, staffActor } from './support/fixtures'
+import { openTournament, pkPhone, png, pubgUid, sql, squad, staffActor, uniq } from './support/fixtures'
 import type { Actor } from '@/server/audit'
 
 let REVIEWER: Actor
@@ -122,15 +122,15 @@ describe('public reports', () => {
   it('validates evidence, detects duplicates, and only approves with a confirmed UID match', async () => {
     const uid = pubgUid()
     const badFile = new File([new TextEncoder().encode('<script>alert(1)</script>')], 'x.png', { type: 'image/png' })
-    const rejected = await submitReport({ gameId: 'pubg-mobile', uid, reportScreenshot: badFile, uidScreenshot: await png(1), ipHash: 'ip' })
+    const rejected = await submitReport({ gameId: 'pubg-mobile', uid, evidence: { report_confirmation: badFile }, ipHash: 'ip' })
     expect(rejected.ok).toBe(false)
 
     const same = await png(2)
-    const identical = await submitReport({ gameId: 'pubg-mobile', uid, reportScreenshot: same, uidScreenshot: await png(2), ipHash: 'ip' })
+    const identical = await submitReport({ gameId: 'pubg-mobile', uid, evidence: { report_confirmation: same, extra: await png(2) }, ipHash: 'ip' })
     expect(!identical.ok && identical.error).toMatch(/identical/)
 
-    const first = await submitReport({ gameId: 'pubg-mobile', uid, ign: 'Sus', reportScreenshot: await png(3), uidScreenshot: await png(4), ipHash: 'ip' })
-    const second = await submitReport({ gameId: 'pubg-mobile', uid, reportScreenshot: await png(5), uidScreenshot: await png(6), ipHash: 'ip' })
+    const first = await submitReport({ gameId: 'pubg-mobile', uid, ign: 'Sus', evidence: { report_confirmation: await png(3), extra: await png(4) }, ipHash: 'ip' })
+    const second = await submitReport({ gameId: 'pubg-mobile', uid, evidence: { report_confirmation: await png(5) }, ipHash: 'ip' })
     expect(first.ok && second.ok).toBe(true)
 
     const s = sql()
@@ -155,13 +155,44 @@ describe('public reports', () => {
   })
 })
 
+describe('reports for every game', () => {
+  it('PUBG Mobile and Free Fire need one successful-report screenshot plus the typed UID', async () => {
+    const missing = await submitReport({ gameId: 'free-fire', uid: '123456789', evidence: {}, ipHash: 'ip' })
+    expect(!missing.ok && missing.error).toMatch(/Successful report screenshot/)
+    const ok = await submitReport({ gameId: 'free-fire', uid: '987654321', evidence: { report_confirmation: await png(41) }, ipHash: 'ip' })
+    expect(ok.ok).toBe(true)
+    const badUid = await submitReport({ gameId: 'free-fire', uid: 'abc', evidence: { report_confirmation: await png(42) }, ipHash: 'ip' })
+    expect(!badUid.ok && badUid.fieldErrors?.uid).toBeTruthy()
+  })
+
+  it('VALORANT needs a Riot ID and a scoreboard screenshot; the clip must be an https link', async () => {
+    const noTag = await submitReport({ gameId: 'valorant', uid: 'Player', evidence: { scoreboard: await png(51) }, ipHash: 'ip' })
+    expect(!noTag.ok && noTag.fieldErrors?.uid).toBeTruthy()
+    const noBoard = await submitReport({ gameId: 'valorant', uid: 'Player#EU1', evidence: { report_confirmation: await png(52) }, ipHash: 'ip' })
+    expect(!noBoard.ok && noBoard.error).toMatch(/Scoreboard or match history/)
+    const badClip = await submitReport({ gameId: 'valorant', uid: 'Player#EU1', clipUrl: 'javascript:alert(1)', evidence: { scoreboard: await png(53) }, ipHash: 'ip' })
+    expect(!badClip.ok && badClip.fieldErrors?.clipUrl).toBeTruthy()
+    const id = `Ace${uniq().slice(-6)}#PK1`
+    const ok = await submitReport({ gameId: 'valorant', uid: id, matchDetails: 'Ascent, round 14', clipUrl: 'https://example.com/clip', evidence: { scoreboard: await png(54) }, ipHash: 'ip' })
+    expect(ok.ok).toBe(true)
+    const s = sql()
+    const [row] = await s<{ videoUrl: string; matchDetails: string; kinds: string[] }[]>`
+      select r.video_url as "videoUrl", r.match_details as "matchDetails", array_agg(e.kind) as kinds
+        from zenith.ac_reports r join zenith.ac_report_evidence e on e.report_id = r.id
+       where r.reported_uid_raw = ${id} group by r.id
+    `
+    expect(row).toMatchObject({ videoUrl: 'https://example.com/clip', matchDetails: 'Ascent, round 14', kinds: ['scoreboard'] })
+    await s.end()
+  })
+})
+
 describe('identity records', () => {
   it('a report without a name never overwrites the in-game name recorded at registration', async () => {
     const REVIEWER = await staffActor()
     const t = await openTournament(saveTournament, setTournamentStatus)
     const known = pubgUid()
     await register(t.slug, squad('Named', [known, pubgUid(), pubgUid(), pubgUid()]))
-    const r = await submitReport({ gameId: 'pubg-mobile', uid: known, reportScreenshot: await png(21), uidScreenshot: await png(22), ipHash: 'ip' })
+    const r = await submitReport({ gameId: 'pubg-mobile', uid: known, evidence: { report_confirmation: await png(21) }, ipHash: 'ip' })
     expect(r.ok).toBe(true)
     const s = sql()
     const [rep] = await s<{ id: string }[]>`select id from zenith.ac_reports where reported_uid_raw = ${known}`

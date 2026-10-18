@@ -19,8 +19,8 @@ export function ConsoleShell({ staff, nav, base, children }: { staff: Staff; nav
         <div className="flex h-16 items-center gap-3 border-b border-line px-5">
           <Image src="/brand/zenith-mark-160.webp" alt="" width={26} height={26} unoptimized />
           <div className="leading-tight">
-            <p className="font-display text-[11px] tracking-[0.28em]">ZENITH</p>
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em]" style={{ color: ACCENT[staff.surface] }}>
+            <p className="font-display text-[12px] tracking-[0.28em]">ZENITH</p>
+            <p className="font-mono text-[11.5px] uppercase tracking-[0.14em]" style={{ color: ACCENT[staff.surface] }}>
               {NAMES[staff.surface]}
             </p>
           </div>

@@ -34,7 +34,7 @@ export default async function Bookings() {
                 <p className="whitespace-pre-line-safe mt-3 text-sm">{b.broadcastRequirements}</p>
                 {b.eventScope && <p className="whitespace-pre-line-safe mt-2 text-sm text-fg-2">Scope: {b.eventScope}</p>}
                 {b.notes && <p className="whitespace-pre-line-safe mt-2 text-sm text-fg-2">Notes: {b.notes}</p>}
-                <p className="mt-3 font-mono text-[11px] text-fg-3">
+                <p className="mt-3 font-mono text-[12px] text-fg-3">
                   received {fmt(b.createdAt)}
                   {b.decidedAt && ` · decided ${fmt(b.decidedAt)}`}
                 </p>

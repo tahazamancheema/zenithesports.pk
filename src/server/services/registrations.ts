@@ -29,6 +29,8 @@ export type RegistrationInput = {
   /** keys: `entry.<fieldId>` or `m<index>.<fieldId>` */
   files: Map<string, File>
   ipHash?: string
+  /** The signed-in player submitting the entry (zenith.accounts.id). */
+  accountId?: string | null
 }
 
 export type RegistrationResult =
@@ -228,11 +230,11 @@ export async function submitRegistration(input: RegistrationInput): Promise<Regi
       const [reg] = await tx<{ id: string }[]>`
         insert into zenith.registrations
           (reference, tournament_id, team_id, team_name, team_name_norm, status, form_version_id, answers,
-           contact_phone_e164, contact_email, phone_unique_key, manage_token_hash, ip_hash)
+           contact_phone_e164, contact_email, phone_unique_key, manage_token_hash, ip_hash, account_id)
         values
           (${reference}, ${t.id}, ${teamId}, ${v.teamName}, ${teamNorm}, ${initial}, ${t.formVersionId},
            ${tx.json(entryAnswers as never)}, ${v.contactPhone}, ${v.contactEmail},
-           ${t.uniquePhone ? v.contactPhone : null}, ${sha256(manageToken)}, ${input.ipHash ?? null})
+           ${t.uniquePhone ? v.contactPhone : null}, ${sha256(manageToken)}, ${input.ipHash ?? null}, ${input.accountId ?? null})
         returning id
       `
       for (const [i, m] of v.members.entries()) {

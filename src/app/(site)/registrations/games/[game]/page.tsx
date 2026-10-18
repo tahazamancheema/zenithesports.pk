@@ -3,8 +3,11 @@ import { notFound } from 'next/navigation'
 import { ZLink } from '@/components/link'
 import { PageIntro } from '@/components/page-intro'
 import { AVAILABILITY } from '@/components/portfolio'
-import { EmptySignal, TournamentRows } from '@/components/tournament-list'
-import { getFormats, getGame, listPublicTournaments } from '@/server/services/catalog'
+import { GameMark } from '@/components/game-mark'
+import { TournamentGrid } from '@/components/tournament-cards'
+import { EmptySignal } from '@/components/tournament-list'
+import { gameArt } from '@/config/game-art'
+import { getFormats, getGame, getGames, getSponsors, listPublicTournaments, mediaUrl } from '@/server/services/catalog'
 
 export async function generateMetadata(props: PageProps<'/registrations/games/[game]'>): Promise<Metadata> {
   const g = await getGame((await props.params).game)
@@ -14,12 +17,19 @@ export async function generateMetadata(props: PageProps<'/registrations/games/[g
 export default async function GamePage(props: PageProps<'/registrations/games/[game]'>) {
   const g = await getGame((await props.params).game)
   if (!g) notFound()
-  const [formats, tournaments] = await Promise.all([getFormats(), listPublicTournaments(g.id)])
+  const [formats, tournaments, games] = await Promise.all([getFormats(), listPublicTournaments(g.id), getGames()])
+  const sponsors = await getSponsors(tournaments.map((t) => t.id))
   const fmts = formats.filter((f) => f.gameId === g.id && f.enabled)
   const a = AVAILABILITY[g.availability]
   return (
     <>
-      <PageIntro eyebrow={`Game · ${g.shortName}`} title={g.name} lede={g.description}>
+      <PageIntro
+        eyebrow={`${gameArt(g.id).genre} · ${g.shortName}`}
+        title={g.name}
+        lede={g.description}
+        image={mediaUrl(g.coverFileId) ?? gameArt(g.id).art}
+        top={<GameMark gameId={g.id} name={g.name} logoUrl={mediaUrl(g.logoFileId)} size={72} />}
+      >
         <span className={a.chip}>{a.label}</span>
         {fmts.map((f) => (
           <span key={f.id} className="chip">
@@ -30,9 +40,11 @@ export default async function GamePage(props: PageProps<'/registrations/games/[g
       <section className="py-16">
         <div className="shell grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-8">
-            <h2 className="t-label mb-5">Tournaments</h2>
+            <h2 className="t-title mb-6 text-xl">Tournaments</h2>
             {tournaments.length ? (
-              <TournamentRows items={tournaments} />
+              <div className="[&>div]:xl:grid-cols-2">
+                <TournamentGrid items={tournaments} games={games} sponsors={sponsors} />
+              </div>
             ) : (
               <EmptySignal
                 title="No tournaments yet"

@@ -14,8 +14,10 @@ Each console has its own sign-in; a session on one grants nothing on another. Se
 hours, or 2 hours idle. Ten failed attempts per account (or twenty per network) in 15 minutes pause
 sign-in; eight consecutive failures lock the account for 15 minutes.
 
-**Staff accounts** — HQ → Staff & roles (super administrators only). New accounts and password
-resets produce a one-time password shown once; share it privately. Changing roles or disabling an
+**Staff accounts** — HQ → Staff & roles (super administrators only). In production staff sign in
+with Google or email through Supabase Auth using the address on their staff record (the record links
+itself on first sign-in); "Sign out everywhere" ends their console sessions. Locally, new accounts
+and password resets produce a one-time password shown once; share it privately. Changing roles or disabling an
 account signs that person out everywhere. The last active super administrator cannot be removed.
 If every super administrator is locked out, run `npm run admin:bootstrap` only after removing the
 locked accounts' `super_admin` role directly in the database, and record why.

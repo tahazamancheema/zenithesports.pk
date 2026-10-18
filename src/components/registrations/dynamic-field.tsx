@@ -20,7 +20,7 @@ export function DynamicField({
 }) {
   const id = useId()
   if (field.type === 'heading') {
-    return <h3 className="t-display pt-4 text-base">{field.label}</h3>
+    return <h3 className="t-title pt-4 text-base">{field.label}</h3>
   }
   if (field.type === 'paragraph') {
     return <p className="whitespace-pre-line-safe text-fg-2">{field.label}</p>

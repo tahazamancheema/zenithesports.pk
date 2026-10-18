@@ -4,7 +4,7 @@ import { ROLES, type Role } from '@/lib/permissions'
 import { audit, type Actor } from '../audit'
 import { hashPassword, randomToken, verifyPassword } from '../crypto'
 import { db, isUniqueViolation, type Db } from '../db'
-import { revokeAllSessions, type Staff } from '../auth/session'
+import { revokeAllSessions, staffPasswordLogin, type Staff } from '../auth/session'
 
 export function passwordProblem(pw: string): string | null {
   if (pw.length < 12) return 'Use at least 12 characters.'
@@ -22,19 +22,24 @@ export async function listStaff() {
   `
 }
 
-/** Creates an account with a one-time password the person must change on first sign-in. */
-export async function createStaff(d: { email: string; displayName: string; roles: Role[] }, actor: Actor) {
+/**
+ * Creates a staff account. With password sign-in enabled (local development) it
+ * gets a one-time password; otherwise the person signs in with Google or email
+ * through Supabase Auth using this exact address, and the account links itself.
+ * Returns the one-time password, or null when none was issued.
+ */
+export async function createStaff(d: { email: string; displayName: string; roles: Role[] }, actor: Actor): Promise<string | null> {
   const email = d.email.trim().toLowerCase()
   if (!isEmail(email)) throw new Error('Enter a valid email.')
   if (!d.displayName.trim()) throw new Error('Enter a display name.')
   const roles = d.roles.filter((r) => ROLES.includes(r))
   if (!roles.length) throw new Error('Choose at least one role.')
-  const temp = randomToken(12)
+  const temp = staffPasswordLogin() ? randomToken(12) : null
   try {
     await db().begin(async (tx) => {
       const [u] = await tx<{ id: string }[]>`
         insert into zenith.staff_users (email, display_name, password_hash, must_change_password, created_by)
-        values (${email}, ${d.displayName.trim().slice(0, 80)}, ${await hashPassword(temp)}, true, ${actor.id}) returning id
+        values (${email}, ${d.displayName.trim().slice(0, 80)}, ${temp ? await hashPassword(temp) : null}, ${Boolean(temp)}, ${actor.id}) returning id
       `
       for (const r of roles) await tx`insert into zenith.staff_roles (user_id, role, granted_by) values (${u.id}, ${r}, ${actor.id})`
       await audit(tx, actor, 'staff.created', { type: 'staff_user', id: u.id }, { roles })
@@ -85,7 +90,14 @@ export async function setStaffStatus(userId: string, status: 'active' | 'disable
   if (status === 'disabled') await revokeAllSessions(userId)
 }
 
+/** Signs a person out of every console (used when SSO replaces passwords). */
+export async function endSessions(userId: string, actor: Actor) {
+  await revokeAllSessions(userId)
+  await audit(db(), actor, 'staff.sessions_revoked', { type: 'staff_user', id: userId })
+}
+
 export async function resetPassword(userId: string, actor: Actor) {
+  if (!staffPasswordLogin()) throw new Error('Passwords are not used: staff sign in with Google or email.')
   const temp = randomToken(12)
   await db()`update zenith.staff_users set password_hash = ${await hashPassword(temp)}, must_change_password = true, failed_attempts = 0, locked_until = null where id = ${userId}`
   await audit(db(), actor, 'staff.password_reset', { type: 'staff_user', id: userId })
@@ -96,8 +108,8 @@ export async function resetPassword(userId: string, actor: Actor) {
 export async function changeOwnPassword(staff: Staff, current: string, next: string) {
   const problem = passwordProblem(next)
   if (problem) return { ok: false as const, error: problem }
-  const [u] = await db()<{ passwordHash: string }[]>`select password_hash from zenith.staff_users where id = ${staff.id}`
-  if (!u || !(await verifyPassword(current, u.passwordHash))) return { ok: false as const, error: 'Your current password is incorrect.' }
+  const [u] = await db()<{ passwordHash: string | null }[]>`select password_hash from zenith.staff_users where id = ${staff.id}`
+  if (!u?.passwordHash || !(await verifyPassword(current, u.passwordHash))) return { ok: false as const, error: 'Your current password is incorrect.' }
   if (current === next) return { ok: false as const, error: 'Choose a new password.' }
   await db()`update zenith.staff_users set password_hash = ${await hashPassword(next)}, must_change_password = false where id = ${staff.id}`
   await audit(db(), { id: staff.id, label: staff.email, surface: staff.surface }, 'staff.password_changed', { type: 'staff_user', id: staff.id })

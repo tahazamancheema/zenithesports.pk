@@ -35,9 +35,9 @@ export function Extraction() {
             <div className="mb-3 h-3 w-28 bg-fg-3/40" />
             {ROWS.map((r, i) => (
               <div key={r.team} className="mb-2 flex items-center gap-3 rounded-xs bg-ink-3 px-3 py-2.5">
-                <span className="font-mono text-[11px] text-fg-3">#{r.place}</span>
+                <span className="font-mono text-[12px] text-fg-3">#{r.place}</span>
                 <span className="h-2 flex-1 bg-fg-3/40" style={{ maxWidth: `${70 - i * 8}%` }} />
-                <span className={`font-mono text-[11px] ${r.unsure ? 'text-fg-3/60 blur-[0.6px]' : 'text-fg-3'}`}>{r.kills} elims</span>
+                <span className={`font-mono text-[12px] ${r.unsure ? 'text-fg-3/60 blur-[0.6px]' : 'text-fg-3'}`}>{r.kills} elims</span>
               </div>
             ))}
             {/* scanning beam */}
@@ -121,7 +121,7 @@ export function Extraction() {
               })}
             </tbody>
           </table>
-          {s >= 4 && <p className="mt-3 font-mono text-[11px] text-fg-3">Placement points + 1 per elimination · sample rules</p>}
+          {s >= 4 && <p className="mt-3 font-mono text-[12px] text-fg-3">Placement points + 1 per elimination · sample rules</p>}
         </div>
       </div>
 
@@ -142,7 +142,7 @@ export function Extraction() {
                 <span className="block h-0.5 w-full overflow-hidden bg-line-2">
                   <span className="block h-full bg-pts transition-transform duration-700" style={{ transform: `scaleX(${i <= s ? 1 : 0})`, transformOrigin: 'left' }} />
                 </span>
-                <span className={`mt-2 block font-mono text-[10.5px] uppercase tracking-[0.12em] ${i === s ? 'text-fg' : 'text-fg-3 group-hover:text-fg-2'}`}>{st.k}</span>
+                <span className={`mt-2 block font-mono text-[11.5px] uppercase tracking-[0.12em] ${i === s ? 'text-fg' : 'text-fg-3 group-hover:text-fg-2'}`}>{st.k}</span>
               </button>
             </li>
           ))}

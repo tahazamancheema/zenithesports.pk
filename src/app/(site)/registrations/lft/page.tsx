@@ -52,7 +52,7 @@ export default async function LftBoard(props: PageProps<'/registrations/lft'>) {
                 {players.map((p, i) => (
                   <li key={p.id} className="panel flex flex-col p-6" data-reveal style={{ '--i': i % 3 } as React.CSSProperties}>
                     <div className="flex items-start justify-between gap-3">
-                      <p className="t-display text-base">{p.ign}</p>
+                      <p className="t-title text-base">{p.ign}</p>
                       {p.rankLabel && <span className="chip">{p.rankLabel}</span>}
                     </div>
                     <div className="mt-3 flex flex-wrap gap-1.5">

@@ -97,3 +97,40 @@ only, with clear space of half its height. Never recolour, skew or place it on g
 Short, precise, confident. Explain what happens next. Errors say what went wrong and how to fix
 it, and never expose internals. Prefer "you" over "users". Currency: `PKR 1,00,000`
 (`toLocaleString('en-PK')`). Times show the zone (`PKT`).
+
+## Platform logos (v2.1)
+
+One family, built in code (`src/components/brand/product-logos.tsx`): the traced Zenith mark on a
+black rounded square, the same base as the real ZenithProduction app icon, plus one accent per platform.
+
+| Platform | Icon | Accent |
+|---|---|---|
+| Zenith Esports | chrome mark | chrome `#c9cfd9` |
+| Zenith Registrations | gold mark + bracket rails | gold `#d9b25f` |
+| ZenithProduction | white mark (the real app icon) | signal red `#ff5a44` |
+| ZenithAntiCheat | white mark in a teal scan ring + check badge | teal `#3fd8c0` |
+| ZenithPoints | white mark + three rising bars | violet `#9d8cff` |
+
+Use `ProductLockup` (icon + "ZENITH" + platform name) at 44 px or larger; below that use the icon alone.
+
+## Type sizes
+
+Michroma is for large display type only (roughly 22 px and up). Smaller headings use Geist 600
+(`.t-title`). Labels are Geist Mono at 12 px minimum; secondary text uses `fg-2 #b9c1cd`, tertiary
+`fg-3 #8d96a4` — both pass WCAG AA on the void background.
+
+## Imagery
+
+- **Real product media** — ZenithProduction screenshots and the walkthrough video in
+  `public/products/production/` are captures of the real software running its built-in sample data.
+  Always label them "Real software · sample data". Never publish the app itself, its paths, ports or
+  debug output.
+- **ZenithPoints** is unreleased: its phone interface is a concept drawn in code with placeholder
+  teams ("Team Alpha" …) and is always labelled "Concept preview".
+- **3D renders and game key art** in `public/visuals/` were generated for Zenith (no game logos,
+  characters or trademarks). They are backdrops, never presented as screenshots of a game.
+- **Game logos** — the site shows Simple Icons glyphs (PUBG, VALORANT, EA) or a typographic badge.
+  Official logos and cover art can be uploaded per game in the Registrations console only where Zenith
+  has permission to use them.
+- **Tournament posters, logos and sponsor logos** are uploaded per tournament by staff. List a sponsor
+  only with their agreement.

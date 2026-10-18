@@ -29,6 +29,11 @@ export async function isPublicFile(fileId: string) {
   const [row] = await db()`
     select 1 where exists (select 1 from zenith.product_media where file_id = ${fileId} and published)
                 or exists (select 1 from zenith.org_members where image_file_id = ${fileId} and published)
+                or exists (select 1 from zenith.games where ${fileId}::uuid in (logo_file_id, cover_file_id))
+                or exists (select 1 from zenith.tournaments where status in ('published', 'cancelled')
+                             and ${fileId}::uuid in (poster_file_id, logo_file_id, organizer_logo_file_id))
+                or exists (select 1 from zenith.tournament_sponsors s join zenith.tournaments t on t.id = s.tournament_id
+                             where s.logo_file_id = ${fileId} and t.status in ('published', 'cancelled'))
   `
   return Boolean(row)
 }
