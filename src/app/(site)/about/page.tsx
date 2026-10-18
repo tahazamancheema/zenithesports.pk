@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Altitude, ZenithMark } from '@/components/brand'
+import { Zenith3D } from '@/components/home/zenith-3d'
 import { ZLink } from '@/components/link'
 import { PageIntro } from '@/components/page-intro'
 import { PRODUCTS } from '@/config/products'
@@ -29,6 +30,12 @@ export default async function AboutPage() {
           </>
         }
         lede="Zenith Esports is a Pakistani multi-gaming organisation. We run competitions — and we build the systems around them: registration, broadcast production, competitive integrity and scoring."
+        aside={
+          <div className="relative mx-auto aspect-square w-full max-w-[460px]">
+            <div aria-hidden className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle,rgba(217,178,95,0.22),transparent_70%)] blur-2xl" />
+            <Zenith3D className="h-full w-full" />
+          </div>
+        }
       />
 
       <section className="border-b border-line py-24">

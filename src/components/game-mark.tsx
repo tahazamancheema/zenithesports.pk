@@ -32,10 +32,12 @@ export function GameMark({
     )
   }
   if (art.emblem || art.logo) {
+    // Official marks keep their own colours; dark ones sit on a light plate so they stay visible.
+    const bg = art.plate ?? `linear-gradient(160deg, color-mix(in oklab, ${art.accent} 18%, #0b0d11), #07080b 75%)`
     return (
-      <span className={frame} style={{ ...box, background: `linear-gradient(160deg, color-mix(in oklab, ${art.accent} 18%, #0b0d11), #07080b 75%)` }}>
+      <span className={frame} style={{ ...box, background: bg }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- static official mark */}
-        <img src={art.emblem ?? art.logo} alt={`${name} logo`} className={art.emblem ? 'h-[72%] w-[72%] object-contain' : 'w-[86%] object-contain'} />
+        <img src={art.emblem ?? art.logo} alt={`${name} logo`} className={art.emblem ? 'h-[68%] w-[68%] object-contain' : 'w-[86%] object-contain'} />
       </span>
     )
   }
@@ -63,8 +65,17 @@ export function GameMark({
 export function GameWordmark({ gameId, name, logoUrl, height = 36, className = '' }: { gameId: string; name: string; logoUrl?: string | null; height?: number; className?: string }) {
   const art = gameArt(gameId)
   if (art.logo && !logoUrl) {
-    // eslint-disable-next-line @next/next/no-img-element -- static official wordmark
-    return <img src={art.logo} alt={name} style={{ height }} className={`w-auto max-w-full object-contain object-left ${className}`} />
+    /* eslint-disable @next/next/no-img-element -- static official wordmark */
+    const img = <img src={art.logo} alt={name} style={{ height: art.plate ? height + 4 : height }} className="w-auto max-w-full object-contain object-left" />
+    /* eslint-enable @next/next/no-img-element */
+    if (art.plate) {
+      return (
+        <span className={`inline-flex items-center rounded-lg px-2 py-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.45)] ${className}`} style={{ background: art.plate }}>
+          {img}
+        </span>
+      )
+    }
+    return <span className={`inline-flex ${className}`}>{img}</span>
   }
   return <GameMark gameId={gameId} name={name} logoUrl={logoUrl} size={height + 8} className={className} />
 }

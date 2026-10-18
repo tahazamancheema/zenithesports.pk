@@ -1,6 +1,6 @@
 import { Altitude } from '@/components/brand'
 import { ProductIcon, ProductLockup } from '@/components/brand/product-logos'
-import { GameMark } from '@/components/game-mark'
+import { GameMark, GameWordmark } from '@/components/game-mark'
 import { Zenith3D } from '@/components/home/zenith-3d'
 import { InViewVideo, ScrollStatement, SplitText, TiltCard, VelocityMarquee, WordCycle } from '@/components/kinetic'
 import { ZLink } from '@/components/link'
@@ -105,11 +105,11 @@ export default async function Home() {
         <VelocityMarquee speed={0.6}>
           {marqueeGames.map((g) => (
             <span key={g.id} className="flex items-center gap-4 px-8">
-              {gameArt(g.id).logo ? (
-                <img src={gameArt(g.id).logo} alt={g.name} className="h-10 w-auto max-w-none" />
+              {gameArt(g.id).named ? (
+                <GameWordmark gameId={g.id} name={g.name} height={44} className="[&_img]:max-w-none" />
               ) : (
                 <>
-                  <GameMark gameId={g.id} name={g.name} size={40} />
+                  <GameMark gameId={g.id} name={g.name} size={44} />
                   <span className="t-display whitespace-nowrap text-[clamp(1.1rem,2.2vw,1.8rem)]" style={{ color: gameArt(g.id).accent }}>
                     {g.name}
                   </span>

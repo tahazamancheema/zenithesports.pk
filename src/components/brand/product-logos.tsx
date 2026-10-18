@@ -107,36 +107,37 @@ export function ProductIcon({ product, size = 48, className = '' }: { product: P
 
       {product === 'points' && (
         <>
-          {/* The podium: first, second and third, with the mark standing on the top step. */}
+          {/* A "P" built from a rising leaderboard: two bars climb into the stem, the bowl is a
+              scoring loop, and a gold first-place spark sits inside it. No Zenith mark: the app
+              stands on its own in app stores. */}
           <defs>
-            <linearGradient id={`${id}-step`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="#b9adff" />
-              <stop offset="1" stopColor="#5b47d6" />
+            <linearGradient id={`${id}-tile`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#8f7dff" />
+              <stop offset="0.55" stopColor="#4a35d4" />
+              <stop offset="1" stopColor="#1e1466" />
             </linearGradient>
-            <radialGradient id={`${id}-glow`} cx="0.5" cy="0.5" r="0.5">
-              <stop offset="0" stopColor="#9d8cff" stopOpacity="0.75" />
-              <stop offset="1" stopColor="#9d8cff" stopOpacity="0" />
-            </radialGradient>
+            <linearGradient id={`${id}-gloss`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fff" stopOpacity="0.16" />
+              <stop offset="0.5" stopColor="#fff" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id={`${id}-ink`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#ffffff" />
+              <stop offset="1" stopColor="#ddd6ff" />
+            </linearGradient>
+            <linearGradient id={`${id}-spark`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#fff1b8" />
+              <stop offset="1" stopColor="#f3b73f" />
+            </linearGradient>
           </defs>
-          <circle cx="128" cy="92" r="70" fill={`url(#${id}-glow)`} />
-          <g>
-            <rect x="42" y="160" width="58" height="56" rx="6" fill={`url(#${id}-step)`} opacity="0.85" />
-            <rect x="99" y="132" width="58" height="84" rx="6" fill={`url(#${id}-step)`} />
-            <rect x="156" y="178" width="58" height="38" rx="6" fill={`url(#${id}-step)`} opacity="0.7" />
-            <rect x="42" y="160" width="58" height="7" rx="3" fill="#ddd6ff" opacity="0.7" />
-            <rect x="99" y="132" width="58" height="7" rx="3" fill="#ece8ff" />
-            <rect x="156" y="178" width="58" height="7" rx="3" fill="#ddd6ff" opacity="0.6" />
-            <g fill="#241a63" fontFamily="Arial, sans-serif" fontWeight="800" textAnchor="middle">
-              <text x="71" y="199" fontSize="26">2</text>
-              <text x="128" y="186" fontSize="34">1</text>
-              <text x="185" y="208" fontSize="22">3</text>
-            </g>
+          <rect x="4" y="4" width="248" height="248" rx="58" fill={`url(#${id}-tile)`} />
+          <rect x="4" y="4" width="248" height="248" rx="58" fill={`url(#${id}-gloss)`} />
+          <g fill={`url(#${id}-ink)`}>
+            <rect x="46" y="166" width="30" height="46" rx="9" opacity="0.5" />
+            <rect x="86" y="132" width="30" height="80" rx="9" opacity="0.75" />
+            <rect x="126" y="50" width="34" height="162" rx="11" />
+            <path d="M146 50h30a54 54 0 0 1 0 108h-30v-28h30a26 26 0 0 0 0-52h-30z" />
           </g>
-          {mark(`url(#${id}-chrome)`, 0.4, -50)}
-          <g fill="#e2dcff">
-            <path d="M52 70l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" />
-            <path d="M205 52l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" opacity="0.8" />
-          </g>
+          <path d="M176 86l5 13 13 5-13 5-5 13-5-13-13-5 13-5z" fill={`url(#${id}-spark)`} />
         </>
       )}
     </svg>

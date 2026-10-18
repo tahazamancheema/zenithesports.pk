@@ -12,6 +12,7 @@ export function PageIntro({
   compact = false,
   image,
   top,
+  aside,
 }: {
   eyebrow: ReactNode
   title: ReactNode
@@ -22,6 +23,8 @@ export function PageIntro({
   image?: string
   /** Optional element above the eyebrow, e.g. a product lockup. */
   top?: ReactNode
+  /** Optional visual for the right-hand side (replaces the trajectory line). */
+  aside?: ReactNode
 }) {
   return (
     <section className={`relative isolate overflow-hidden border-b border-line ${compact ? 'py-16' : 'py-20 md:py-28'}`}>
@@ -30,7 +33,7 @@ export function PageIntro({
         <img src={image} alt="" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55 [mask-image:linear-gradient(90deg,transparent_15%,#000_75%)]" />
       )}
       <div aria-hidden className="grid-field absolute inset-0 -z-10 opacity-40" />
-      <svg aria-hidden viewBox="0 0 400 240" className="pointer-events-none absolute right-0 bottom-0 -z-10 hidden h-full w-[42%] md:block" preserveAspectRatio="xMaxYMax meet">
+      <svg aria-hidden viewBox="0 0 400 240" className={`pointer-events-none absolute right-0 bottom-0 -z-10 h-full w-[42%] ${aside ? 'hidden' : 'hidden md:block'}`} preserveAspectRatio="xMaxYMax meet">
         <path d="M 20 236 C 140 236, 250 170, 330 40" fill="none" stroke="var(--accent)" strokeOpacity="0.55" className="draw-path is-in" style={{ '--len': 420, '--d': 300 } as React.CSSProperties} />
         <path d="M 120 236 C 200 236, 290 160, 330 40" fill="none" stroke="var(--color-line-3)" className="draw-path is-in" style={{ '--len': 360, '--d': 500 } as React.CSSProperties} />
         <line x1="330" y1="0" x2="330" y2="240" stroke="var(--color-line-2)" />
@@ -38,7 +41,8 @@ export function PageIntro({
           <rect x="-5" y="-5" width="10" height="10" fill="var(--accent)" style={{ animation: 'fade 600ms 1.4s both' }} />
         </g>
       </svg>
-      <div className="shell">
+      <div className={`shell ${aside ? 'grid items-center gap-10 lg:grid-cols-12' : ''}`}>
+        <div className={aside ? 'lg:col-span-7' : ''}>
         {top && <div className="mb-8" style={{ animation: 'fade 700ms var(--ease-out-expo) both' }}>{top}</div>}
         <p className="t-label flex items-center gap-3" style={{ animation: 'fade 700ms var(--ease-out-expo) both' }}>
           <span className="node node-fill" />
@@ -57,6 +61,8 @@ export function PageIntro({
             {children}
           </div>
         )}
+        </div>
+        {aside && <div className="lg:col-span-5">{aside}</div>}
       </div>
     </section>
   )

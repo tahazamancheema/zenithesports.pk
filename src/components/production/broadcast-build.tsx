@@ -134,11 +134,12 @@ export function BroadcastBuild() {
                     <img src={`${P}/command-center.webp`} alt="ZenithProduction command centre" className="h-full w-full object-cover object-top" loading="lazy" />
                   </div>
                 </Layer>
-                <Layer on={step === 2} enter="translate-x-6" className="bottom-[13%] right-[2%] hidden w-[24%] sm:block">
-                  <div className="overflow-hidden rounded border border-white/25 shadow-xl">
-                    <img src={`${P}/command-center.webp`} alt="" className="w-full" loading="lazy" />
+                <Layer on={step === 2} enter="translate-x-6" className="bottom-[13%] right-[2%] hidden w-[34%] sm:block">
+                  {/* Zoomed into the scene controls, so the operator view stays legible at this size. */}
+                  <div className="aspect-[16/8] overflow-hidden rounded-md border border-white/25 bg-black shadow-[0_20px_50px_rgba(0,0,0,0.7)]">
+                    <img src={`${P}/command-center.webp`} alt="" className="w-[175%] max-w-none" loading="lazy" />
                   </div>
-                  <p className="mt-1 text-right font-mono text-[10.5px] uppercase tracking-wider text-white/80">Operator view</p>
+                  <p className="mt-1 text-right font-mono text-[10.5px] uppercase tracking-wider text-white/85">Operator view · scene controls</p>
                 </Layer>
 
                 {/* 3 · real overlay output, at broadcast positions */}

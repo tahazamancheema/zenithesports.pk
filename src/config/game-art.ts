@@ -14,15 +14,19 @@ export type GameArt = {
   logo?: string
   /** Square official emblem, used for small icons. */
   emblem?: string
+  /** Light backing for logos that are dark in their official colours. */
+  plate?: string
+  /** True when the logo already spells the game's name. */
+  named?: boolean
 }
 
 export const GAME_ART: Record<string, GameArt> = {
-  'pubg-mobile': { art: '/visuals/games/pubg-mobile.webp', thumb: '/visuals/games/pubg-mobile-sm.webp', accent: '#f2b33d', word: ['PUBG', 'MOBILE'], genre: 'Battle royale' },
-  'free-fire': { art: '/visuals/games/free-fire.webp', thumb: '/visuals/games/free-fire-sm.webp', accent: '#ff7a2f', word: ['FREE', 'FIRE'], genre: 'Battle royale', logo: '/games/free-fire-logo.png' },
-  valorant: { art: '/visuals/games/valorant.webp', thumb: '/visuals/games/valorant-sm.webp', accent: '#ff4655', word: ['VALORANT'], genre: 'Tactical shooter' },
-  'honor-of-kings': { art: '/visuals/games/honor-of-kings.webp', thumb: '/visuals/games/honor-of-kings-sm.webp', accent: '#e9c46a', word: ['HONOR', 'OF KINGS'], genre: 'Mobile MOBA', logo: '/games/honor-of-kings-logo.png', emblem: '/games/honor-of-kings-emblem.png' },
-  'tekken-8': { art: '/visuals/games/tekken-8.webp', thumb: '/visuals/games/tekken-8-sm.webp', accent: '#5b8cff', word: ['TEKKEN', '8'], genre: 'Fighting', logo: '/games/tekken-8-logo.png' },
-  'ea-fc-26': { art: '/visuals/games/ea-fc-26.webp', thumb: '/visuals/games/ea-fc-26-sm.webp', accent: '#3ddc84', word: ['EA SPORTS', 'FC 26'], genre: 'Football' },
+  'pubg-mobile': { art: '/visuals/games/pubg-mobile.webp', thumb: '/visuals/games/pubg-mobile-sm.webp', accent: '#f2b33d', word: ['PUBG', 'MOBILE'], genre: 'Battle royale', logo: '/games/pubg-mobile-logo.png', emblem: '/games/pubg-mobile-logo.png', plate: '#f3f1ec', named: true },
+  'free-fire': { art: '/visuals/games/free-fire.webp', thumb: '/visuals/games/free-fire-sm.webp', accent: '#ff7a2f', word: ['FREE', 'FIRE'], genre: 'Battle royale', logo: '/games/free-fire-logo.png', named: true },
+  valorant: { art: '/visuals/games/valorant.webp', thumb: '/visuals/games/valorant-sm.webp', accent: '#ff4655', word: ['VALORANT'], genre: 'Tactical shooter', logo: '/games/valorant-logo.png', emblem: '/games/valorant-logo.png' },
+  'honor-of-kings': { art: '/visuals/games/honor-of-kings.webp', thumb: '/visuals/games/honor-of-kings-sm.webp', accent: '#e9c46a', word: ['HONOR', 'OF KINGS'], genre: 'Mobile MOBA', logo: '/games/honor-of-kings-logo.png', emblem: '/games/honor-of-kings-emblem.png', named: true },
+  'tekken-8': { art: '/visuals/games/tekken-8.webp', thumb: '/visuals/games/tekken-8-sm.webp', accent: '#5b8cff', word: ['TEKKEN', '8'], genre: 'Fighting', logo: '/games/tekken-8-logo.png', named: true },
+  'ea-fc-26': { art: '/visuals/games/ea-fc-26.webp', thumb: '/visuals/games/ea-fc-26-sm.webp', accent: '#3ddc84', word: ['EA SPORTS', 'FC 26'], genre: 'Football', logo: '/games/ea-fc-26-logo.png', emblem: '/games/ea-fc-26-logo.png', plate: '#f3f1ec' },
 }
 
 const FALLBACK: GameArt = { art: '/visuals/arena.webp', thumb: '/visuals/arena.webp', accent: '#d9b25f', word: ['ZENITH'], genre: 'Esports' }
