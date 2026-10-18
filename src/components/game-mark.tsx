@@ -31,6 +31,14 @@ export function GameMark({
       </span>
     )
   }
+  if (art.emblem || art.logo) {
+    return (
+      <span className={frame} style={{ ...box, background: `linear-gradient(160deg, color-mix(in oklab, ${art.accent} 18%, #0b0d11), #07080b 75%)` }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- static official mark */}
+        <img src={art.emblem ?? art.logo} alt={`${name} logo`} className={art.emblem ? 'h-[72%] w-[72%] object-contain' : 'w-[86%] object-contain'} />
+      </span>
+    )
+  }
   if (glyph) {
     return (
       <span className={frame} style={{ ...box, background: `linear-gradient(160deg, color-mix(in oklab, ${art.accent} 26%, #0b0d11), #07080b 70%)` }}>
@@ -49,4 +57,14 @@ export function GameMark({
       </span>
     </span>
   )
+}
+
+/** The game's own wordmark where Zenith has one, otherwise the icon and its name. */
+export function GameWordmark({ gameId, name, logoUrl, height = 36, className = '' }: { gameId: string; name: string; logoUrl?: string | null; height?: number; className?: string }) {
+  const art = gameArt(gameId)
+  if (art.logo && !logoUrl) {
+    // eslint-disable-next-line @next/next/no-img-element -- static official wordmark
+    return <img src={art.logo} alt={name} style={{ height }} className={`w-auto max-w-full object-contain object-left ${className}`} />
+  }
+  return <GameMark gameId={gameId} name={name} logoUrl={logoUrl} size={height + 8} className={className} />
 }

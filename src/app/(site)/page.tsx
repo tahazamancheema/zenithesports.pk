@@ -97,10 +97,16 @@ export default async function Home() {
         <VelocityMarquee speed={0.6}>
           {marqueeGames.map((g) => (
             <span key={g.id} className="flex items-center gap-4 px-8">
-              <GameMark gameId={g.id} name={g.name} size={40} />
-              <span className="t-display whitespace-nowrap text-[clamp(1.1rem,2.2vw,1.8rem)]" style={{ color: gameArt(g.id).accent }}>
-                {g.name}
-              </span>
+              {gameArt(g.id).logo ? (
+                <img src={gameArt(g.id).logo} alt={g.name} className="h-10 w-auto max-w-none" />
+              ) : (
+                <>
+                  <GameMark gameId={g.id} name={g.name} size={40} />
+                  <span className="t-display whitespace-nowrap text-[clamp(1.1rem,2.2vw,1.8rem)]" style={{ color: gameArt(g.id).accent }}>
+                    {g.name}
+                  </span>
+                </>
+              )}
               <span aria-hidden className="node ml-4 opacity-50" />
             </span>
           ))}
@@ -168,7 +174,7 @@ export default async function Home() {
               <img src="/visuals/anticheat.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-75 transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/65 to-transparent" />
               <ProductLockup product="anticheat" size={48} />
-              <p className="mt-5 max-w-md text-fg-2">Report a cheater in any game we run with one screenshot and their ID. Every report is reviewed by a person and matched across all our competitions.</p>
+              <p className="mt-5 max-w-md text-fg-2">Report a cheater in PUBG Mobile, Free Fire, VALORANT or Honor of Kings with one screenshot and their ID. Every report is reviewed by a person and matched across all our competitions.</p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <ZLink surface="anticheat" to="/report" className="btn btn-primary">
                   Report a player <span className="arrow">→</span>

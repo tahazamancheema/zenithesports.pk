@@ -21,7 +21,7 @@ const PIPELINE = [
 ]
 
 const FAQ = [
-  { q: 'Which games can I report for?', a: 'Every game Zenith runs competitions for: PUBG Mobile, Free Fire, VALORANT, Honor of Kings, TEKKEN 8 and EA SPORTS FC 26. Each game asks for the evidence that identifies a player in that game.' },
+  { q: 'Which games can I report for?', a: 'PUBG Mobile, Free Fire, VALORANT and Honor of Kings. Each game asks for the evidence that identifies a player in that game. More games open here as their competitions start.' },
   { q: 'Why does VALORANT need a scoreboard instead of the report screen?', a: 'VALORANT identifies players by Riot ID (Name#TAG), and the in-game report screen does not show it. The scoreboard or the match in your career history does.' },
   { q: 'Will the player see who reported them?', a: 'No. Reports, evidence and reporter details are private to the AntiCheat reviewers.' },
   { q: 'Is there a public list of banned players?', a: 'No. We never publish flagged players, evidence or investigation notes. Flags are used privately to check entries to Zenith competitions.' },
@@ -48,7 +48,7 @@ export default async function AnticheatPage() {
               <SplitText text="verified." delay={260} letterClassName="text-ac" />
             </h1>
             <p className="t-lede mt-7 max-w-lg" style={{ animation: 'rise 900ms var(--ease-out-expo) 500ms both' }}>
-              Report a cheating or banned player in any game we run. A person reviews every report, and verified flags are checked against every team that enters a Zenith competition.
+              Report a cheating or banned player in PUBG Mobile, Free Fire, VALORANT or Honor of Kings. A person reviews every report, and verified flags are checked against every team that enters a Zenith competition.
             </p>
             <div className="mt-9 flex flex-wrap gap-3" style={{ animation: 'rise 900ms var(--ease-out-expo) 600ms both' }}>
               <ZLink to="/report" className="btn btn-primary">
