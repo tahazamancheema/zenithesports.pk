@@ -18,6 +18,13 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
+/**
+ * Every page shows live data (tournaments, registrations, consoles) and a
+ * per-request CSP nonce, so nothing is prerendered at build time and the
+ * build never needs to reach the database.
+ */
+export const dynamic = 'force-dynamic'
+
 export const viewport: Viewport = {
   themeColor: '#06070a',
   colorScheme: 'dark',
