@@ -14,6 +14,9 @@ export const SURFACES = {
 export type Surface = keyof typeof SURFACES
 export const PRODUCT_SURFACES = ['registrations', 'production', 'anticheat', 'points'] as const
 
+/** The main site lives at www.<root>; the bare domain redirects there (Vercel domain setting). */
+export const hqHost = (rootDomain: string) => `www.${rootDomain}`
+
 export type LinkMode = { mode: 'subdomain'; rootDomain: string; current: Surface } | { mode: 'path'; current: Surface }
 
 /** Host → surface, for the production root domain only. */
@@ -48,7 +51,7 @@ export function hrefFor(link: LinkMode, surface: Surface, path = '/'): string {
   }
   if (surface === link.current) return clean
   const sub = SURFACES[surface].subdomain
-  const host = sub ? `${sub}.${link.rootDomain}` : link.rootDomain
+  const host = sub ? `${sub}.${link.rootDomain}` : hqHost(link.rootDomain)
   return `https://${host}${clean === '/' ? '' : clean}`
 }
 

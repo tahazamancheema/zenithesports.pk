@@ -6,7 +6,7 @@ const schema = z.object({
   DATABASE_LISTEN_URL: z.string().url().optional(),
   APP_SECRET: z.string().min(32).optional(),
   ROOT_DOMAIN: z.string().default('zenithesports.pk'),
-  HISAAB_URL: z.string().url().default('https://zenithesports.pk/hisaab/admin'),
+  HISAAB_URL: z.string().url().default('https://www.zenithesports.pk/hisaab/admin'),
   RESEND_API_KEY: z.string().optional(),
   NOTIFY_FROM_EMAIL: z.string().optional(),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),

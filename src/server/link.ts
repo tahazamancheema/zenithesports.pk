@@ -19,7 +19,7 @@ export async function absoluteUrl(surface: Surface, path = '/') {
   const mode = await getLinkMode()
   const rel = hrefFor(mode, surface, path)
   if (/^https?:/.test(rel)) return rel
-  if (mode.mode === 'subdomain') return `https://${surface === 'hq' ? '' : `${surface}.`}${env.ROOT_DOMAIN}${rel}`
+  if (mode.mode === 'subdomain') return `https://${surface === 'hq' ? 'www.' : `${surface}.`}${env.ROOT_DOMAIN}${rel}`
   const h = await headers()
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000'
   const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https')

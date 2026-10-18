@@ -1,15 +1,16 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { IDLE_COOKIE, IDLE_NOTICE_COOKIE, IDLE_TOUCH_MS, isAuthTokenCookie, PLAYER_IDLE_SECONDS, readSeen, signSeen } from '@/lib/idle'
-import { PRODUCT_SURFACES, SURFACES, surfaceForHost, surfaceForPath, type Surface } from '@/lib/surfaces'
+import { hqHost, PRODUCT_SURFACES, SURFACES, surfaceForHost, surfaceForPath, type Surface } from '@/lib/surfaces'
 
 /**
  * Host → surface routing, canonical redirects and the per-request CSP nonce.
  *
  * Production (ROOT_DOMAIN and its subdomains):
  *   registrations.zenithesports.pk/t/x   → rewrite → /registrations/t/x
- *   zenithesports.pk/registrations/t/x   → 308     → registrations.zenithesports.pk/t/x
- *   hisaab.zenithesports.pk/*            → 307     → zenithesports.pk/hisaab/admin
+ *   www.zenithesports.pk/registrations/x → 308     → registrations.zenithesports.pk/x
+ *   zenithesports.pk/*                   → 308     → www.zenithesports.pk/*  (the main site lives on www)
+ *   hisaab.zenithesports.pk/*            → 307     → www.zenithesports.pk/hisaab/admin
  * Anywhere else (localhost, previews): path mode, no rewriting.
  *
  * The ZenithHisaab ledger at /hisaab/admin is never rewritten or given this
@@ -137,12 +138,12 @@ export async function proxy(req: NextRequest) {
 
   if (target === 'hisaab') {
     // Alias only. The ledger itself, its login and its session stay where they are.
-    return NextResponse.redirect(`https://${ROOT}/hisaab/admin`, 307)
+    return NextResponse.redirect(`https://${hqHost(ROOT)}/hisaab/admin`, 307)
   }
 
   if (pathname === '/hisaab' || pathname.startsWith('/hisaab/')) {
     // Serve the ledger only from the root domain, untouched.
-    if (target && target !== 'hq') return NextResponse.redirect(`https://${ROOT}/hisaab/admin`, 307)
+    if (target && target !== 'hq') return NextResponse.redirect(`https://${hqHost(ROOT)}/hisaab/admin`, 307)
     return NextResponse.next()
   }
 
@@ -152,7 +153,7 @@ export async function proxy(req: NextRequest) {
   // Not the production domain: path mode.
   if (target === null) return withCookies(withCsp(req, 'path', surfaceForPath(pathname)), auth)
 
-  if (host.startsWith('www.')) return NextResponse.redirect(`https://${ROOT}${pathname}${search}`, 308)
+  if (host.split(':')[0] === ROOT) return NextResponse.redirect(`https://${hqHost(ROOT)}${pathname}${search}`, 308)
 
   if (target === 'hq') {
     const owner = surfaceForPath(pathname)

@@ -66,10 +66,10 @@ tables, so nothing else needs to move.
 3. Authentication → **Sign In / Providers** → **Email**: keep it **enabled**, keep **Confirm email**
    on. Leave "Allow new users to sign up" **on** (players create accounts).
 4. Authentication → **URL Configuration**:
-   - **Site URL:** `https://zenithesports.pk`
+   - **Site URL:** `https://www.zenithesports.pk`
    - **Redirect URLs** — add each of these:
      ```
-     https://zenithesports.pk/auth/callback
+     https://www.zenithesports.pk/auth/callback
      https://*.zenithesports.pk/auth/callback
      http://localhost:3000/auth/callback
      ```
