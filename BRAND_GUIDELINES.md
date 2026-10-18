@@ -1,129 +1,99 @@
-# Zenith Esports — Brand Guidelines
+# Zenith Esports — Brand & Interface Guidelines
 
-**Version 1.0 · "Forged in Obsidian"**
+**Version 2.0 · "Zenith Meridian"** — supersedes v1.0 "Forged in Obsidian".
 
-These guidelines govern every screen, component, and asset on zenithesports.pk.
-The design tokens live in [`src/index.css`](src/index.css) (`@theme` block) — that file is the
-single source of truth; this document explains how to use it.
+Audience: anyone designing or building screens for zenithesports.pk and its platforms.
+The tokens live in [`src/app/globals.css`](src/app/globals.css) (`@theme`). That file is the source
+of truth; this document explains how to use it.
 
----
+## 1. The concept
 
-## 1. Brand Essence
+The **zenith** is the point directly overhead. The **meridian** is the line that passes through it.
 
-| | |
-|---|---|
-| **Positioning** | Pakistan's premier competitive PUBG Mobile circuit |
-| **Personality** | Disciplined, tactical, premium — a broadcast graphics package, not a website |
-| **Motif** | Obsidian (near-black surfaces) struck with Gold (victory) |
-| **Voice** | Short, imperative, military-operational: "DEPLOY", "REGISTER TEAM", "ACCESS PORTAL" |
+- Layouts hang off a thin vertical meridian line with altitude ticks.
+- Sections are indexed as altitudes, rising toward the call to action: `ALT 00°` → `ALT 90°`.
+- Each platform is a **signal** travelling along a trajectory toward a single gold apex — the
+  ecosystem converging on one point of focus.
+- The diamond **node** (a rotated square, the angular tip of the Zenith mark reduced to a point)
+  marks positions, list items, active states and the apex itself.
 
----
+Do not reach for generic esports tropes: no character renders, no neon glow fields, no rows of
+identical cards. Every page is composed around its job.
 
-## 2. Typography — The Saira System
+## 2. Colour
 
-**One typeface. Three widths.** The entire product uses the
-[Saira superfamily](https://fonts.google.com/specimen/Saira) — a single engineered
-typeface whose Condensed, Semi Condensed, and Normal widths give us a complete
-hierarchy without ever mixing brands.
+| Role | Token | Hex | Use |
+|---|---|---|---|
+| Night (page) | `--color-void` | `#06070a` | Page background |
+| Surfaces | `--color-ink-1…4` | `#0b0d11` → `#1f242e` | Panels, rows, hovers |
+| Lines | `--color-line`, `-2`, `-3` | cool white at 8 / 14 / 26 % | Hairlines, grids, meridian |
+| Text | `--color-fg`, `-2`, `-3` | `#edf0f5`, `#a6aebb`, `#6e7684` | Primary, secondary, labels |
+| Chrome | `--color-chrome` | `#c9cfd9` | The silver of the mark; `t-chrome` headline gradient |
+| **Apex gold** | `--color-gold` | `#d9b25f` | The zenith, the ecosystem, Registrations |
 
-| Role | Face | Class | Weights | Usage |
-|---|---|---|---|---|
-| **Display** | Saira Condensed | `font-display` (alias `font-bebas`) | 600 default, 700 emphasis | Headlines, hero text, stat numerals, buttons. **Always uppercase** (enforced by the class). |
-| **Label** | Saira Semi Condensed | `font-label` (alias `font-teko`) | 500 default | Overlines, nav items, tags, table headers, meta text. Pair with `uppercase tracking-widest`. |
-| **Body** | Saira | `font-body` | 400–600 | Paragraphs, forms, toasts, long-form copy. Never letterspace body text. |
-| Code / IDs | system monospace | `font-mono` | — | Player IDs, error dumps only. |
+**Product frequencies** — each platform has one accent, set by `data-surface` and exposed as
+`var(--accent)`. Use it only inside that product.
 
-Loaded once in [`index.html`](index.html) from Google Fonts. **Never** add another
-font family, another CDN, or a local font file without updating these guidelines.
+| Platform | Token | Hex | Meaning |
+|---|---|---|---|
+| Registrations | `--color-reg` | `#d9b25f` | Competition — shares the apex gold |
+| ZenithProduction | `--color-prod` | `#ff5a44` | The on-air tally light |
+| ZenithAntiCheat | `--color-ac` | `#3fd8c0` | Verification |
+| ZenithPoints | `--color-pts` | `#9d8cff` | Scoring |
 
-### Type rules
-1. Display type is uppercase, tight leading (`leading-none` / `0.9`), tracking `0.02–0.05em`.
-2. Labels carry the tracking (`tracking-[0.2em]`–`[0.3em]`); display carries the size.
-3. Body text is never uppercase, never tracked, minimum 14px (`text-sm`).
-4. One display size per section — hierarchy comes from width + weight, not four sizes.
+Semantic colours (`ok`, `warn`, `bad`, `info`) appear as thin borders, chips and text — never as
+large fills. One accent per view; if everything glows, nothing does.
 
----
+## 3. Type
 
-## 3. Color — Obsidian & Gold
+The ZenithHisaab type system, shared across the ecosystem:
 
-All colors are tokens in `@theme`. **Never hardcode a new hex.**
-
-### Surfaces (dark → light)
-| Token | Hex | Use |
+| Face | Class | Use |
 |---|---|---|
-| page base | `#0a0a0a` | `body`, page backgrounds |
-| `--color-surface-lowest` | `#0e0e0e` | Recessed panels, form sections |
-| `--color-surface` | `#131313` | Cards, modals, sidebars |
-| `--color-surface-low` | `#1b1b1b` | List rows, stat cells |
-| `--color-surface-container` | `#1f1f1f` | Active nav, toasts |
-| `--color-surface-high` → `-bright` | `#2a2a2a`–`#393939` | Hover states, scrollbars |
+| **Michroma** | `t-display` | Headlines, product names. Uppercase, balanced, tight leading. Wide — keep sizes moderate and test at 390 px. |
+| **Geist** | default | Body copy, forms, tables. Never letterspaced. |
+| **Geist Mono** | `t-label`, `font-mono` | Labels (11 px, 0.16em tracking, uppercase), IDs, times, figures, references. |
 
-### Gold accent
-| Token | Hex | Use |
+## 4. Shape and depth
+
+- Radii are small and precise: 2 px chips, 4 px controls, 8 px panels.
+- Depth comes from hairlines and a 1-step surface change (`panel`, `panel-raised`), not shadows.
+- Grids of facts sit on a 1 px gap over a line colour (`gap-px bg-line`).
+
+## 5. Motion
+
+Motion explains; it never decorates idly.
+
+| Kind | Duration | Easing |
 |---|---|---|
-| `--color-primary` | `#f9d07a` | Active/highlight text, focus rings |
-| `--color-primary-container` | `#dbb462` | The brand gold — buttons, borders, gradients |
-| `--color-on-primary` | `#402d00` | Text placed on gold |
+| Micro (hover, press) | 160 ms | ease |
+| UI (state change) | 280 ms | `--ease-out-expo` |
+| Reveal (scroll) | 800 ms | `--ease-out-expo`, staggered 70 ms |
+| Draw (trajectories) | 1.4 s | `--ease-draw` |
 
-Gradient: `zenith-gradient` (135°, `#dbb462 → #fbefc4`). Gold is earned — reserve it
-for primary actions, live states, and victory moments. If everything is gold, nothing is.
+Signature moves: line-mask headline reveal, trajectory draw, a signal travelling a path, the node
+filling on activation, page transitions via React `<ViewTransition>`.
 
-### Text
-`--color-on-surface` `#f2f2f2` (primary) · `--color-on-surface-variant` `#d1c5b3`
-(secondary, usually with opacity) · `--color-outline-variant` `#4e4638` (hairlines).
+Rules:
+- Looping diagrams pause off-screen, offer play/pause, and are keyboard operable.
+- `prefers-reduced-motion` turns animation off and swaps diagrams for static equivalents carrying
+  the same information.
+- Content must be readable without JavaScript (scroll reveals only hide content when scripts run).
 
-### Semantic
-Success `emerald-400` · Info `blue-400` · Error `--color-error` `#ffb4ab` / `red-400` ·
-Pending `yellow-500`. Semantic colors appear only as thin borders, badges, and status
-strips — never as fills.
+## 6. Honesty in imagery
 
-### Contrast
-Text on surfaces must meet WCAG AA (4.5:1 body, 3:1 large display). `#d1c5b3` at
-opacity < 40% is decorative only — never for information a user must read.
+- Illustrations of ZenithProduction and ZenithPoints are always captioned **Illustration**.
+- Only approved, sanitised captures are labelled **Screenshot** (HQ console → Media & team).
+- Never invent players, teams, sponsors, statistics, testimonials, prices or release dates.
+- Social links, contact details and store links appear only once an administrator has set them.
 
----
+## 7. The mark
 
-## 4. Shape — The Monolith Rule
+`public/brand/zenith-mark-*.webp` (from the official `ZenithEsports.png`). Use on dark surfaces
+only, with clear space of half its height. Never recolour, skew or place it on gold.
 
-**Zero border radius, everywhere.** (`border-radius: 0 !important` is global.)
-The only exception is `--radius-full` for live-status dots and pulse rings.
-Depth comes from hairline borders (`1px`, `rgba(78,70,56,…)` or `white/[0.05]`)
-and glow shadows (`glow-gold`, `card-hover-glow`) — never from drop shadows alone.
+## 8. Voice
 
-- Cards: `bg-[#131313]` + 1px hairline border; hover raises border opacity, adds glow.
-- Accent edges: 2–3px gold top-strip or left-strip (`status-strip-*`) mark active/featured items.
-- Grids of stats separate with `gap-[1px]` over a hairline background — the "circuit board" look.
-
-## 5. Components
-
-- **Primary button**: `btn-obsidian-primary` — gold gradient, `--color-on-primary` display
-  type, shine sweep on hover, `scale(0.95)` on press.
-- **Ghost button**: `btn-obsidian-ghost` — gold hairline, transparent fill, glow on hover.
-- **Inputs**: `GhostInput` / dark field `#1a1a1a`, hairline border, gold focus border
-  (`focus:border-[#dbb462]/50`), label = Label face 11–13px uppercase tracked.
-- **Modals**: obsidian panel, gold hairline, `backdrop-blur`, top gradient strip.
-- **Badges**: `StatusBadge` — hairline border + semantic text color, Label face.
-
-## 6. Motion
-
-Framer-motion / CSS only. Durations 200–400ms UI, 600ms+ ambient. Easing
-`cubic-bezier(0.16, 1, 0.3, 1)`. Signature moves: `animate-page-enter` (fade-up),
-scanline sweeps, `tech-pulse`, marquee strips. Motion must never block reading or input;
-respect `prefers-reduced-motion` for new ambient effects.
-
-## 7. Voice & Copy
-
-- Headlines: imperative, ≤ 4 words, uppercase ("CLAIM THE ZENITH").
-- Labels: telegraphic system-speak ("GRID LOGISTICS", "SQUAD DEPLOYMENT").
-- Errors: plain, actionable body copy — never jargon in error messages.
-- Currency: `PKR 1,00,000` via `toLocaleString('en-PK')`.
-
-## 8. Logo
-
-`/logo.png` on dark only. Clear space = logo height × 0.5. Watermark usage at
-opacity ≤ 0.05, grayscale. Never recolor, skew, or place on gold.
-
----
-
-*Any new page or component must be built exclusively from the tokens and classes above.
-If a design needs something this file doesn't define, extend the tokens first, then use them.*
+Short, precise, confident. Explain what happens next. Errors say what went wrong and how to fix
+it, and never expose internals. Prefer "you" over "users". Currency: `PKR 1,00,000`
+(`toLocaleString('en-PK')`). Times show the zone (`PKT`).

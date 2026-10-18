@@ -26,9 +26,10 @@ export class GuardError extends Error {}
 export async function guardPublic(form: string, fd: FormData, limit: { max: number; windowSeconds: number }) {
   await assertSameOrigin()
   if (String(fd.get('website') ?? '') !== '') throw new GuardError('Your submission could not be accepted.')
-  if (!checkFormToken(String(fd.get('_ft') ?? ''), form)) {
-    throw new GuardError('This form has expired or was sent too quickly. Reload the page and try again.')
-  }
+  const token = checkFormToken(String(fd.get('_ft') ?? ''), form)
+  // "Too fast" keeps what was typed: waiting a moment and submitting again is enough.
+  if (token === 'too_fast') throw new GuardError('That was sent a little too quickly. Wait a moment and submit again.')
+  if (token !== 'ok') throw new GuardError('This form has expired. Copy anything you typed, reload the page and try again.')
   const ip = await ipHash()
   await consume(`form:${form}:${ip}`, limit.max, limit.windowSeconds)
   return ip

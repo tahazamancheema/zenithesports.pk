@@ -1,0 +1,9 @@
+applied 20261018000100_zenith_core.sql
+applied 20261018000200_zenith_anticheat.sql
+applied 20261018000300_zenith_seed.sql
+3 migration(s) applied
+
+local database ready
+  DATABASE_URL=postgres://postgres:postgres@127.0.0.1:54329/postgres
+  data: C:\Users\AMD\Desktop\Projects\zenithesports\.local\pgdata
+(ctrl+c to stop)

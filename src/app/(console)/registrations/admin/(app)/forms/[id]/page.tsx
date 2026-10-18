@@ -19,7 +19,7 @@ export default async function FormEditor(props: { params: Promise<{ id: string }
   return (
     <>
       <ConsoleTitle title={data.template.name} sub={draft ? `Editing draft v${draft.version}` : 'Editing will start a new draft version.'} />
-      <FormBuilder templateId={data.template.id} initial={initial} hasDraft={Boolean(draft)} />
+      <FormBuilder templateId={data.template.id} initial={initial} />
       <section className="mt-12">
         <h2 className="t-label mb-3">Versions</h2>
         <ul className="divide-y divide-line rounded-md border border-line">

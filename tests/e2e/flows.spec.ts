@@ -107,6 +107,7 @@ test.describe.serial('ecosystem flows', () => {
     await page.getByRole('button', { name: 'Continue' }).click()
     // Step 5: confirm & submit (no extra questions on this tournament)
     await expect(page.getByText(`Meridian ${run}`)).toBeVisible()
+    await page.waitForTimeout(2600) // a human-paced submission; the anti-spam token rejects faster ones
     await page.getByRole('button', { name: /Submit registration/ }).click()
     await expect(page.getByText('Registration received')).toBeVisible()
     await expect(page.getByText(/ZR-[A-Z0-9]{4}-[A-Z0-9]{4}/)).toBeVisible()
@@ -129,6 +130,7 @@ test.describe.serial('ecosystem flows', () => {
       await page.getByLabel('Character ID').nth(i).fill(uid(i))
     }
     await page.getByRole('button', { name: 'Continue' }).click()
+    await page.waitForTimeout(2600)
     await page.getByRole('button', { name: /Submit registration/ }).click()
     await expect(page.getByText(/already registered in this tournament/).first()).toBeVisible()
   })

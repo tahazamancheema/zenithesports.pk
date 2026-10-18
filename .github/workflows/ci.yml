@@ -1,0 +1,57 @@
+name: CI
+on:
+  push:
+    branches: [main, rebuild/v2]
+  pull_request:
+
+jobs:
+  checks:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:54329/postgres
+      DATABASE_POOL_MAX: '1'
+      REALTIME_LISTEN: 'off'
+      APP_SECRET: ci-only-secret-ci-only-secret-ci-only-secret
+      ROOT_DOMAIN: zenithesports.pk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint -- src tests scripts
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit & database tests (PGlite)
+        run: npm test
+      - name: Start a throwaway database
+        run: |
+          npm run db:local > db.log 2>&1 &
+          for i in $(seq 1 60); do grep -q "local database ready" db.log && break; sleep 1; done
+          cat db.log
+      - name: Build
+        run: npm run build
+      - name: Bootstrap an administrator
+        run: |
+          npm run admin:bootstrap -- --email ci@zenith.local --name "CI Admin" > admin.txt
+          echo "E2E_ADMIN_PASSWORD=$(grep -o 'shown once): .*' admin.txt | sed 's/shown once): //')" >> "$GITHUB_ENV"
+      - name: Start the app
+        run: |
+          npm start -- -p 3000 > app.log 2>&1 &
+          npx wait-on http://localhost:3000 --timeout 60000
+      - run: npx playwright install --with-deps chromium
+      - name: End-to-end flows
+        run: npx playwright test --project=desktop
+        env:
+          E2E_ADMIN_EMAIL: ci@zenith.local
+      - uses: actions/upload-artifact@v4
+        if: ${{ failure() }}
+        with:
+          name: e2e-artifacts
+          path: |
+            test-results/
+            app.log
+          retention-days: 7

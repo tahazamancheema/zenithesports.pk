@@ -71,11 +71,10 @@ export function useSequence(count: number, intervalMs: number, ref: RefObject<HT
   const reduce = usePrefersReducedMotion()
   const inView = useInView(ref, '-10% 0px')
   const [active, setActive] = useState(0)
-  const [playing, setPlaying] = useState(true)
+  const [wantsPlay, setPlaying] = useState(true)
+  // Reduced motion always wins; no automatic advancing.
+  const playing = wantsPlay && !reduce
   const timer = useRef<ReturnType<typeof setInterval> | null>(null)
-  useEffect(() => {
-    if (reduce) setPlaying(false)
-  }, [reduce])
   useEffect(() => {
     if (!playing || !inView) return
     timer.current = setInterval(() => setActive((a) => (a + 1) % count), intervalMs)

@@ -15,7 +15,12 @@ export function SiteHeader() {
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
-  useEffect(() => setOpen(false), [pathname])
+  // Close the menu when the route changes (adjusting state during render, not in an effect).
+  const [lastPath, setLastPath] = useState(pathname)
+  if (pathname !== lastPath) {
+    setLastPath(pathname)
+    setOpen(false)
+  }
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
     onScroll()
@@ -32,6 +37,7 @@ export function SiteHeader() {
   const product = PRODUCTS.find((p) => p.surface === current)
 
   return (
+    <>
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-[background,border-color] duration-500 ${
         scrolled || open ? 'border-b border-line bg-void/80 backdrop-blur-xl' : 'border-b border-transparent'
@@ -75,10 +81,13 @@ export function SiteHeader() {
           </button>
         </div>
       </div>
+    </header>
 
+      {/* A sibling of <header>, not a child: the header's backdrop-filter would make it the
+          containing block for this fixed panel and shrink it to the header's height. */}
       <div
         id="mobile-nav"
-        className={`fixed inset-x-0 top-16 bottom-0 overflow-y-auto bg-void lg:hidden ${open ? 'visible' : 'invisible'}`}
+        className={`fixed inset-x-0 top-16 bottom-0 z-40 overflow-y-auto bg-void lg:hidden ${open ? 'visible' : 'invisible'}`}
         aria-hidden={!open}
         inert={!open}
       >
@@ -110,7 +119,7 @@ export function SiteHeader() {
           </ZLink>
         </nav>
       </div>
-    </header>
+    </>
   )
 }
 

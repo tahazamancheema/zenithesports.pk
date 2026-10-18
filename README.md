@@ -1,62 +1,58 @@
-# Zenith Esports Platform
+# Zenith Esports — ecosystem
 
-![Zenith Esports](https://zenithesports.pk/favicon.ico)
+The website and platforms of Zenith Esports, a Pakistani multi-gaming organisation: one Next.js 16
+application serving the ecosystem hub and four platforms on their own subdomains.
 
-Next-generation esports tournament platform and broadcasting portfolio for Zenith Esports, built on Next.js 16 (App Router) and Supabase.
+| Surface | Production | Local |
+|---|---|---|
+| Ecosystem hub + HQ console | `zenithesports.pk` | `/`, `/admin` |
+| Zenith Registrations (+ console) | `registrations.zenithesports.pk` | `/registrations`, `/registrations/admin` |
+| ZenithProduction | `production.zenithesports.pk` | `/production` |
+| ZenithAntiCheat (+ console) | `anticheat.zenithesports.pk` | `/anticheat`, `/anticheat/admin` |
+| ZenithPoints | `points.zenithesports.pk` | `/points` |
 
-## Tech Stack
-- **Framework**: Next.js 16 (React 19)
-- **Styling**: Tailwind CSS v4, custom UI primitives (shadcn/ui inspired)
-- **Animations**: Framer Motion & CSS keyframes
-- **Database & Auth**: Supabase (PostgreSQL, RLS, Storage)
-- **Emails**: Resend + React Email
+ZenithHisaab (`public/hisaab/admin`) is a separate private app that is only *served* from this
+repository. Do not edit those files here.
 
-## Prerequisites
-- Node.js >= 18.x
-- npm >= 9.x
-- A Supabase project
+## Run it locally
 
-## Getting Started
+Requires Node 20.9+. No Docker or cloud account needed: the local database is real PostgreSQL 18
+running in-process (PGlite).
 
-1. **Clone and Install**
-   ```bash
-   git clone <repo-url>
-   cd zenithesports
-   npm install
-   ```
+```bash
+npm install
+cp .env.example .env.local        # then uncomment the "local development" lines
+npm run db:local                  # terminal 1 — starts PostgreSQL on :54329 and applies migrations
+npm run dev                       # terminal 2 — http://localhost:3000
+npm run admin:bootstrap -- --email you@example.com --name "You"   # with DATABASE_URL set
+```
 
-2. **Environment Variables**
-   Create a `.env.local` file in the root directory:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your-project-url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-   DISCORD_WEBHOOK_URL=your-discord-webhook-url
-   RESEND_API_KEY=your-resend-api-key
-   ```
+Sign in at `/admin/login`, `/registrations/admin/login` or `/anticheat/admin/login` with the
+one-time password printed by the bootstrap command (you will be asked to change it).
 
-3. **Database Setup**
-   Run the Supabase SQL migrations located in `supabase/migrations/` in your Supabase SQL Editor.
+## Checks
 
-4. **Run Development Server**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+```bash
+npm run lint -- src tests scripts
+npm run typecheck
+npm test                          # unit + database tests against a throwaway PostgreSQL
+npm run test:e2e                  # browser flows; needs db:local + dev/start running and
+                                  # E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD
+```
 
-## Project Structure
-- `src/app`: Next.js App Router pages and layouts.
-- `src/components`: Reusable UI components, layout structures, and specific page components.
-- `src/lib`: Utilities for Supabase client creation, motion presets, discord webhooks, and formatting.
-- `src/config`: Static configuration files for navigation and site metadata.
-- `emails`: React Email templates.
-- `supabase/migrations`: SQL schema definitions and RLS policies.
+CI (`.github/workflows/ci.yml`) runs all of these, including the end-to-end flows against a
+production build.
 
-## Features
-- **Player Dashboard**: Manage team rosters, register for tournaments, and upload payment proofs.
-- **Admin Control Panel**: Review payments, approve teams, manage tournament status, and handle production enquiries.
-- **Mark47 Production**: Distinct sub-brand portfolio showcasing broadcasting capabilities.
-- **Atomic Registrations**: Concurrency-safe tournament registration using PostgreSQL row-level locks.
+## Documentation
 
-## License
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — audit findings, system design, data model, security.
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — backups, migrations, Vercel, DNS, bootstrap, rollback.
+- [RUNBOOK.md](RUNBOOK.md) — day-to-day operations.
+- [BRAND_GUIDELINES.md](BRAND_GUIDELINES.md) — the Zenith Meridian design system.
+
+## Stack
+
+Next.js 16 (App Router, React 19, Turbopack) · Tailwind CSS 4 · PostgreSQL on Supabase (schema
+`zenith`, accessed server-side with `postgres.js`) · zod · sharp · Vitest + PGlite · Playwright.
+
 Proprietary. All rights reserved by Zenith Esports.

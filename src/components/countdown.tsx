@@ -7,9 +7,13 @@ export function Countdown({ to, label }: { to: string; label: string }) {
   const target = new Date(to).getTime()
   const [now, setNow] = useState<number | null>(null)
   useEffect(() => {
-    setNow(Date.now())
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
+    const tick = () => setNow(Date.now())
+    const first = setTimeout(tick, 0) // client-only clock: avoids a hydration mismatch
+    const id = setInterval(tick, 1000)
+    return () => {
+      clearTimeout(first)
+      clearInterval(id)
+    }
   }, [])
   if (now === null) return <p className="t-label h-12">{label}</p>
   const ms = target - now

@@ -51,7 +51,7 @@ function newField(type: FieldType, existing: FormField[]): FormField {
   return base
 }
 
-export function FormBuilder({ templateId, initial, hasDraft }: { templateId: string; initial: FormSchema; hasDraft: boolean }) {
+export function FormBuilder({ templateId, initial }: { templateId: string; initial: FormSchema }) {
   const [schema, setSchema] = useState<FormSchema>(initial)
   const [sel, setSel] = useState<number | null>(initial.fields.length ? 0 : null)
   const [addType, setAddType] = useState<FieldType>('short_text')

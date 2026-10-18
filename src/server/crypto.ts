@@ -65,13 +65,19 @@ export function issueFormToken(form: string, now = Date.now()) {
   return `${payload}.${hmac(payload).slice(0, 32)}`
 }
 
-export function checkFormToken(token: string | null | undefined, form: string, minMs = 2500, maxMs = 1000 * 60 * 60 * 6) {
-  if (!token) return false
+export function checkFormToken(
+  token: string | null | undefined,
+  form: string,
+  minMs = 2500,
+  maxMs = 1000 * 60 * 60 * 6,
+): 'ok' | 'too_fast' | 'expired' | 'invalid' {
+  if (!token) return 'invalid'
   const parts = token.split('.')
-  if (parts.length !== 3 || parts[0] !== form) return false
+  if (parts.length !== 3 || parts[0] !== form) return 'invalid'
   const issued = Number(parts[1])
-  if (!Number.isFinite(issued)) return false
-  if (!safeEqual(parts[2], hmac(`${parts[0]}.${parts[1]}`).slice(0, 32))) return false
+  if (!Number.isFinite(issued)) return 'invalid'
+  if (!safeEqual(parts[2], hmac(`${parts[0]}.${parts[1]}`).slice(0, 32))) return 'invalid'
   const age = Date.now() - issued
-  return age >= minMs && age <= maxMs
+  if (age < minMs) return 'too_fast'
+  return age <= maxMs ? 'ok' : 'expired'
 }

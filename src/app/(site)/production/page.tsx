@@ -193,19 +193,19 @@ export default async function ProductionPage() {
             </h2>
           </div>
           <div className="mt-12 grid gap-6 md:grid-cols-2">
-            <ZLink to="/inquire" className="panel-raised group relative flex flex-col p-8 transition-colors hover:border-prod" data-reveal>
+            <ZLink to="/inquire" className="panel-raised group relative flex min-w-0 flex-col p-8 transition-colors hover:border-prod" data-reveal>
               <span className="t-label !text-prod">01 · Purchase</span>
               <span className="t-display mt-5 text-xl">Run it yourself</span>
               <span className="mt-4 text-fg-2">License ZenithProduction for your own organisation or production crew. Tell us how you broadcast and the team will reply with options and pricing.</span>
-              <span className="btn btn-primary mt-8 self-start">
+              <span className="btn btn-primary mt-8 self-start whitespace-normal text-left">
                 Inquire about purchasing <span className="arrow">→</span>
               </span>
             </ZLink>
-            <ZLink to="/book" className="panel-raised group relative flex flex-col p-8 transition-colors hover:border-prod" data-reveal style={{ '--i': 1 } as React.CSSProperties}>
+            <ZLink to="/book" className="panel-raised group relative flex min-w-0 flex-col p-8 transition-colors hover:border-prod" data-reveal style={{ '--i': 1 } as React.CSSProperties}>
               <span className="t-label !text-prod">02 · Production service</span>
               <span className="t-display mt-5 text-xl">We run it for you</span>
               <span className="mt-4 text-fg-2">Book the Zenith production crew for your upcoming tournament. Send the dates and requirements — we confirm after review.</span>
-              <span className="btn btn-ghost mt-8 self-start">
+              <span className="btn btn-ghost mt-8 self-start whitespace-normal text-left">
                 Book production for your tournament <span className="arrow">→</span>
               </span>
             </ZLink>

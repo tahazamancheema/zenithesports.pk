@@ -1,5 +1,7 @@
 'use client'
 
+import Link from 'next/link'
+
 /** Never shows internal error details; the digest lets staff find the server log entry. */
 export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
@@ -12,9 +14,9 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
         <button type="button" onClick={reset} className="btn btn-primary">
           Try again
         </button>
-        <a href="/" className="btn btn-ghost">
+        <Link href="/" className="btn btn-ghost">
           Home
-        </a>
+        </Link>
       </div>
     </main>
   )
