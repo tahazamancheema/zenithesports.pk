@@ -2,21 +2,27 @@
 
 import { useEffect, useId, useRef, useState } from 'react'
 
-const MAX_BYTES = 4 * 1024 * 1024
+/**
+ * Per-image cap in the browser. The site's host accepts at most 4.5 MB per request,
+ * so keeping each image under 1.4 MB lets a form carry up to three screenshots.
+ */
+const MAX_BYTES = 1.4 * 1024 * 1024
 const ACCEPT = ['image/png', 'image/jpeg', 'image/webp']
 
 /** Downscale only when an image is over the limit; the server re-validates whatever arrives. */
 async function fitUnderLimit(file: File): Promise<File> {
   if (file.size <= MAX_BYTES) return file
   const bitmap = await createImageBitmap(file)
-  const scale = Math.min(1, 2560 / Math.max(bitmap.width, bitmap.height))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(bitmap.width * scale)
-  canvas.height = Math.round(bitmap.height * scale)
-  canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-  for (const q of [0.92, 0.85, 0.75]) {
-    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q))
-    if (blob && blob.size <= MAX_BYTES) return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
+  for (const side of [2560, 1920, 1440]) {
+    const scale = Math.min(1, side / Math.max(bitmap.width, bitmap.height))
+    const canvas = document.createElement('canvas')
+    canvas.width = Math.round(bitmap.width * scale)
+    canvas.height = Math.round(bitmap.height * scale)
+    canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+    for (const q of [0.9, 0.82, 0.72]) {
+      const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', q))
+      if (blob && blob.size <= MAX_BYTES) return new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' })
+    }
   }
   return file
 }

@@ -81,7 +81,7 @@ export function ReportForm({
         {(p) => <input {...p} className="input" maxLength={120} defaultValue={v.contact} placeholder="Email, WhatsApp or Discord" />}
       </Field>
       <p className="text-sm text-fg-3">
-        PNG, JPEG or WebP, up to 4 MB each. Larger images are resized in your browser before upload. By submitting you confirm the screenshots are genuine and unedited. This report is about {gameName} play in Zenith competitions.
+        PNG, JPEG or WebP. Large screenshots are shrunk in your browser before upload. By submitting you confirm the screenshots are genuine and unedited. This report is about {gameName} play in Zenith competitions.
       </p>
       <div>
         <SubmitButton pendingLabel="Uploading evidence…">Submit report →</SubmitButton>
