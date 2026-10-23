@@ -184,5 +184,6 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Images, video and fonts are served straight from the CDN without running the proxy.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:webp|png|jpe?g|gif|svg|ico|mp4|webm|woff2?)$).*)'],
 }

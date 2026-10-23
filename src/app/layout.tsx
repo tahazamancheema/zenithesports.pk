@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { fontVariables } from '@/lib/fonts'
+import { MarkSymbol } from '@/components/brand/mark-symbol'
 import { LinkModeProvider } from '@/components/link'
 import { RevealRoot } from '@/components/motion'
 import { getLinkMode } from '@/server/link'
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={fontVariables} data-scroll-behavior="smooth">
       <body>
+        <MarkSymbol />
         <LinkModeProvider value={linkMode}>
           {children}
           <RevealRoot />

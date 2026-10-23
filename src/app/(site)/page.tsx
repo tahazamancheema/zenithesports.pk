@@ -49,7 +49,7 @@ export default async function Home() {
       <section className="relative isolate overflow-hidden" aria-labelledby="hero-title">
         <img
           src="/visuals/hero-arena.webp"
-          srcSet="/visuals/hero-arena-sm.webp 1280w, /visuals/hero-arena.webp 2880w"
+          srcSet="/visuals/hero-arena-sm.webp 960w, /visuals/hero-arena-md.webp 1600w, /visuals/hero-arena.webp 2560w"
           sizes="100vw"
           alt=""
           aria-hidden

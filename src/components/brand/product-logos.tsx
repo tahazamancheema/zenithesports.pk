@@ -1,7 +1,7 @@
 'use client'
 
 import { useId } from 'react'
-import { MARK_PATH, MARK_VIEWBOX } from './mark-path'
+import { MARK_VIEWBOX } from './mark-path'
 
 export type ProductKey = 'zenith' | 'registrations' | 'production' | 'anticheat' | 'points'
 
@@ -10,7 +10,7 @@ export function ZenithGlyph({ fill = '#fff', className = '', title }: { fill?: s
   return (
     <svg viewBox={MARK_VIEWBOX} className={className} role={title ? 'img' : undefined} aria-hidden={title ? undefined : true}>
       {title && <title>{title}</title>}
-      <path d={MARK_PATH} fill={fill} fillRule="evenodd" />
+      <use href="#zx-mark" fill={fill} />
     </svg>
   )
 }
@@ -36,7 +36,7 @@ export function ProductIcon({ product, size = 48, className = '' }: { product: P
   const mark = (fill: string, s = 0.62, dy = 0) => {
     const w = 256 * s
     const h = (w * 1082) / 1228
-    return <svg x={(256 - w) / 2} y={(256 - h) / 2 + dy} width={w} height={h} viewBox={MARK_VIEWBOX}><path d={MARK_PATH} fill={fill} fillRule="evenodd" /></svg>
+    return <svg x={(256 - w) / 2} y={(256 - h) / 2 + dy} width={w} height={h} viewBox={MARK_VIEWBOX}><use href="#zx-mark" fill={fill} /></svg>
   }
   return (
     <svg width={size} height={size} viewBox="0 0 256 256" className={className} role="img" aria-label={NAME[product]}>
@@ -82,7 +82,7 @@ export function ProductIcon({ product, size = 48, className = '' }: { product: P
             <path d="M156 64a14 14 0 0 0 28 0M156 192a14 14 0 0 1 28 0" fill="none" stroke={`url(#${id}-gold)`} strokeWidth="6" />
             <path d="M170 84v88" stroke="#d9b25f" strokeWidth="4" strokeDasharray="7 7" strokeLinecap="round" opacity="0.8" />
             <svg x="44" y="84" width="104" height="92" viewBox={MARK_VIEWBOX}>
-              <path d={MARK_PATH} fill={`url(#${id}-gold)`} fillRule="evenodd" />
+              <use href="#zx-mark" fill={`url(#${id}-gold)`} />
             </svg>
             <g fill="#e9c97f">
               <rect x="186" y="98" width="5" height="60" rx="1" />

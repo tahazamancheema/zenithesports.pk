@@ -14,7 +14,7 @@ elsewhere, check that publisher's community or tournament guidelines.
 | `public/visuals/games/valorant*.webp` | VALORANT Episode 8 teaser, "The Arrival" | playvalorant.com/media (official wallpaper pack) | © Riot Games; offered by Riot for fan and creator use |
 | `public/visuals/games/honor-of-kings*.webp` | Honor of Kings key art | Google Play listing `com.levelinfinite.sgameGlobal` | © Level Infinite / TiMi |
 | `public/visuals/games/tekken-8*.webp` | TEKKEN 8 gameplay | Steam store page, app 1778820 | © Bandai Namco |
-| `public/games/*-logo.png`, `honor-of-kings-emblem.png` | PUBG Mobile, Free Fire, VALORANT, Honor of Kings, TEKKEN 8 and EA SPORTS FC logos (PUBG Mobile and EA SPORTS FC recoloured white for the dark site) | Supplied by Zenith | Trademarks of their owners |
+| `public/games/*-logo.webp`, `*-emblem.webp` | PUBG Mobile, Free Fire, VALORANT, Honor of Kings, TEKKEN 8 and EA SPORTS FC logos (PUBG Mobile and EA SPORTS FC recoloured white for the dark site) | Supplied by Zenith | Trademarks of their owners |
 | `public/visuals/points.webp` | Generated podium render, recoloured emerald | Zenith | Zenith |
 | `public/products/production/*` | ZenithProduction operator screens (captured at 2× density), overlays and the 1920×1080 walkthrough | Captured from the real software with its built-in sample data | Zenith |
 
