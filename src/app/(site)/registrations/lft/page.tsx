@@ -20,7 +20,7 @@ export default async function LftBoard(props: PageProps<'/registrations/lft'>) {
   return (
     <>
       <PageIntro
-        eyebrow="Zenith Registrations · Looking for team"
+        eyebrow="ZenithRegistrations · Looking for team"
         title="Solo players, ready for a roster"
         lede="Players list themselves here; captains send a request. Contact details are shared only when the player accepts."
       >

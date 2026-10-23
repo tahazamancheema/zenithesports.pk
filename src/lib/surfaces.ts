@@ -5,7 +5,7 @@
  */
 export const SURFACES = {
   hq: { prefix: '', subdomain: null, name: 'Zenith Esports' },
-  registrations: { prefix: '/registrations', subdomain: 'registrations', name: 'Zenith Registrations' },
+  registrations: { prefix: '/registrations', subdomain: 'registrations', name: 'ZenithRegistrations' },
   production: { prefix: '/production', subdomain: 'production', name: 'ZenithProduction' },
   anticheat: { prefix: '/anticheat', subdomain: 'anticheat', name: 'ZenithAntiCheat' },
   points: { prefix: '/points', subdomain: 'points', name: 'ZenithPoints' },

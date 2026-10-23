@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next'
 import { headers } from 'next/headers'
+import { GAME_RULES } from '@/config/rules'
 import { surfaceForHost } from '@/lib/surfaces'
 import { getGames, listPublicTournaments } from '@/server/services/catalog'
 
 const PAGES: Record<string, string[]> = {
-  hq: ['/', '/about', '/contact', '/faq', '/rules', '/legal/privacy', '/legal/terms', '/legal/cookies', '/legal/accessibility'],
+  hq: ['/', '/about', '/contact', '/faq', '/rules', '/tournament-rules', ...GAME_RULES.map((g) => `/tournament-rules/${g.gameId}`), '/legal/privacy', '/legal/terms', '/legal/cookies', '/legal/accessibility'],
   registrations: ['/', '/lft'],
   production: ['/', '/inquire', '/book'],
   anticheat: ['/', '/report'],

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: { default: 'Zenith Registrations — tournaments', template: '%s · Zenith Registrations' },
+  title: { default: 'ZenithRegistrations — tournaments', template: '%s · ZenithRegistrations' },
   description: 'Find Zenith tournaments for PUBG Mobile, Free Fire, VALORANT and more. Read the rules, check roster requirements and register your team.',
 }
 

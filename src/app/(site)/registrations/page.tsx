@@ -180,7 +180,7 @@ export default async function RegistrationsHub(props: PageProps<'/registrations'
             <ZLink to="/account" className="btn btn-sm btn-ghost">
               My registrations
             </ZLink>
-            <ZLink surface="hq" to="/rules" className="btn btn-sm btn-ghost">
+            <ZLink surface="hq" to="/tournament-rules" className="btn btn-sm btn-ghost">
               Tournament rules
             </ZLink>
           </div>

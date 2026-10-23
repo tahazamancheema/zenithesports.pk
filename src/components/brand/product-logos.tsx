@@ -17,7 +17,7 @@ export function ZenithGlyph({ fill = '#fff', className = '', title }: { fill?: s
 
 const NAME: Record<ProductKey, string> = {
   zenith: 'Zenith Esports',
-  registrations: 'Zenith Registrations',
+  registrations: 'ZenithRegistrations',
   production: 'ZenithProduction',
   anticheat: 'ZenithAntiCheat',
   points: 'ZenithPoints',

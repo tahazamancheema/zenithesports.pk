@@ -17,7 +17,7 @@ export type Product = {
 export const PRODUCTS: Product[] = [
   {
     surface: 'registrations',
-    name: 'Zenith Registrations',
+    name: 'ZenithRegistrations',
     nav: 'Registrations',
     verb: 'Enter',
     color: 'var(--color-reg)',
@@ -78,7 +78,7 @@ export const PRODUCTS: Product[] = [
 export const productBySurface = (s: Surface) => PRODUCTS.find((p) => p.surface === s)
 
 export const LEGAL_LINKS = [
-  { to: '/rules', label: 'Tournament rules' },
+  { to: '/rules', label: 'Website rules' },
   { to: '/legal/privacy', label: 'Privacy policy' },
   { to: '/legal/terms', label: 'Terms of service' },
   { to: '/legal/cookies', label: 'Cookies' },

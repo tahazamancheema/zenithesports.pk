@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { gameRulebook } from '@/config/rules'
 import { notFound } from 'next/navigation'
 import { Countdown } from '@/components/countdown'
 import { ZLink } from '@/components/link'
@@ -115,11 +116,11 @@ export default async function TournamentPage(props: PageProps<'/registrations/t/
           {t.feeNotes && <Block title="Fees">{t.feeNotes}</Block>}
           {t.resultsNotes && <Block title="Results">{t.resultsNotes}</Block>}
           <p className="mt-10 text-sm text-fg-3">
-            General policies in the{' '}
-            <ZLink surface="hq" to="/rules" className="underline underline-offset-4 hover:text-fg">
-              Zenith tournament rules
+            The{' '}
+            <ZLink surface="hq" to={gameRulebook(t.gameId) ? `/tournament-rules/${t.gameId}` : '/tournament-rules'} className="underline underline-offset-4 hover:text-fg">
+              {gameRulebook(t.gameId) ? `Zenith ${t.gameName} rules` : 'Zenith tournament rules'}
             </ZLink>{' '}
-            apply to every event.
+            apply to this event alongside the rules above.
           </p>
         </div>
 

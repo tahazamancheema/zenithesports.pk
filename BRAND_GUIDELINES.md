@@ -106,7 +106,7 @@ Tiles are dark enough that the white mark always stands out. No badges, rings or
 |---|---|---|
 | Zenith Esports | night `#171a21 → #030405` | chrome |
 | ZenithProduction | black `#0d0d0d → #030405` | white |
-| Zenith Registrations | deep gold `#b07c1c → #5a3d0a` | white |
+| ZenithRegistrations | deep gold `#b07c1c → #5a3d0a` | white |
 | ZenithAntiCheat | deep teal `#12927f → #05433b` | white |
 | ZenithPoints | deep emerald `#14a06c → #064a31` | white |
 
