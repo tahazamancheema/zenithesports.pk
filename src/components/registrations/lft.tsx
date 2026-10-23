@@ -3,22 +3,8 @@
 import { useActionState, useState } from 'react'
 import { lftCreateAction, lftManageAction, lftRequestAction } from '@/app/actions/public'
 import { IDLE } from '@/lib/action-state'
+import { roleLabel } from '@/lib/lft'
 import { Field, FormAlert, FormGuard, SubmitButton, SuccessPanel } from '../form'
-
-const ROLE_LABEL: Record<string, string> = {
-  duelist: 'Duelist',
-  initiator: 'Initiator',
-  controller: 'Controller',
-  sentinel: 'Sentinel',
-  flex: 'Flex',
-  igl: 'IGL',
-  'clash-lane': 'Clash lane',
-  jungle: 'Jungle',
-  'mid-lane': 'Mid lane',
-  'farm-lane': 'Farm lane',
-  roam: 'Roam',
-}
-export const roleLabel = (r: string) => ROLE_LABEL[r] ?? r
 
 export function LftCreateForm({ token, gameId, roles, uidLabel, uidHint }: { token: string; gameId: string; roles: string[]; uidLabel: string; uidHint: string }) {
   const [state, action] = useActionState(lftCreateAction, IDLE)
@@ -141,7 +127,7 @@ export function LftRequestButton({ token, profileId, ign }: { token: string; pro
 
 export function LftManageButton({ token, op, requestId, label, danger }: { token: string; op: string; requestId?: string; label: string; danger?: boolean }) {
   const [state, action] = useActionState(lftManageAction, IDLE)
-  if (state.status === 'success') return <span className="t-label !text-ok">Done — reload to refresh</span>
+  if (state.status === 'success') return <span className="t-label !text-ok">Done</span>
   return (
     <form action={action}>
       <input type="hidden" name="token" value={token} />

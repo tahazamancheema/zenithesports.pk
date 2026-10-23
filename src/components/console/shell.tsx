@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ROLE_LABEL } from '@/lib/permissions'
 import type { Staff } from '@/server/auth/session'
@@ -70,9 +71,9 @@ export function Stat({ label, value, tone, href }: { label: string; value: numbe
     </>
   )
   return href ? (
-    <a href={href} className="block bg-ink-1 p-5 transition-colors hover:bg-ink-2">
+    <Link href={href} className="block bg-ink-1 p-5 transition-colors hover:bg-ink-2">
       {body}
-    </a>
+    </Link>
   ) : (
     <div className="bg-ink-1 p-5">{body}</div>
   )

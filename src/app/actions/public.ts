@@ -1,5 +1,6 @@
 'use server'
 
+import { refresh } from 'next/cache'
 import { after } from 'next/server'
 import type { Answers } from '@/lib/forms/engine'
 import { failure, guardPublic, textValues, type ActionState } from '@/server/action-guard'
@@ -230,7 +231,10 @@ export async function lftManageAction(_: ActionState, fd: FormData): Promise<Act
     let ok = false
     if (op === 'accept' || op === 'decline') ok = await respondToRequest(token, String(fd.get('requestId') ?? ''), op === 'accept')
     else if (op === 'matched' || op === 'withdrawn' || op === 'active') ok = await setLftStatusByToken(token, op)
-    return ok ? { status: 'success' } : { status: 'error', message: 'That change could not be made.' }
+    if (!ok) return { status: 'error', message: 'That change could not be made.' }
+    // The listing page re-renders with the new status in the same round trip.
+    refresh()
+    return { status: 'success' }
   } catch (e) {
     return failure(e)
   }

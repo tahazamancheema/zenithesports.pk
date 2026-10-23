@@ -28,7 +28,7 @@ export default async function NewFlag() {
             <input name="teamName" className="input" maxLength={60} />
           </label>
           <label className="grid gap-1.5">
-            <span className="field-label !mb-0">Player UID (if a player decision)</span>
+            <span className="field-label !mb-0">Player UID (if a player decision; always matched)</span>
             <input name="subjectUid" className="input input-mono" />
           </label>
           <label className="grid gap-1.5">

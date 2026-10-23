@@ -116,7 +116,7 @@ async function sync(a: Account): Promise<Account | null> {
     values (${a.id}, ${a.email}, ${a.emailVerified}, ${a.displayName}, ${a.avatarUrl}, ${a.provider})
     on conflict (id) do update
        set email = excluded.email,
-           email_verified = excluded.email_verified,
+           email_verified = zenith.accounts.email_verified or excluded.email_verified,
            display_name = coalesce(excluded.display_name, zenith.accounts.display_name),
            avatar_url = coalesce(excluded.avatar_url, zenith.accounts.avatar_url),
            provider = excluded.provider,
@@ -128,36 +128,59 @@ async function sync(a: Account): Promise<Account | null> {
 
 const safeAvatar = (v: unknown) => (typeof v === 'string' && v.startsWith('https://') && v.length <= 500 ? v : null)
 
-/** The verified account for this request, or null. Cached per request. */
+const providersOf = (appMeta: Record<string, unknown> | undefined, extra: string[] = []) => [
+  ...new Set([...(Array.isArray(appMeta?.providers) ? (appMeta.providers as unknown[]).filter((x): x is string => typeof x === 'string') : []), ...extra]),
+]
+
+function fromMetadata(id: string, email: string, emailVerified: boolean, meta: Record<string, unknown>, appMeta: Record<string, unknown> | undefined, extraProviders: string[] = []): Account {
+  const name = [meta.full_name, meta.name].find((x) => typeof x === 'string' && x.trim()) as string | undefined
+  return {
+    id,
+    email: email.toLowerCase(),
+    emailVerified,
+    displayName: name?.trim().slice(0, 80) ?? null,
+    avatarUrl: safeAvatar(meta.avatar_url ?? meta.picture),
+    provider: typeof appMeta?.provider === 'string' ? appMeta.provider : null,
+    providers: providersOf(appMeta, extraProviders),
+  }
+}
+
+/**
+ * The signed-in account for this request, or null. Cached per request.
+ * The session token's signature is checked locally against the project's
+ * published (asymmetric) signing keys, so pages pay no network round trip;
+ * getClaims falls back to asking Supabase Auth if the keys are symmetric.
+ */
 export const getAccount = cache(async (): Promise<Account | null> => {
   if (supabaseConfigured()) {
     const sb = await supabaseServer()
-    // getUser() asks Supabase Auth to validate the token — never trust the cookie alone.
-    const { data } = await sb.auth.getUser()
-    const u = data.user
-    if (!u?.email) return null
-    const meta = (u.user_metadata ?? {}) as Record<string, unknown>
-    const name = [meta.full_name, meta.name].find((x) => typeof x === 'string' && x.trim()) as string | undefined
-    return sync({
-      id: u.id,
-      email: u.email.toLowerCase(),
-      emailVerified: Boolean(u.email_confirmed_at),
-      displayName: name?.trim().slice(0, 80) ?? null,
-      avatarUrl: safeAvatar(meta.avatar_url ?? meta.picture),
-      provider: typeof u.app_metadata?.provider === 'string' ? u.app_metadata.provider : null,
-      providers: [
-        ...new Set([
-          ...(Array.isArray(u.app_metadata?.providers) ? (u.app_metadata.providers as unknown[]).filter((x): x is string => typeof x === 'string') : []),
-          ...(u.identities ?? []).map((i) => i.provider),
-        ]),
-      ],
-    })
+    const { data, error } = await sb.auth.getClaims()
+    const c = data?.claims
+    if (error || !c?.sub || typeof c.email !== 'string' || !c.email) return null
+    const meta = (c.user_metadata ?? {}) as Record<string, unknown>
+    return sync(fromMetadata(c.sub, c.email, meta.email_verified === true, meta, c.app_metadata as Record<string, unknown> | undefined))
   }
   if (localAuthEnabled()) {
     const a = await readLocal()
     return a ? sync(a) : null
   }
   return null
+})
+
+/**
+ * Like getAccount, but asks Supabase Auth itself (current email-confirmation
+ * state, linked identities, revoked sessions). Used before granting anything.
+ */
+export const getVerifiedAccount = cache(async (): Promise<Account | null> => {
+  if (supabaseConfigured()) {
+    const { data } = await (await supabaseServer()).auth.getUser()
+    const u = data.user
+    if (!u?.email) return null
+    return sync(
+      fromMetadata(u.id, u.email, Boolean(u.email_confirmed_at), (u.user_metadata ?? {}) as Record<string, unknown>, u.app_metadata, (u.identities ?? []).map((i) => i.provider)),
+    )
+  }
+  return getAccount()
 })
 
 /** Stamps the activity cookie when a session starts (the proxy keeps it fresh afterwards). */

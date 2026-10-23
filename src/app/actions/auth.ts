@@ -4,7 +4,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import type { ConsoleSurface } from '@/lib/permissions'
 import { failure, type ActionState } from '@/server/action-guard'
-import { getAccount, localAuthEnabled, localSignIn, markActive, safeNext, signOutEverywhere, supabaseConfigured, supabaseServer } from '@/server/auth/account'
+import { getAccount, getVerifiedAccount, localAuthEnabled, localSignIn, markActive, safeNext, signOutEverywhere, supabaseConfigured, supabaseServer } from '@/server/auth/account'
 import { enterWithAccount } from '@/server/auth/session'
 import { consoleBase } from '@/server/console-base'
 import { env } from '@/server/env'
@@ -146,7 +146,7 @@ export async function consoleEnterAction(_: ActionState, fd: FormData): Promise<
   if (!['hq', 'registrations', 'anticheat'].includes(surface)) return { status: 'error', message: 'Unknown console.' }
   try {
     await assertSameOrigin()
-    const account = await getAccount()
+    const account = await getVerifiedAccount()
     if (!account) return { status: 'error', message: 'Sign in first.' }
     const r = await enterWithAccount(surface, account)
     if (!r.ok) return { status: 'error', message: r.error }

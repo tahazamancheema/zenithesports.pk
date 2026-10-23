@@ -333,6 +333,11 @@ export async function createFlag(
   const game = await getGame(input.gameId)
   if (!game) throw new ReviewError('Unknown game.')
   if (input.summary.trim().length < 3) throw new ReviewError('Add a short summary of the decision.')
+  // A decision about a named player always matches on that player's UID.
+  const subjectUid = input.subjectUid?.trim()
+  if (subjectUid && !input.identifiers.some((i) => i.kind === 'game_uid' && i.value.trim() === subjectUid)) {
+    input = { ...input, identifiers: [{ kind: 'game_uid', value: subjectUid, confidence: 'confirmed' }, ...input.identifiers] }
+  }
   if (!input.identifiers.length) throw new ReviewError('Add at least one identifier to match on.')
   const flagId = await db().begin(async (tx) => {
     let playerId: string | null = null
