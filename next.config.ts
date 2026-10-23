@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
     },
   },
   serverExternalPackages: ['sharp', 'postgres'],
+  async redirects() {
+    // The old Games index was retired; each game lives under Registrations.
+    return [{ source: '/games', destination: '/registrations', permanent: true }]
+  },
   async headers() {
     return [
       { source: '/:path*', headers: common },

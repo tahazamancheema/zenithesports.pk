@@ -218,12 +218,9 @@ export default async function Home() {
       {/* ALT 30 — games */}
       <section className="border-t border-line py-24" aria-labelledby="games-title">
         <div className="shell">
-          <div className="flex flex-wrap items-end justify-between gap-6" data-reveal>
-            <div>
-              <Altitude deg={30}>The portfolio</Altitude>
-              <h2 id="games-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">Six games. One standard.</h2>
-            </div>
-            <ZLink surface="hq" to="/games" className="btn btn-ghost">All games <span className="arrow">→</span></ZLink>
+          <div data-reveal>
+            <Altitude deg={30}>The portfolio</Altitude>
+            <h2 id="games-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">Six games. One standard.</h2>
           </div>
           <div className="mt-12">
             <GameShowcase />

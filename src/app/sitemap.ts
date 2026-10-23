@@ -4,7 +4,7 @@ import { surfaceForHost } from '@/lib/surfaces'
 import { getGames, listPublicTournaments } from '@/server/services/catalog'
 
 const PAGES: Record<string, string[]> = {
-  hq: ['/', '/about', '/games', '/contact', '/faq', '/rules', '/legal/privacy', '/legal/terms', '/legal/cookies', '/legal/accessibility'],
+  hq: ['/', '/about', '/contact', '/faq', '/rules', '/legal/privacy', '/legal/terms', '/legal/cookies', '/legal/accessibility'],
   registrations: ['/', '/lft'],
   production: ['/', '/inquire', '/book'],
   anticheat: ['/', '/report'],

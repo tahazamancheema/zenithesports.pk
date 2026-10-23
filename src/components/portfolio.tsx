@@ -1,6 +1,6 @@
 import { phaseOf } from '@/lib/tournament'
 import { getFormats, getGames, listPublicTournaments, type Game } from '@/server/services/catalog'
-import { gameArt } from '@/config/game-art'
+import { artCrop, gameArt } from '@/config/game-art'
 import { mediaUrl } from '@/server/services/catalog'
 import { GameWordmark } from './game-mark'
 import { ZLink } from './link'
@@ -82,7 +82,7 @@ export async function GameShowcase() {
             className="group relative isolate flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-xl border border-line-2 p-4 transition-[border-color,transform] duration-500 hover:-translate-y-1 hover:border-[color:var(--g)] sm:aspect-[16/11] md:p-5"
           >
             {/* eslint-disable-next-line @next/next/no-img-element -- generated key art, already optimised */}
-            <img src={art.thumb} alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <img src={art.thumb} alt="" loading="lazy" style={artCrop(g.id, art.thumb)} className="absolute inset-0 -z-10 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
             <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/55 to-[#06070a]/5" />
             <div className="absolute left-4 top-4 md:left-5 md:top-5">
               <GameWordmark gameId={g.id} name={g.name} logoUrl={mediaUrl(g.logoFileId)} height={36} className="!max-w-[58%] [&_img]:max-w-none drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]" />

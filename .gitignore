@@ -52,3 +52,4 @@ node_modules/
 /.local/
 lighthouse-*.json
 !.env.example
+.local-db.log

@@ -84,7 +84,6 @@ export async function SiteFooter() {
             title="Zenith"
             links={[
               ['/about', 'About'],
-              ['/games', 'Games'],
               ['/rules', 'Tournament rules'],
               ['/faq', 'FAQ'],
               ['/contact', 'Contact'],

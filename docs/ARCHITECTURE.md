@@ -6,7 +6,7 @@ Audience: engineers maintaining zenithesports.pk. Last updated 18 October 2026.
 
 | Area | Finding | Consequence |
 |---|---|---|
-| Website repo | `rebuild/v2` held an uncommitted Next.js 16 + Supabase rewrite of the Vite SPA (Mark47 sub-brand, payment-proof flow). | Snapshotted as commit `86ae235`; its source was moved to `archive/` (excluded from build and lint). |
+| Website repo | `rebuild/v2` held an uncommitted Next.js 16 + Supabase rewrite of the Vite SPA (Mark47 sub-brand, payment-proof flow). | Snapshotted as commit `86ae235`; that source is kept only in git history. |
 | Deployed site | `origin/main` = legacy Vite SPA + the static ZenithHisaab ledger at `public/hisaab/admin`. | Merged into this branch; Hisaab blobs are identical to `origin/main`. |
 | Database | Legacy site **and** ZenithHisaab share Supabase project `tzxvmmmxxcaiocmeejng` (`public.*`, `public.hisaab_*`, `auth.users`). | All new objects live in schema `zenith`. Nothing in `public`/`auth` is created, altered or dropped. The legacy WIP migrations, which would have created `public.teams` etc. in the shared DB, were removed. |
 | Credentials | No `.env`, Supabase/Vercel CLI, Docker or GitHub CLI login in the build environment. | Production DB, hosting and DNS were not touched; see `DEPLOYMENT.md`. Local verification uses PGlite (real PostgreSQL 18). |

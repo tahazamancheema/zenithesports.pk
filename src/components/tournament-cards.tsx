@@ -1,4 +1,4 @@
-import { gameArt } from '@/config/game-art'
+import { artCrop, gameArt } from '@/config/game-art'
 import { phaseOf, formatInZone, tzAbbrev } from '@/lib/tournament'
 import { mediaUrl, type Game, type PublicTournament, type Sponsor } from '@/server/services/catalog'
 import { GameMark } from './game-mark'
@@ -37,7 +37,7 @@ export function TournamentCard({ t, game, sponsors = [], featured = false }: { t
       style={{ '--g': art.accent } as React.CSSProperties}
     >
       <div className={`relative overflow-hidden ${featured ? 'aspect-[16/9] lg:aspect-auto lg:w-[58%]' : 'aspect-[16/9]'}`}>
-        <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" loading={featured ? 'eager' : 'lazy'} />
+        <img src={poster} alt="" style={artCrop(t.gameId, poster)} className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]" loading={featured ? 'eager' : 'lazy'} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#06070a] via-[#06070a]/30 to-transparent" />
         <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
           <span className="flex items-center gap-2 rounded-full border border-white/15 bg-black/55 py-1 pl-1 pr-3 backdrop-blur-md">

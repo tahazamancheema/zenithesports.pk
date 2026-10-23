@@ -11,6 +11,7 @@ export function PageIntro({
   children,
   compact = false,
   image,
+  imageStyle,
   top,
   aside,
 }: {
@@ -19,8 +20,10 @@ export function PageIntro({
   lede?: ReactNode
   children?: ReactNode
   compact?: boolean
-  /** Optional backdrop render, faded in from the right. */
+  /** Optional backdrop render, faded in from the right (from the top on phones). */
   image?: string
+  /** Crop and orientation for the backdrop (see artCrop). */
+  imageStyle?: React.CSSProperties
   /** Optional element above the eyebrow, e.g. a product lockup. */
   top?: ReactNode
   /** Optional visual for the right-hand side (replaces the trajectory line). */
@@ -30,7 +33,7 @@ export function PageIntro({
     <section className={`relative isolate overflow-hidden border-b border-line ${compact ? 'py-16' : 'py-20 md:py-28'}`}>
       {image && (
         // eslint-disable-next-line @next/next/no-img-element -- static, pre-optimised render
-        <img src={image} alt="" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55 [mask-image:linear-gradient(90deg,transparent_15%,#000_75%)]" />
+        <img src={image} alt="" aria-hidden style={imageStyle} className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55 [mask-image:linear-gradient(180deg,#000_30%,transparent_100%)] md:[mask-image:linear-gradient(90deg,transparent_15%,#000_75%)]" />
       )}
       <div aria-hidden className="grid-field absolute inset-0 -z-10 opacity-40" />
       <svg aria-hidden viewBox="0 0 400 240" className={`pointer-events-none absolute right-0 bottom-0 -z-10 h-full w-[42%] ${aside ? 'hidden' : 'hidden md:block'}`} preserveAspectRatio="xMaxYMax meet">

@@ -10,7 +10,6 @@ import { useLinkMode, ZLink } from './link'
 
 const PAGES: { label: string; surface: Surface; to: string }[] = [
   { label: 'Tournaments', surface: 'registrations', to: '/' },
-  { label: 'Games', surface: 'hq', to: '/games' },
   { label: 'About', surface: 'hq', to: '/about' },
   { label: 'Contact', surface: 'hq', to: '/contact' },
 ]

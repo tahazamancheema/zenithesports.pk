@@ -6,7 +6,7 @@ import { PageIntro } from '@/components/page-intro'
 import { AVAILABILITY, GameShowcase } from '@/components/portfolio'
 import { TournamentCard, TournamentGrid } from '@/components/tournament-cards'
 import { EmptySignal } from '@/components/tournament-list'
-import { gameArt } from '@/config/game-art'
+import { artCrop, gameArt } from '@/config/game-art'
 import { phaseOf, type Phase } from '@/lib/tournament'
 import { getFormats, getGames, getSponsors, listPublicTournaments, mediaUrl } from '@/server/services/catalog'
 
@@ -40,6 +40,7 @@ export default async function RegistrationsHub(props: PageProps<'/registrations'
       <PageIntro
         top={<ProductLockup product="registrations" size={52} />}
         image={art ? art.art : '/visuals/registrations.webp'}
+        imageStyle={selected && art ? artCrop(selected.id, art.art, true) : undefined}
         eyebrow={selected ? `${selected.name} tournaments` : 'Every Zenith competition'}
         title={
           selected ? (

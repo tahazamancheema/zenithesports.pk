@@ -4,7 +4,7 @@ import { Countdown } from '@/components/countdown'
 import { ZLink } from '@/components/link'
 import { GameMark } from '@/components/game-mark'
 import { PhaseChip } from '@/components/tournament-list'
-import { gameArt } from '@/config/game-art'
+import { artCrop, gameArt } from '@/config/game-art'
 import { formatInZone, phaseOf, tzAbbrev } from '@/lib/tournament'
 import { getGame, getPublicTournament, getSponsors, mediaUrl } from '@/server/services/catalog'
 
@@ -30,7 +30,7 @@ export default async function TournamentPage(props: PageProps<'/registrations/t/
   return (
     <>
       <section className="relative isolate overflow-hidden border-b border-line">
-        <img src={poster} alt="" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-60" />
+        <img src={poster} alt="" aria-hidden style={artCrop(t.gameId, poster, true)} className="absolute inset-0 -z-20 h-full w-full object-cover opacity-60" />
         <div aria-hidden className="absolute inset-0 -z-10 bg-[linear-gradient(90deg,#06070a_25%,rgba(6,7,10,0.7)_60%,rgba(6,7,10,0.35)),linear-gradient(0deg,#06070a,transparent_50%)]" />
         <div className="shell py-12 md:py-16">
           <ZLink to="/" className="t-label hover:text-fg" transitionTypes={['nav-back']}>

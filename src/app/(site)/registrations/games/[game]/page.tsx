@@ -6,7 +6,7 @@ import { AVAILABILITY } from '@/components/portfolio'
 import { GameMark } from '@/components/game-mark'
 import { TournamentGrid } from '@/components/tournament-cards'
 import { EmptySignal } from '@/components/tournament-list'
-import { gameArt } from '@/config/game-art'
+import { artCrop, gameArt } from '@/config/game-art'
 import { href } from '@/server/link'
 import { getFormats, getGame, getGames, getSponsors, listPublicTournaments, mediaUrl } from '@/server/services/catalog'
 
@@ -34,6 +34,7 @@ export default async function GamePage(props: PageProps<'/registrations/games/[g
         title={g.name}
         lede={g.description}
         image={mediaUrl(g.coverFileId) ?? gameArt(g.id).art}
+        imageStyle={artCrop(g.id, mediaUrl(g.coverFileId) ?? gameArt(g.id).art, true)}
         top={<GameMark gameId={g.id} name={g.name} logoUrl={mediaUrl(g.logoFileId)} size={72} />}
       >
         <span className={a.chip}>{a.label}</span>
