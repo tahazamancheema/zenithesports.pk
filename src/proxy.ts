@@ -125,6 +125,7 @@ function withCsp(req: NextRequest, mode: 'path' | 'subdomain', surface: Surface,
   headers.set('x-nonce', nonce)
   headers.set('x-zenith-mode', mode)
   headers.set('x-zenith-surface', surface)
+  headers.set('x-zenith-proxy-region', process.env.VERCEL_REGION ?? 'local')
   headers.set('Content-Security-Policy', policy)
   const res = rewrite ? NextResponse.rewrite(rewrite, { request: { headers } }) : NextResponse.next({ request: { headers } })
   res.headers.set('Content-Security-Policy', policy)
