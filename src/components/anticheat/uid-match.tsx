@@ -9,7 +9,7 @@ const STEPS = ['Evidence received', 'Scanning both screenshots', 'UID located in
  * Illustration of the core rule: a report counts only when a reviewer has
  * matched the reported UID across both screenshots.
  */
-export function UidMatch() {
+export function UidMatch({ compact = false }: { compact?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   const { active, reduce } = useSequence(4, 1900, ref)
   const step = reduce ? 3 : active
@@ -78,7 +78,7 @@ export function UidMatch() {
           <path d="M-5 0l3.5 3.5L5-3.5" fill="none" stroke="#06070a" strokeWidth="1.8" />
         </g>
       </svg>
-      <ol className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4" aria-label="Review steps">
+      <ol className={`mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4 ${compact ? 'hidden' : ''}`} aria-label="Review steps">
         {STEPS.map((s, i) => (
           <li key={s} className={`flex items-start gap-2 text-[13px] transition-colors ${i <= step ? 'text-fg' : 'text-fg-3'}`}>
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rotate-45" style={{ background: i <= step ? 'var(--color-ac)' : 'var(--color-line-3)' }} />

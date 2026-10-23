@@ -9,7 +9,6 @@ import { reportRule } from '@/lib/report-rules'
 import { getGames, mediaUrl } from '@/server/services/catalog'
 import { getSettings } from '@/server/settings'
 
-/* eslint-disable @next/next/no-img-element -- static, pre-optimised render */
 
 const PIPELINE = [
   { t: 'Report', d: 'You type the player’s ID and upload the screenshot that shows it — for PUBG Mobile and Free Fire, the successful-report screen.' },
@@ -35,7 +34,7 @@ export default async function AnticheatPage() {
   return (
     <>
       <section className="relative isolate overflow-hidden border-b border-line">
-        <img src="/visuals/anticheat.webp" alt="" aria-hidden className="absolute inset-0 -z-20 h-full w-full object-cover opacity-50 [mask-image:linear-gradient(90deg,transparent_10%,#000_70%)]" />
+        <div aria-hidden className="grid-field absolute inset-0 -z-20 opacity-40" />
         <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_15%_20%,rgba(63,216,192,0.14),transparent_50%)]" />
         <div className="shell grid gap-12 py-14 md:py-20 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-6">

@@ -7,6 +7,8 @@ import { InViewVideo, ScrollStatement, SplitText, TiltCard, VelocityMarquee, Wor
 import { ZLink } from '@/components/link'
 import { PointsPhoneDemo } from '@/components/points/points-studio'
 import { GameShowcase } from '@/components/portfolio'
+import { GameMosaic } from '@/components/registrations/game-mosaic'
+import { UidMatch } from '@/components/anticheat/uid-match'
 import { SocialLinks } from '@/components/social'
 import { TournamentGrid } from '@/components/tournament-cards'
 import { EmptySignal, PhaseChip } from '@/components/tournament-list'
@@ -241,8 +243,11 @@ export default async function Home() {
           <div className="mt-16 grid gap-5 lg:grid-cols-12">
             {/* Registrations */}
             <article id="registrations" data-surface="registrations" data-reveal className="group relative isolate flex min-h-[420px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-2xl border border-line-2 p-7 lg:col-span-12 lg:min-h-[360px]">
-              <img src="/visuals/registrations.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-80 transition-transform duration-1000 group-hover:scale-105" />
-              <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/70 to-transparent" />
+              {/* The games entries are open for, each with its official art. */}
+              <div className="absolute inset-y-0 right-0 -z-10 w-full opacity-90 transition-opacity duration-700 group-hover:opacity-100 lg:w-[64%]">
+                <GameMosaic variant="strip" />
+              </div>
+              <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/75 to-transparent lg:bg-gradient-to-r lg:from-[#06070a] lg:from-30% lg:via-[#06070a]/80 lg:to-transparent" />
               <ProductLockup product="registrations" size={48} />
               <p className="mt-5 max-w-md text-fg-2">Find a tournament for your game, read its rules and roster requirements, and enter your team in minutes — signed in, with your status always one tap away.</p>
               <ZLink surface="registrations" to="/" className="btn btn-primary mt-6 self-start">
@@ -252,8 +257,10 @@ export default async function Home() {
 
             {/* AntiCheat */}
             <article id="anticheat" data-surface="anticheat" data-reveal className="group relative isolate flex min-h-[420px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-2xl border border-line-2 p-7 lg:col-span-6">
-              <img src="/visuals/anticheat.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-75 transition-transform duration-1000 group-hover:scale-105" />
-              <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/65 to-transparent" />
+              {/* How a report is checked: the same UID matched across both screenshots. */}
+              <div className="mb-8 w-full max-w-[420px] self-center">
+                <UidMatch compact />
+              </div>
               <ProductLockup product="anticheat" size={48} />
               <p className="mt-5 max-w-md text-fg-2">Report a cheater in PUBG Mobile, Free Fire, VALORANT or Honor of Kings with one screenshot and their ID. Every report is reviewed by a person and matched across all our competitions.</p>
               <div className="mt-6 flex flex-wrap gap-3">

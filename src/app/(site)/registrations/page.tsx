@@ -1,4 +1,5 @@
 import { Eyebrow } from '@/components/brand'
+import { GameMosaic } from '@/components/registrations/game-mosaic'
 import { ProductLockup } from '@/components/brand/product-logos'
 import { GameMark } from '@/components/game-mark'
 import { ZLink } from '@/components/link'
@@ -39,7 +40,8 @@ export default async function RegistrationsHub(props: PageProps<'/registrations'
     <>
       <PageIntro
         top={<ProductLockup product="registrations" size={52} />}
-        image={art ? art.art : '/visuals/registrations.webp'}
+        image={art ? art.art : undefined}
+        aside={selected ? undefined : <GameMosaic />}
         imageStyle={selected && art ? artCrop(selected.id, art.art, true) : undefined}
         eyebrow={selected ? `${selected.name} tournaments` : 'Every Zenith competition'}
         title={
