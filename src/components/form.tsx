@@ -89,13 +89,7 @@ export function FormAlert({ state }: { state: ActionState }) {
 export function SuccessPanel({ title, reference, children }: { title: string; reference?: string; children?: ReactNode }) {
   return (
     <div className="panel-raised relative overflow-hidden p-8" role="status" style={{ animation: 'rise 700ms var(--ease-out-expo) both' }}>
-      <svg viewBox="0 0 120 40" className="h-10 w-28" aria-hidden>
-        <path d="M2 30 C 30 30, 50 6, 80 6" fill="none" stroke="var(--accent)" strokeWidth="1.5" className="draw-path is-in" style={{ '--len': 110 } as React.CSSProperties} />
-        <g transform="translate(86 6) rotate(45)">
-          <rect x="-5" y="-5" width="10" height="10" fill="var(--accent)" />
-        </g>
-      </svg>
-      <p className="t-display mt-5 text-xl">{title}</p>
+      <p className="t-display text-xl">{title}</p>
       {reference && (
         <p className="mt-4 font-mono text-sm text-fg-2">
           Reference <span className="ml-2 rounded-xs border border-line-2 px-2 py-1 text-fg">{reference}</span>

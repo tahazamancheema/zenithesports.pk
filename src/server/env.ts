@@ -10,6 +10,9 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   NOTIFY_FROM_EMAIL: z.string().optional(),
   DISCORD_WEBHOOK_URL: z.string().url().optional(),
+  // Google sign-in on our own domain (see server/auth/google.ts). Without them, sign-in goes through Supabase's page.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 })
 

@@ -1,5 +1,5 @@
 import { UidMatch } from '@/components/anticheat/uid-match'
-import { Altitude } from '@/components/brand'
+import { Eyebrow } from '@/components/brand'
 import { ProductLockup } from '@/components/brand/product-logos'
 import { Faq } from '@/components/faq'
 import { GameMark } from '@/components/game-mark'
@@ -72,7 +72,7 @@ export default async function AnticheatPage() {
         <div className="shell">
           <div className="grid gap-6 md:grid-cols-12" data-reveal>
             <div className="md:col-span-6">
-              <Altitude deg={15}>Valid evidence</Altitude>
+              <Eyebrow>Valid evidence</Eyebrow>
               <h2 id="evidence-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
                 One screenshot. One ID.
               </h2>
@@ -144,7 +144,7 @@ export default async function AnticheatPage() {
       <section id="process" className="scroll-mt-20 border-b border-line py-24" aria-labelledby="process-title">
         <div className="shell grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-4" data-reveal>
-            <Altitude deg={30}>The process</Altitude>
+            <Eyebrow>The process</Eyebrow>
             <h2 id="process-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
               From report to verified flag
             </h2>
@@ -172,7 +172,7 @@ export default async function AnticheatPage() {
       <section className="border-b border-line py-24" aria-labelledby="privacy-title">
         <div className="shell grid gap-10 md:grid-cols-12">
           <div className="md:col-span-5" data-reveal>
-            <Altitude deg={45}>Privacy</Altitude>
+            <Eyebrow>Privacy</Eyebrow>
             <h2 id="privacy-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
               What stays private
             </h2>
@@ -191,7 +191,7 @@ export default async function AnticheatPage() {
       <section className="py-24" aria-labelledby="ac-faq">
         <div className="shell grid gap-10 md:grid-cols-12">
           <div className="md:col-span-4" data-reveal>
-            <Altitude deg={60}>Questions</Altitude>
+            <Eyebrow>Questions</Eyebrow>
             <h2 id="ac-faq" className="t-display mt-6 text-[clamp(1.4rem,2.6vw,2rem)]">
               Reporting FAQ
             </h2>

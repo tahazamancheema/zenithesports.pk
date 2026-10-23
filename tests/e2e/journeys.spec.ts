@@ -263,4 +263,74 @@ test.describe.serial('user journeys', () => {
     await page.goto('/admin/audit?action=settings.')
     await expect(page.getByText(/settings\./).first()).toBeVisible()
   })
+
+  test('ready-made forms: a game template, quick-add questions, and a tournament that uses one', async () => {
+    await signIn(page, '/registrations/admin')
+    await page.goto('/registrations/admin/forms')
+    await page.getByLabel('Name').fill(`Valorant extras ${run}`)
+    await page.getByLabel('Start from').selectOption('preset:valorant')
+    await page.getByRole('button', { name: 'Create & open builder' }).click()
+    await expect(page).toHaveURL(/\/admin\/forms\/[0-9a-f-]{36}$/)
+    await expect(page.getByText('Current rank').first()).toBeVisible()
+    // Adding fields never breaks the builder, including the first one on an empty form.
+    await page.getByRole('button', { name: '+ City' }).click()
+    await page.getByRole('button', { name: '+ Add field' }).click()
+    await expect(page.getByText(/Signal interrupted/i)).toHaveCount(0)
+    await page.getByRole('button', { name: 'Save draft' }).click()
+    await expect(page.getByText('Draft saved.')).toBeVisible()
+
+    // A tournament picks the ready-made form directly; players then see its questions.
+    await page.goto('/registrations/admin/tournaments/new')
+    await page.getByLabel('Name', { exact: true }).fill(`Preset Cup ${run}`)
+    await page.getByLabel('Game & format').selectOption({ label: 'PUBG Mobile · Squad' })
+    const at = (days: number) => new Date(Date.now() + days * 86400_000 + 5 * 3600_000).toISOString().slice(0, 16)
+    await page.getByLabel('Registration opens').fill(at(-1))
+    await page.getByLabel('Registration closes').fill(at(5))
+    await page.getByLabel('Starts').fill(at(7))
+    await page.getByLabel('Capacity (entries)').fill('16')
+    await page.getByLabel('Registration form').selectOption('preset')
+    await page.getByRole('button', { name: 'Create draft' }).click()
+    await page.getByRole('button', { name: 'Publish' }).click()
+    await expect(page.getByRole('button', { name: 'Unpublish' })).toBeVisible()
+
+    await page.goto(`/login?next=${encodeURIComponent(`/registrations/t/preset-cup-${run}/register`)}`)
+    if (await page.getByRole('button', { name: /Sign in \(local test\)/ }).isVisible()) {
+      await page.getByLabel('Email').fill(`preset-${run}@test.local`)
+      await page.getByLabel('Name').fill('Preset Captain')
+      await page.getByRole('button', { name: /Sign in \(local test\)/ }).click()
+    }
+    await page.goto(`/registrations/t/preset-cup-${run}/register`)
+    await page.getByText('I have read the rules').click()
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.getByLabel('Team name').fill(`Preset Squad ${run}`)
+    await page.getByLabel('Captain’s WhatsApp number').fill('0300 7654311')
+    await page.getByRole('button', { name: 'Continue' }).click()
+    for (let i = 0; i < 4; i++) {
+      await page.getByLabel('In-game name').nth(i).fill(`Pre${i}_${run}`)
+      await page.getByLabel('Character ID').nth(i).fill(uid(20 + i))
+      // The ready-made form's per-player question appears right in the roster.
+      await page.getByLabel('Device').nth(i).selectOption('phone')
+    }
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await expect(page.getByText('Team tag').first()).toBeVisible()
+  })
+
+  test('the header offers Login / Register, and staff get the admin account page', async ({ browser }) => {
+    const visitor = await browser.newPage()
+    await visitor.goto('/about')
+    await expect(visitor.getByRole('link', { name: 'Login / Register' })).toBeVisible()
+    await visitor.close()
+
+    // The local test sign-in stands in for Google; the bootstrap admin is on the staff list.
+    const admin = await browser.newPage()
+    await admin.goto('/login?next=/account')
+    await admin.getByLabel('Email').fill(EMAIL)
+    await admin.getByLabel('Name').fill('Local Admin')
+    await admin.getByRole('button', { name: /Sign in \(local test\)/ }).click()
+    await expect(admin).toHaveURL(/\/account$/)
+    await expect(admin.getByText('Admin', { exact: true }).first()).toBeVisible()
+    await expect(admin.getByText('Registrations console').first()).toBeVisible()
+    await expect(admin.getByRole('link', { name: 'Login / Register' })).toHaveCount(0)
+    await admin.close()
+  })
 })

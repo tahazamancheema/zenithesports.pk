@@ -97,6 +97,26 @@ tables, so nothing else needs to move.
 4. Back in Supabase (`zenith-auth`) → Authentication → Sign In / Providers → **Google**: enable it,
    paste the Client ID and Client secret, save.
 
+### Show "Zenith Esports" on Google's account chooser
+
+With the steps above, Google says *"to continue to <ref>.supabase.co"*, because Google returns to
+Supabase. The website can run the Google step itself so Google returns to our own domain instead:
+
+1. Same OAuth client → **Authorised redirect URIs** → add
+   `https://www.zenithesports.pk/auth/google` (keep the Supabase one too) → Save.
+2. Vercel → project → Settings → Environment Variables (Production), add:
+   - `GOOGLE_CLIENT_ID` — the same Client ID as in Supabase
+   - `GOOGLE_CLIENT_SECRET` — its Client secret (if it is no longer shown, use **Add secret** on
+     the OAuth client and paste the new one into both Vercel and Supabase)
+   then redeploy. The chooser now reads *"to continue to zenithesports.pk"*.
+3. To show the name **Zenith Esports** instead of the domain, finish the consent screen's
+   **Branding** (app name, logo, home page `https://www.zenithesports.pk`, privacy policy
+   `https://www.zenithesports.pk/legal/privacy`, authorised domain `zenithesports.pk`) and submit it
+   for **brand verification** (Google Auth Platform → Verification centre). With only the default
+   scopes this is usually quick.
+
+Without the two variables, sign-in keeps using Supabase's page, so nothing breaks in between.
+
 ---
 
 ## Part 4 — Vercel environment variables

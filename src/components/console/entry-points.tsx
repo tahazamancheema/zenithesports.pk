@@ -12,7 +12,7 @@ import { GoogleButton } from '../auth/sign-in'
 import { ConsoleEnterForm, LoginForm, PasswordForm } from './auth-forms'
 import { ConsoleShell, type ConsoleNav } from './shell'
 
-export async function ConsoleLogin({ surface, denied }: { surface: ConsoleSurface; denied?: boolean }) {
+export async function ConsoleLogin({ surface, denied, signedOut }: { surface: ConsoleSurface; denied?: boolean; signedOut?: boolean }) {
   const staff = await getStaff(surface)
   const base = await consoleBase(surface)
   if (staff && can(staff.roles, SURFACE_GATE[surface]) && !denied) redirect(base)
@@ -32,7 +32,7 @@ export async function ConsoleLogin({ surface, denied }: { surface: ConsoleSurfac
               <p className="text-sm text-fg-2">
                 Signed in as <span className="text-fg">{account.email}</span>
               </p>
-              <ConsoleEnterForm surface={surface} label="Enter this console" />
+              <ConsoleEnterForm surface={surface} label="Enter this console" auto={!denied && !signedOut} />
               <form action={signOutAction}>
                 <button type="submit" className="btn btn-sm btn-ghost w-full">
                   Use a different account

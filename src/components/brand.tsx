@@ -30,12 +30,11 @@ export function Node({ color, filled = false, size = 8 }: { color?: string; fill
   )
 }
 
-/** Section index as an altitude: "ALT 30° — Registrations". */
-export function Altitude({ deg, children, className = '' }: { deg: number; children: React.ReactNode; className?: string }) {
+/** Section label above a heading. */
+export function Eyebrow({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <p className={`t-label flex items-center gap-3 ${className}`}>
-      <span className="text-[var(--accent)]">ALT {String(deg).padStart(2, '0')}°</span>
-      <span aria-hidden className="h-px w-8 bg-line-3" />
+      <span className="node node-fill" />
       <span>{children}</span>
     </p>
   )

@@ -16,6 +16,7 @@ import {
   type FormField,
   type FormSchema,
 } from '@/lib/forms/schema'
+import { libraryField, QUESTION_LIBRARY } from '@/lib/forms/presets'
 import { DynamicField } from '../registrations/dynamic-field'
 
 const OP_LABEL: Record<string, string> = {
@@ -187,6 +188,24 @@ export function FormBuilder({ templateId, initial }: { templateId: string; initi
               >
                 + Add field
               </button>
+            </div>
+            <div className="grid gap-2">
+              <span className="t-label">Quick add a common question</span>
+              <div className="flex flex-wrap gap-2">
+                {QUESTION_LIBRARY.map((x) => (
+                  <button
+                    key={x.key}
+                    type="button"
+                    className="rounded-full border border-line-2 px-3 py-1 text-[13px] text-fg-2 transition-colors hover:border-line-3 hover:text-fg"
+                    onClick={() => {
+                      update([...fields, libraryField(x.key, fields)])
+                      setSel(fields.length)
+                    }}
+                  >
+                    + {x.title}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -372,9 +391,12 @@ function Inspector({ field: f, earlier, onChange }: { field: FormField; earlier:
 }
 
 function ConditionEditor({ title, value, fields, onChange }: { title: string; value?: Condition; fields: FormField[]; onChange: (c: Condition | undefined) => void }) {
+  // Read before any handler: the React Compiler evaluates property paths used in closures while rendering,
+  // so `fields[0].id` inside onClick would crash when there are no earlier fields.
+  const firstId = fields[0]?.id ?? ''
   if (!value) {
     return (
-      <button type="button" disabled={!fields.length} className="btn btn-sm btn-ghost justify-self-start" onClick={() => onChange({ mode: 'all', rules: [{ field: fields[0].id, op: 'equals', value: '' }] })}>
+      <button type="button" disabled={!fields.length} className="btn btn-sm btn-ghost justify-self-start" onClick={() => onChange({ mode: 'all', rules: [{ field: firstId, op: 'equals', value: '' }] })}>
         + {title}
       </button>
     )
@@ -433,7 +455,7 @@ function ConditionEditor({ title, value, fields, onChange }: { title: string; va
         )
       })}
       {value.rules.length < 10 && (
-        <button type="button" className="t-label justify-self-start hover:text-fg" onClick={() => onChange({ ...value, rules: [...value.rules, { field: fields[0].id, op: 'equals', value: '' }] })}>
+        <button type="button" className="t-label justify-self-start hover:text-fg" onClick={() => onChange({ ...value, rules: [...value.rules, { field: firstId, op: 'equals', value: '' }] })}>
           + rule
         </button>
       )}

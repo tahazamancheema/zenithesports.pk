@@ -50,7 +50,7 @@ export function localAuthEnabled() {
 }
 
 /** Parent-domain cookies on the production domain (one sign-in for every subdomain); host-only elsewhere. */
-async function cookieDomain() {
+export async function cookieDomain() {
   if (process.env.AUTH_COOKIE_DOMAIN) return process.env.AUTH_COOKIE_DOMAIN
   const host = (await requestHost()).split(':')[0]
   return host === env.ROOT_DOMAIN || host.endsWith(`.${env.ROOT_DOMAIN}`) ? `.${env.ROOT_DOMAIN}` : undefined
@@ -111,22 +111,37 @@ async function readLocal(): Promise<Account | null> {
 
 async function sync(a: Account): Promise<Account | null> {
   if (!hasDatabase()) return a
+  // Written only when something changed or every 10 minutes, not on every page view: parallel
+  // requests (prefetches) would otherwise queue on the same row. The status is read either way.
   const [row] = await db()<{ status: string }[]>`
-    insert into zenith.accounts (id, email, email_verified, display_name, avatar_url, provider)
-    values (${a.id}, ${a.email}, ${a.emailVerified}, ${a.displayName}, ${a.avatarUrl}, ${a.provider})
-    on conflict (id) do update
-       set email = excluded.email,
-           email_verified = zenith.accounts.email_verified or excluded.email_verified,
-           display_name = coalesce(excluded.display_name, zenith.accounts.display_name),
-           avatar_url = coalesce(excluded.avatar_url, zenith.accounts.avatar_url),
-           provider = excluded.provider,
-           last_seen_at = now()
-    returning status
+    with up as (
+      insert into zenith.accounts as acc (id, email, email_verified, display_name, avatar_url, provider)
+      values (${a.id}, ${a.email}, ${a.emailVerified}, ${a.displayName}, ${a.avatarUrl}, ${a.provider})
+      on conflict (id) do update
+         set email = excluded.email,
+             email_verified = acc.email_verified or excluded.email_verified,
+             display_name = coalesce(excluded.display_name, acc.display_name),
+             avatar_url = coalesce(excluded.avatar_url, acc.avatar_url),
+             provider = excluded.provider,
+             last_seen_at = now()
+       where acc.last_seen_at < now() - interval '10 minutes'
+          or acc.email is distinct from excluded.email
+          or (excluded.email_verified and not acc.email_verified)
+          or (excluded.display_name is not null and acc.display_name is distinct from excluded.display_name)
+          or (excluded.avatar_url is not null and acc.avatar_url is distinct from excluded.avatar_url)
+          or acc.provider is distinct from excluded.provider
+      returning status
+    )
+    select status from up
+    union all
+    select status from zenith.accounts where id = ${a.id} and not exists (select 1 from up)
   `
   return row?.status === 'active' ? a : null
 }
 
-const safeAvatar = (v: unknown) => (typeof v === 'string' && v.startsWith('https://') && v.length <= 500 ? v : null)
+/** Google profile photos only: the page's image policy allows that one host and nothing else external. */
+export const AVATAR_HOST = 'https://lh3.googleusercontent.com/'
+const safeAvatar = (v: unknown) => (typeof v === 'string' && v.startsWith(AVATAR_HOST) && v.length <= 500 ? v : null)
 
 const providersOf = (appMeta: Record<string, unknown> | undefined, extra: string[] = []) => [
   ...new Set([...(Array.isArray(appMeta?.providers) ? (appMeta.providers as unknown[]).filter((x): x is string => typeof x === 'string') : []), ...extra]),

@@ -1,4 +1,4 @@
-import { Altitude } from '@/components/brand'
+import { Eyebrow } from '@/components/brand'
 import { ProductIcon, ProductLockup } from '@/components/brand/product-logos'
 import { GameMark, GameWordmark } from '@/components/game-mark'
 import { Finale } from '@/components/home/finale'
@@ -9,9 +9,9 @@ import { PointsPhoneDemo } from '@/components/points/points-studio'
 import { GameShowcase } from '@/components/portfolio'
 import { SocialLinks } from '@/components/social'
 import { TournamentGrid } from '@/components/tournament-cards'
-import { EmptySignal } from '@/components/tournament-list'
+import { EmptySignal, PhaseChip } from '@/components/tournament-list'
 import { gameArt } from '@/config/game-art'
-import { phaseOf } from '@/lib/tournament'
+import { formatInZone, phaseOf, tzAbbrev } from '@/lib/tournament'
 import { getGames, getSponsors, listPublicTournaments } from '@/server/services/catalog'
 import { getSettings } from '@/server/settings'
 
@@ -22,6 +22,13 @@ const VERBS = [
   { text: 'Verify', color: 'var(--color-ac)' },
   { text: 'Broadcast', color: 'var(--color-prod)' },
   { text: 'Score', color: 'var(--color-pts)' },
+]
+
+/** What the production section says — each is described on the ZenithProduction page. */
+const PRODUCTION_POINTS = [
+  'Match start, chicken dinner and the after-match rundown can run themselves, or wait for the operator’s cue.',
+  'Every scene and pop-up in one place, with presets that restyle the whole show at once.',
+  'See exactly what the audience will see before it goes to air.',
 ]
 
 const FALLBACK_GAMES = [
@@ -37,15 +44,23 @@ export default async function Home() {
   const [tournaments, settings, games] = await Promise.all([listPublicTournaments(), getSettings(), getGames()])
   const current = tournaments
     .filter((t) => ['registration_open', 'live', 'announced', 'registration_closed'].includes(phaseOf(t)))
-    .sort((a, b) => Number(b.featured) - Number(a.featured) || new Date(a.startsAt ?? 0).getTime() - new Date(b.startsAt ?? 0).getTime())
+    // Open (or live) events first, then featured, then soonest.
+    .sort(
+      (a, b) =>
+        Number(['registration_open', 'live'].includes(phaseOf(b))) - Number(['registration_open', 'live'].includes(phaseOf(a))) ||
+        Number(b.featured) - Number(a.featured) ||
+        new Date(a.startsAt ?? 0).getTime() - new Date(b.startsAt ?? 0).getTime(),
+    )
     .slice(0, 6)
+  // The event to put in the hero: a featured one first (the list is already ordered), open or live.
+  const spotlight = current.find((t) => ['registration_open', 'live'].includes(phaseOf(t)))
   const sponsors = await getSponsors(current.map((t) => t.id))
   const points = settings['product.points']
   const marqueeGames = games.length ? games : FALLBACK_GAMES
 
   return (
     <>
-      {/* ALT 00 — hero */}
+      {/* hero */}
       <section className="relative isolate overflow-hidden" aria-labelledby="hero-title">
         <img
           src="/visuals/hero-arena.webp"
@@ -80,20 +95,31 @@ export default async function Home() {
               <ZLink surface="registrations" to="/" className="btn btn-primary">
                 Enter a tournament <span className="arrow">→</span>
               </ZLink>
-              <a href="#platforms" className="btn btn-ghost">
-                Explore the platforms <span className="arrow">↓</span>
+              <a href="#production" className="btn btn-ghost">
+                See ZenithProduction <span className="arrow">↓</span>
               </a>
             </div>
-            <ul className="mt-10 flex flex-wrap gap-2" style={{ animation: 'rise 900ms var(--ease-out-expo) 1000ms both' }} aria-label="Platforms">
-              {(['registrations', 'anticheat', 'production', 'points'] as const).map((p) => (
-                <li key={p}>
-                  <a href={`#${p}`} className="flex items-center gap-2 rounded-full border border-line-2 bg-black/30 py-1 pl-1 pr-3 text-[13px] text-fg-2 backdrop-blur transition-colors hover:border-line-3 hover:text-fg">
-                    <ProductIcon product={p} size={26} />
-                    {{ registrations: 'Registrations', anticheat: 'AntiCheat', production: 'Production', points: 'Points' }[p]}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            {spotlight && (
+              <ZLink
+                surface="registrations"
+                to={`/t/${spotlight.slug}`}
+                className="group mt-8 flex max-w-xl items-center gap-4 rounded-xl border border-line-2 bg-black/45 p-3 pr-5 backdrop-blur-md transition-colors hover:border-[color:var(--g)]"
+                style={{ '--g': gameArt(spotlight.gameId).accent, animation: 'rise 900ms var(--ease-out-expo) 1000ms both' } as React.CSSProperties}
+              >
+                <GameMark gameId={spotlight.gameId} name={spotlight.gameName} size={48} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <PhaseChip phase={phaseOf(spotlight)} />
+                  </span>
+                  <span className="mt-1.5 block truncate font-semibold text-fg">{spotlight.name}</span>
+                  <span className="block truncate text-[13px] text-fg-2">
+                    {spotlight.gameName} · {spotlight.formatLabel}
+                    {spotlight.startsAt ? ` · starts ${formatInZone(spotlight.startsAt, spotlight.timezone, { year: undefined })} ${tzAbbrev(spotlight.timezone)}` : ''}
+                  </span>
+                </span>
+                <span className="arrow text-fg-2 transition-transform group-hover:translate-x-1">→</span>
+              </ZLink>
+            )}
           </div>
           <div className="relative -order-1 lg:order-none lg:col-span-6">
             <Zenith3D className="mx-auto aspect-square w-full max-w-[min(640px,80vw)] lg:max-w-none" />
@@ -122,17 +148,88 @@ export default async function Home() {
         </VelocityMarquee>
       </section>
 
-      {/* ALT 15 — platforms */}
+      {/* tournaments */}
+      <section className="py-24" aria-labelledby="comp-title" data-surface="registrations">
+        <div className="shell">
+          <div className="flex flex-wrap items-end justify-between gap-6" data-reveal>
+            <div>
+              <Eyebrow>Competition</Eyebrow>
+              <h2 id="comp-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">{spotlight ? 'Open now' : 'Coming up'}</h2>
+            </div>
+            <ZLink surface="registrations" to="/" className="btn btn-ghost">All tournaments <span className="arrow">→</span></ZLink>
+          </div>
+          <div className="mt-12">
+            {current.length ? (
+              <TournamentGrid items={current} games={games} sponsors={sponsors} />
+            ) : (
+              <EmptySignal title="No events on the board right now" body="New tournaments are announced here and on our channels first. Follow us below so you never miss a registration window.">
+                <ZLink surface="registrations" to="/" className="btn btn-sm btn-ghost">Tournament hub</ZLink>
+              </EmptySignal>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* production: the flagship software */}
+      <section id="production" data-surface="production" className="relative scroll-mt-20 overflow-hidden border-t border-line py-24" aria-labelledby="prod-title">
+        <div aria-hidden className="absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_70%_40%,rgba(255,90,68,0.10),transparent_70%)]" />
+        <div className="shell grid items-center gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-5" data-reveal>
+            <ProductLockup product="production" size={52} />
+            <h2 id="prod-title" className="t-display mt-8 text-[clamp(1.8rem,3.8vw,3rem)]">
+              The broadcast,
+              <br />
+              <span className="t-chrome">run from one desk.</span>
+            </h2>
+            <p className="t-lede mt-6">
+              ZenithProduction is the software behind our streams: live standings, player pop-ups and after-match scenes driven from observer data,
+              straight into OBS.
+            </p>
+            <ul className="mt-8 grid gap-4">
+              {PRODUCTION_POINTS.map((x) => (
+                <li key={x} className="flex gap-3 text-fg-2">
+                  <span className="node node-fill mt-2 shrink-0" />
+                  {x}
+                </li>
+              ))}
+            </ul>
+            <div className="mt-10 flex flex-wrap gap-3">
+              <ZLink surface="production" to="/" className="btn btn-primary">
+                See it in action <span className="arrow">→</span>
+              </ZLink>
+              <ZLink surface="production" to="/book" className="btn btn-ghost">
+                Book production
+              </ZLink>
+            </div>
+          </div>
+          <div className="lg:col-span-7" data-reveal style={{ '--i': 1 } as React.CSSProperties}>
+            <div className="relative overflow-hidden rounded-2xl border border-line-2 bg-ink-1 shadow-[0_40px_120px_-50px_rgba(255,90,68,0.45)]">
+              <InViewVideo
+                className="aspect-video w-full object-cover"
+                poster="/products/production/teaser-poster.webp"
+                label="ZenithProduction on-air scenes with the software's built-in sample data"
+                sources={[
+                  { src: '/products/production/teaser.webm', type: 'video/webm' },
+                  { src: '/products/production/teaser.mp4', type: 'video/mp4' },
+                ]}
+              />
+              <span className="chip absolute right-3 top-3 border-white/20 bg-black/65 text-white">Real software · sample data</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* platforms */}
       <section id="platforms" className="relative scroll-mt-20 py-24" aria-labelledby="eco-title">
         <ScrollStatement lines={['Compete · Verify ·', 'Broadcast · Score ·']} />
         <div className="shell mt-14">
           <div className="grid gap-8 md:grid-cols-12" data-reveal>
             <div className="md:col-span-6">
-              <Altitude deg={15}>The ecosystem</Altitude>
+              <Eyebrow>The ecosystem</Eyebrow>
               <h2 id="eco-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">
                 One tournament.
                 <br />
-                <span className="t-chrome">Four systems.</span>
+                <span className="t-chrome">Every system.</span>
               </h2>
             </div>
             <p className="t-lede md:col-span-6 md:pt-12">
@@ -143,7 +240,7 @@ export default async function Home() {
 
           <div className="mt-16 grid gap-5 lg:grid-cols-12">
             {/* Registrations */}
-            <article id="registrations" data-surface="registrations" data-reveal className="group relative isolate flex min-h-[420px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-2xl border border-line-2 p-7 lg:col-span-5">
+            <article id="registrations" data-surface="registrations" data-reveal className="group relative isolate flex min-h-[420px] scroll-mt-24 flex-col justify-end overflow-hidden rounded-2xl border border-line-2 p-7 lg:col-span-12 lg:min-h-[360px]">
               <img src="/visuals/registrations.webp" alt="" loading="lazy" className="absolute inset-0 -z-10 h-full w-full object-cover opacity-80 transition-transform duration-1000 group-hover:scale-105" />
               <div className="absolute inset-0 -z-10 bg-gradient-to-t from-[#06070a] via-[#06070a]/70 to-transparent" />
               <ProductLockup product="registrations" size={48} />
@@ -151,31 +248,6 @@ export default async function Home() {
               <ZLink surface="registrations" to="/" className="btn btn-primary mt-6 self-start">
                 Browse tournaments <span className="arrow">→</span>
               </ZLink>
-            </article>
-
-            {/* Production — real software footage */}
-            <article id="production" data-surface="production" data-reveal style={{ '--i': 1 } as React.CSSProperties} className="relative scroll-mt-24 overflow-hidden rounded-2xl border border-line-2 bg-ink-1 lg:col-span-7">
-              <div className="relative">
-                <InViewVideo
-                  className="aspect-video w-full object-cover"
-                  poster="/products/production/teaser-poster.webp"
-                  label="ZenithProduction on-air scenes with the software's built-in sample data"
-                  sources={[
-                    { src: '/products/production/teaser.webm', type: 'video/webm' },
-                    { src: '/products/production/teaser.mp4', type: 'video/mp4' },
-                  ]}
-                />
-                <span className="chip absolute right-3 top-3 border-white/20 bg-black/65 text-white">Real software · sample data</span>
-              </div>
-              <div className="flex flex-wrap items-end justify-between gap-6 p-7">
-                <div className="max-w-lg">
-                  <ProductLockup product="production" size={48} />
-                  <p className="mt-5 text-fg-2">A broadcast command centre: live standings, player pop-ups and after-match scenes driven from observer data, straight into OBS.</p>
-                </div>
-                <ZLink surface="production" to="/" className="btn btn-primary">
-                  See it in action <span className="arrow">→</span>
-                </ZLink>
-              </div>
             </article>
 
             {/* AntiCheat */}
@@ -215,11 +287,11 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ALT 30 — games */}
+      {/* games */}
       <section className="border-t border-line py-24" aria-labelledby="games-title">
         <div className="shell">
           <div data-reveal>
-            <Altitude deg={30}>The portfolio</Altitude>
+            <Eyebrow>The portfolio</Eyebrow>
             <h2 id="games-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">Six games. One standard.</h2>
           </div>
           <div className="mt-12">
@@ -228,29 +300,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ALT 45 — tournaments */}
-      <section className="border-t border-line py-24" aria-labelledby="comp-title" data-surface="registrations">
-        <div className="shell">
-          <div className="flex flex-wrap items-end justify-between gap-6" data-reveal>
-            <div>
-              <Altitude deg={45}>Competition</Altitude>
-              <h2 id="comp-title" className="t-display mt-6 text-[clamp(1.7rem,3.6vw,2.8rem)]">On the circuit</h2>
-            </div>
-            <ZLink surface="registrations" to="/" className="btn btn-ghost">All tournaments <span className="arrow">→</span></ZLink>
-          </div>
-          <div className="mt-12">
-            {current.length ? (
-              <TournamentGrid items={current} games={games} sponsors={sponsors} />
-            ) : (
-              <EmptySignal title="No events on the board right now" body="New tournaments are announced here and on our channels first. Follow us below so you never miss a registration window.">
-                <ZLink surface="registrations" to="/" className="btn btn-sm btn-ghost">Tournament hub</ZLink>
-              </EmptySignal>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* ALT 90 — the zenith */}
+      {/* the zenith */}
       <section className="border-t border-line" aria-labelledby="zenith-title">
         <Finale>
           <p className="t-lede mx-auto mt-6 max-w-xl">Announcements, schedules and broadcasts go out on our official channels first.</p>

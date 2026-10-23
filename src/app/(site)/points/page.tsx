@@ -1,4 +1,4 @@
-import { Altitude } from '@/components/brand'
+import { Eyebrow } from '@/components/brand'
 import { ProductLockup } from '@/components/brand/product-logos'
 import { Faq } from '@/components/faq'
 import { SplitText, WordCycle } from '@/components/kinetic'
@@ -126,7 +126,7 @@ export default async function PointsPage() {
         <div className="shell">
           <div className="grid gap-6 md:grid-cols-12" data-reveal>
             <div className="md:col-span-6">
-              <Altitude deg={15}>The app</Altitude>
+              <Eyebrow>The app</Eyebrow>
               <h2 id="tour-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
                 Every graphic your tournament needs
               </h2>
@@ -143,7 +143,7 @@ export default async function PointsPage() {
         <div className="shell">
           <div className="grid gap-6 md:grid-cols-12" data-reveal>
             <div className="md:col-span-6">
-              <Altitude deg={30}>How it works</Altitude>
+              <Eyebrow>How it works</Eyebrow>
               <h2 id="flow-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
                 Screenshot to standings
               </h2>
@@ -160,7 +160,7 @@ export default async function PointsPage() {
       <section className="border-b border-line py-24" aria-labelledby="feat-title">
         <div className="shell">
           <div data-reveal>
-            <Altitude deg={45}>Features</Altitude>
+            <Eyebrow>Features</Eyebrow>
             <h2 id="feat-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
               Built for scorekeepers
             </h2>
@@ -180,7 +180,7 @@ export default async function PointsPage() {
       <section id="launch" className="scroll-mt-20 border-b border-line py-24" aria-labelledby="launch-title">
         <div className="shell grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5" data-reveal>
-            <Altitude deg={60}>Launch</Altitude>
+            <Eyebrow>Launch</Eyebrow>
             <h2 id="launch-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
               Be first on the scoreboard
             </h2>
@@ -195,7 +195,7 @@ export default async function PointsPage() {
       <section className="py-24" aria-labelledby="pts-faq">
         <div className="shell grid gap-10 md:grid-cols-12">
           <div className="md:col-span-4" data-reveal>
-            <Altitude deg={75}>Questions</Altitude>
+            <Eyebrow>Questions</Eyebrow>
             <h2 id="pts-faq" className="t-display mt-6 text-[clamp(1.4rem,2.6vw,2rem)]">
               ZenithPoints FAQ
             </h2>

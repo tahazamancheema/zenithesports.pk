@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import type { ConsoleSurface } from '@/lib/permissions'
 import { failure, type ActionState } from '@/server/action-guard'
 import { getAccount, getVerifiedAccount, localAuthEnabled, localSignIn, markActive, safeNext, signOutEverywhere, supabaseConfigured, supabaseServer } from '@/server/auth/account'
+import { googleAuthUrl, googleDirect } from '@/server/auth/google'
 import { enterWithAccount } from '@/server/auth/session'
 import { consoleBase } from '@/server/console-base'
 import { env } from '@/server/env'
@@ -41,6 +42,8 @@ export async function googleSignInAction(fd: FormData) {
   if (!supabaseConfigured()) redirect('/login?error=unavailable')
   await limit('oauth', 20)
   const next = safeNext(s(fd, 'next'))
+  // Preferred: Google returns to our own domain, so its account chooser names Zenith, not supabase.co.
+  if (googleDirect()) redirect(await googleAuthUrl(await origin(), next))
   const { data, error } = await (await supabaseServer()).auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: `${await origin()}/auth/callback?next=${encodeURIComponent(next)}`, queryParams: { prompt: 'select_account' } },

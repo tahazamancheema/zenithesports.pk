@@ -17,10 +17,16 @@ end $$;
 -- Grants + RLS policies for every zenith table (safe to re-run after new migrations).
 select zenith.apply_app_role_grants();
 
+-- Fail fast instead of hanging serverless requests: a stuck statement or lock wait ends in
+-- seconds, and a transaction left open by a frozen function instance releases its locks.
+alter role zenith_app set statement_timeout = '15s';
+alter role zenith_app set lock_timeout = '8s';
+alter role zenith_app set idle_in_transaction_session_timeout = '20s';
+
 -- Explicitly nothing outside zenith.
 revoke all on schema public from zenith_app;
 revoke all on all tables in schema public from zenith_app;
 
 -- Then use, in Vercel:
 --   DATABASE_URL = postgres://zenith_app.<project-ref>:<password>@<pooler-host>:6543/postgres   (transaction pooler)
---   DATABASE_LISTEN_URL = postgres://zenith_app.<project-ref>:<password>@<pooler-host>:5432/postgres (session pooler, for realtime LISTEN)
+--   DATABASE_LISTEN_URL is optional and only used with REALTIME_LISTEN=on (session pooler, port 5432).

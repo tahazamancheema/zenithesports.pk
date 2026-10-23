@@ -9,9 +9,9 @@ type Listener = (e: LiveEvent) => void
 
 /**
  * One hub per server instance. Source of truth is the zenith.events table:
- * - LISTEN zenith_events wakes the hub immediately (session/direct connections);
- * - a cursor read over zenith.events catches anything LISTEN cannot deliver
- *   (transaction poolers, reconnect gaps). Every delivered event is a real row.
+ * - a cursor read over zenith.events every few seconds delivers each new row;
+ * - optionally (REALTIME_LISTEN=on), LISTEN zenith_events wakes the hub sooner.
+ * Every delivered event is a real row.
  */
 class Hub {
   private listeners = new Set<{ topic: Topic; fn: Listener }>()
@@ -35,12 +35,17 @@ class Hub {
   private async start() {
     if (this.started) return
     this.started = true
-    const [{ max }] = await db()<{ max: number }[]>`select coalesce(max(id), 0)::int as max from zenith.events`
-    this.lastId = Math.max(this.lastId, max)
+    try {
+      const [{ max }] = await db()<{ max: number }[]>`select coalesce(max(id), 0)::int as max from zenith.events`
+      this.lastId = Math.max(this.lastId, max)
+    } catch {
+      // The cursor starts at 0 for this instance; the first poll catches up.
+    }
     const url = env.DATABASE_LISTEN_URL ?? env.DATABASE_URL
-    // Supabase's transaction pooler (port 6543) cannot hold a LISTEN; REALTIME_LISTEN=off is for
-    // single-session local databases (PGlite), where the event cursor alone delivers updates.
-    if (url && !/:6543\//.test(url) && process.env.REALTIME_LISTEN !== 'off') {
+    // LISTEN is opt-in (REALTIME_LISTEN=on with a session-mode URL). On serverless hosts an instance
+    // can be frozen while holding that connection, which ties up the database's small session pool;
+    // polling the event cursor every few seconds delivers the same events without it.
+    if (url && !/:6543\//.test(url) && process.env.REALTIME_LISTEN === 'on') {
       try {
         this.listenSql = postgres(url, { max: 1, prepare: false, onnotice: () => {} })
         await this.listenSql.listen('zenith_events', () => void this.fetch())
@@ -49,7 +54,7 @@ class Hub {
         this.listening = false
       }
     }
-    this.timer = setInterval(() => void this.fetch(), this.listening ? 15_000 : 2_000)
+    this.timer = setInterval(() => void this.fetch(), this.listening ? 15_000 : 3_000)
   }
 
   private stop() {

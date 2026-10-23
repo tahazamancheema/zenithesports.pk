@@ -1,4 +1,4 @@
-import { Altitude } from '@/components/brand'
+import { Eyebrow } from '@/components/brand'
 import { ProductLockup } from '@/components/brand/product-logos'
 import { GameMark } from '@/components/game-mark'
 import { ZLink } from '@/components/link'
@@ -137,7 +137,7 @@ export default async function RegistrationsHub(props: PageProps<'/registrations'
 
       <section className="border-t border-line py-20" aria-labelledby="games-title">
         <div className="shell">
-          <Altitude deg={30}>Games</Altitude>
+          <Eyebrow>Games</Eyebrow>
           <h2 id="games-title" className="t-display mt-6 text-[clamp(1.5rem,2.8vw,2.2rem)]">
             Formats by game
           </h2>
@@ -152,7 +152,7 @@ export default async function RegistrationsHub(props: PageProps<'/registrations'
           <img src="/visuals/games/valorant.webp" alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover opacity-20" />
           <div className="shell grid gap-8 md:grid-cols-12 md:items-end">
             <div className="md:col-span-7">
-              <Altitude deg={45}>Looking for team</Altitude>
+              <Eyebrow>Looking for team</Eyebrow>
               <h2 id="lft-title" className="t-display mt-6 text-[clamp(1.5rem,2.8vw,2.2rem)]">
                 Solo? Find a 5v5 roster.
               </h2>

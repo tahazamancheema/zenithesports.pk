@@ -6,6 +6,7 @@ import { fmt } from '@/components/console/status-chip'
 import { consoleBase } from '@/server/console-base'
 import { listTemplates, publishedVersions } from '@/server/services/admin-tournaments'
 import { getGames } from '@/server/services/catalog'
+import { GAME_PRESETS } from '@/lib/forms/presets'
 
 export const metadata = { title: 'Form builder' }
 
@@ -68,11 +69,22 @@ export default async function Forms() {
             </select>
             <select name="copyFrom" className="input" aria-label="Start from">
               <option value="">Start empty</option>
-              {versions.map((v) => (
-                <option key={v.id} value={v.id}>
-                  Copy {v.templateName} v{v.version}
-                </option>
-              ))}
+              <optgroup label="Ready-made (edit freely)">
+                {Object.entries(GAME_PRESETS).map(([gameId, p]) => (
+                  <option key={gameId} value={`preset:${gameId}`}>
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
+              {versions.length > 0 && (
+                <optgroup label="Copy an existing form">
+                  {versions.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.templateName} v{v.version}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </ActionForm>
         </div>

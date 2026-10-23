@@ -8,9 +8,11 @@ import { EmptySignal } from '@/components/tournament-list'
 import { formatInZone, LEGAL_TRANSITIONS, STATUS_LABEL, tzAbbrev } from '@/lib/tournament'
 import { requireAccount } from '@/server/auth/account'
 import { href } from '@/server/link'
-import { canEditRoster, listMyRegistrations, staffConsolesFor } from '@/server/services/account'
+import { canEditRoster, listMyRegistrations, staffProfileFor } from '@/server/services/account'
+import { AdminHome } from '@/components/account/admin-home'
+import { Avatar } from '@/components/avatar'
 
-export const metadata: Metadata = { title: 'My registrations', robots: { index: false } }
+export const metadata: Metadata = { title: 'My account', robots: { index: false } }
 
 const TONE: Record<string, string> = {
   pending: 'chip chip-info',
@@ -22,33 +24,29 @@ const TONE: Record<string, string> = {
   cancelled: 'chip',
 }
 
-/* eslint-disable @next/next/no-img-element -- avatar from the sign-in provider (https only) */
 
 export default async function AccountPage() {
   const account = await requireAccount('/account')
-  const [regs, consoles] = await Promise.all([listMyRegistrations(account.id), staffConsolesFor(account)])
-  const consoleLinks = await Promise.all(
-    consoles.map(async (c) => ({ surface: c, href: await href(c === 'hq' ? 'hq' : c, '/admin'), label: { hq: 'HQ console', registrations: 'Registrations console', anticheat: 'AntiCheat console' }[c] })),
-  )
+  const [regs, staff] = await Promise.all([listMyRegistrations(account.id), staffProfileFor(account)])
+  const [reg, ac, hq] = await Promise.all([href('registrations', '/admin'), href('anticheat', '/admin'), href('hq', '/admin')])
+  const name = account.displayName ?? account.email.split('@')[0]
 
   return (
     <section className="shell py-14 md:py-20">
       <div className="flex flex-wrap items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          {account.avatarUrl ? (
-            <img src={account.avatarUrl} alt="" className="h-14 w-14 rounded-full border border-line-2" referrerPolicy="no-referrer" />
-          ) : (
-            <span className="grid h-14 w-14 place-items-center rounded-full border border-line-2 bg-ink-2 text-lg font-semibold">{(account.displayName ?? account.email)[0].toUpperCase()}</span>
-          )}
+          <Avatar url={account.avatarUrl} name={name} size={56} />
           <div>
             <h1 className="t-title text-2xl">{account.displayName ?? 'Your account'}</h1>
             <p className="text-fg-2">{account.email}</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-3">
-          <ZLink surface="registrations" to="/" className="btn btn-primary">
-            Find a tournament <span className="arrow">→</span>
-          </ZLink>
+          {!staff?.consoles.length && (
+            <ZLink surface="registrations" to="/" className="btn btn-primary">
+              Find a tournament <span className="arrow">→</span>
+            </ZLink>
+          )}
           {account.provider === 'email' && (
             <a href="/account/password" className="btn btn-ghost">
               Change password
@@ -62,21 +60,7 @@ export default async function AccountPage() {
         </div>
       </div>
 
-      {consoleLinks.length > 0 && (
-        <div className="panel-raised mt-10 flex flex-wrap items-center gap-4 p-5">
-          <div className="min-w-0 flex-1">
-            <p className="t-title text-lg">Staff consoles</p>
-            <p className="text-[14px] text-fg-2">You are on the Zenith staff list. Each console asks you to enter it separately.</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {consoleLinks.map((c) => (
-              <a key={c.surface} href={c.href} className="btn btn-sm btn-primary">
-                {c.label} <span className="arrow">→</span>
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
+      {staff && staff.consoles.length > 0 && <AdminHome staff={staff} hrefs={{ registrations: reg, anticheat: ac, hq }} />}
 
       <h2 className="t-label mt-14 flex items-center gap-3">
         <span className="node node-fill" /> My registrations · {regs.length}

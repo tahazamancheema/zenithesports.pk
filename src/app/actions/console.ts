@@ -74,7 +74,8 @@ export async function logoutAction(fd: FormData) {
   if (!SURFACES.includes(surface)) return
   await assertSameOrigin()
   await logout(surface)
-  redirect(`${await consoleBase(surface)}/login`)
+  // `out` stops the login page from entering the console again straight away.
+  redirect(`${await consoleBase(surface)}/login?out=1`)
 }
 
 export async function changePasswordAction(_: ActionState, fd: FormData): Promise<ActionState> {

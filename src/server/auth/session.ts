@@ -71,7 +71,8 @@ export const getStaff = cache(async (surface: ConsoleSurface): Promise<Staff | n
   `
   if (!row) return null
   if (Date.now() - new Date(row.lastSeenAt).getTime() > 5 * 60 * 1000) {
-    await db()`update zenith.sessions set last_seen_at = now() where id = ${id}`
+    // Best effort: a busy row must never fail or stall the page; the next request retries.
+    await db()`update zenith.sessions set last_seen_at = now() where id = ${id} and last_seen_at < now() - interval '5 minutes'`.catch(() => {})
   }
   return {
     id: row.id,

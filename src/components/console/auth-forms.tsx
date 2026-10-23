@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef } from 'react'
 import { consoleEnterAction } from '@/app/actions/auth'
 import { changePasswordAction, loginAction } from '@/app/actions/console'
 import { IDLE } from '@/lib/action-state'
@@ -60,10 +60,21 @@ export function PasswordForm({ surface }: { surface: string }) {
 }
 
 /** For someone already signed in with Supabase: open this console's own session. */
-export function ConsoleEnterForm({ surface, label }: { surface: string; label: string }) {
+/**
+ * Opens this console's own session for the signed-in person. With `auto`, it submits once on
+ * arrival (one sign-in, no extra click); if that is refused, the reason and the button remain.
+ */
+export function ConsoleEnterForm({ surface, label, auto = false }: { surface: string; label: string; auto?: boolean }) {
   const [state, action] = useActionState(consoleEnterAction, IDLE)
+  const ref = useRef<HTMLFormElement>(null)
+  const tried = useRef(false)
+  useEffect(() => {
+    if (!auto || tried.current) return
+    tried.current = true
+    ref.current?.requestSubmit()
+  }, [auto])
   return (
-    <form action={action} className="grid gap-4">
+    <form ref={ref} action={action} className="grid gap-4">
       <input type="hidden" name="surface" value={surface} />
       <FormAlert state={state} />
       <SubmitButton pendingLabel="Checking access…">{label}</SubmitButton>

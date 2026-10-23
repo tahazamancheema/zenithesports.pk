@@ -105,7 +105,8 @@ function csp(nonce: string) {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? ` 'unsafe-eval'` : ''}`,
     // Inline style attributes (motion) cannot carry a nonce.
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' data: blob:`,
+    // Google profile photos of signed-in people (see AVATAR_HOST).
+    `img-src 'self' data: blob: https://lh3.googleusercontent.com`,
     `font-src 'self'`,
     `connect-src 'self'`,
     `media-src 'self'`,
@@ -147,8 +148,8 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next()
   }
 
-  // The sign-in callback creates the session itself; everything else passes the idle gate.
-  const auth = hasExtension(pathname) || pathname === '/auth/callback' ? [] : await authGate(req, host)
+  // The sign-in callbacks create the session themselves; everything else passes the idle gate.
+  const auth = hasExtension(pathname) || pathname === '/auth/callback' || pathname === '/auth/google' ? [] : await authGate(req, host)
 
   // Not the production domain: path mode.
   if (target === null) return withCookies(withCsp(req, 'path', surfaceForPath(pathname)), auth)

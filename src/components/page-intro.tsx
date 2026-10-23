@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
 
 /**
- * Inner-page opener: label, title, lede, and a single trajectory rising to a
- * node on the right — the Meridian signature at page scale.
+ * Inner-page opener: label, title, lede, and an optional backdrop or visual.
  */
 export function PageIntro({
   eyebrow,
@@ -26,7 +25,7 @@ export function PageIntro({
   imageStyle?: React.CSSProperties
   /** Optional element above the eyebrow, e.g. a product lockup. */
   top?: ReactNode
-  /** Optional visual for the right-hand side (replaces the trajectory line). */
+  /** Optional visual for the right-hand side. */
   aside?: ReactNode
 }) {
   return (
@@ -36,14 +35,6 @@ export function PageIntro({
         <img src={image} alt="" aria-hidden style={imageStyle} className="absolute inset-0 -z-20 h-full w-full object-cover opacity-55 [mask-image:linear-gradient(180deg,#000_30%,transparent_100%)] md:[mask-image:linear-gradient(90deg,transparent_15%,#000_75%)]" />
       )}
       <div aria-hidden className="grid-field absolute inset-0 -z-10 opacity-40" />
-      <svg aria-hidden viewBox="0 0 400 240" className={`pointer-events-none absolute right-0 bottom-0 -z-10 h-full w-[42%] ${aside ? 'hidden' : 'hidden md:block'}`} preserveAspectRatio="xMaxYMax meet">
-        <path d="M 20 236 C 140 236, 250 170, 330 40" fill="none" stroke="var(--accent)" strokeOpacity="0.55" className="draw-path is-in" style={{ '--len': 420, '--d': 300 } as React.CSSProperties} />
-        <path d="M 120 236 C 200 236, 290 160, 330 40" fill="none" stroke="var(--color-line-3)" className="draw-path is-in" style={{ '--len': 360, '--d': 500 } as React.CSSProperties} />
-        <line x1="330" y1="0" x2="330" y2="240" stroke="var(--color-line-2)" />
-        <g transform="translate(330 40) rotate(45)">
-          <rect x="-5" y="-5" width="10" height="10" fill="var(--accent)" style={{ animation: 'fade 600ms 1.4s both' }} />
-        </g>
-      </svg>
       <div className={`shell ${aside ? 'grid items-center gap-10 lg:grid-cols-12' : ''}`}>
         <div className={aside ? 'lg:col-span-7' : ''}>
         {top && <div className="mb-8" style={{ animation: 'fade 700ms var(--ease-out-expo) both' }}>{top}</div>}

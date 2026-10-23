@@ -1,4 +1,4 @@
-import { Altitude } from '@/components/brand'
+import { Eyebrow } from '@/components/brand'
 import { ProductLockup } from '@/components/brand/product-logos'
 import { InViewVideo, SplitText, TiltCard } from '@/components/kinetic'
 import { ZLink } from '@/components/link'
@@ -106,7 +106,7 @@ export default async function ProductionPage() {
       <section className="border-y border-line py-24" aria-labelledby="inside-title">
         <div className="shell">
           <div data-reveal>
-            <Altitude deg={15}>Inside the software</Altitude>
+            <Eyebrow>Inside the software</Eyebrow>
             <h2 id="inside-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">The operator’s view</h2>
           </div>
           <div className="mt-12" data-reveal>
@@ -118,7 +118,7 @@ export default async function ProductionPage() {
       <section className="border-b border-line py-24" aria-labelledby="cap-title">
         <div className="shell">
           <div data-reveal>
-            <Altitude deg={30}>Capabilities</Altitude>
+            <Eyebrow>Capabilities</Eyebrow>
             <h2 id="cap-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
               Built for match day
             </h2>
@@ -141,7 +141,7 @@ export default async function ProductionPage() {
         <div className="shell">
           <div className="flex flex-wrap items-end justify-between gap-4" data-reveal>
             <div>
-              <Altitude deg={45}>On air</Altitude>
+              <Eyebrow>On air</Eyebrow>
               <h2 id="gallery-title" className="t-display mt-6 text-[clamp(1.6rem,3.2vw,2.5rem)]">
                 Every scene, ready
               </h2>
@@ -173,7 +173,7 @@ export default async function ProductionPage() {
       <section className="border-b border-line py-24" aria-labelledby="buy-title">
         <div className="shell">
           <div data-reveal>
-            <Altitude deg={60}>Work with us</Altitude>
+            <Eyebrow>Work with us</Eyebrow>
             <h2 id="buy-title" className="t-display mt-6 text-[clamp(1.5rem,3vw,2.3rem)]">
               Two ways in
             </h2>
@@ -202,7 +202,7 @@ export default async function ProductionPage() {
       <section className="py-24" aria-labelledby="faq-title">
         <div className="shell grid gap-10 md:grid-cols-12">
           <div className="md:col-span-4" data-reveal>
-            <Altitude deg={75}>Questions</Altitude>
+            <Eyebrow>Questions</Eyebrow>
             <h2 id="faq-title" className="t-display mt-6 text-[clamp(1.4rem,2.6vw,2rem)]">
               Production FAQ
             </h2>

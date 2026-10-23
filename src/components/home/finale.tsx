@@ -5,9 +5,8 @@ import { MARK_PATH, MARK_VIEWBOX } from '../brand/mark-path'
 import { SplitText } from '../kinetic'
 
 /**
- * The closing scene: the climb to the zenith. A grid floor recedes to a gold
- * horizon, light rises from it, an altitude gauge climbs to 90° as the section
- * scrolls in, and the Zenith mark draws itself at the top. Everything waits
+ * The closing scene. A grid floor recedes to a gold horizon, light rises from
+ * it, and the Zenith mark draws itself at the top. Everything waits
  * until the section is on screen and pauses again when it leaves.
  */
 
@@ -30,7 +29,6 @@ export function Finale({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
   const [live, setLive] = useState(false)
   const [seen, setSeen] = useState(false)
-  const [alt, setAlt] = useState(0)
 
   useEffect(() => {
     const el = ref.current
@@ -42,27 +40,6 @@ export function Finale({ children }: { children: React.ReactNode }) {
     io.observe(el)
     return () => io.disconnect()
   }, [])
-
-  // The gauge follows the scroll: 0° as the section enters, 90° when it is centred.
-  useEffect(() => {
-    if (!live) return
-    let raf = 0
-    const update = () => {
-      raf = 0
-      const r = ref.current!.getBoundingClientRect()
-      const p = 1 - (r.top + r.height / 2 - window.innerHeight / 2) / (window.innerHeight / 2 + r.height / 2)
-      setAlt(Math.round(Math.max(0, Math.min(1, p)) * 90))
-    }
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update)
-    }
-    update()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      cancelAnimationFrame(raf)
-    }
-  }, [live])
 
   return (
     <div ref={ref} className={`finale relative isolate overflow-hidden ${live ? 'is-live' : ''} ${seen ? 'is-seen' : ''}`}>
@@ -85,18 +62,6 @@ export function Finale({ children }: { children: React.ReactNode }) {
         ))}
       </div>
 
-      {/* altitude gauge */}
-      <div aria-hidden className="absolute bottom-[14%] left-[max(16px,4vw)] top-[14%] hidden w-14 md:block">
-        <div className="absolute bottom-0 left-6 top-0 w-px bg-gradient-to-t from-line-3 via-line-2 to-transparent" />
-        {[0, 15, 30, 45, 60, 75, 90].map((d) => (
-          <div key={d} className="absolute left-0 flex w-full items-center gap-2" style={{ bottom: `${(d / 90) * 100}%` }}>
-            <span className={`h-px w-4 ${alt >= d ? 'bg-[var(--color-gold)]' : 'bg-line-3'}`} />
-            <span className={`font-mono text-[11px] ${alt >= d ? 'text-[var(--color-gold-hi)]' : 'text-fg-3'}`}>{d}°</span>
-          </div>
-        ))}
-        <div className="absolute left-[21px] h-3 w-3 rotate-45 bg-[var(--color-gold)] shadow-[0_0_18px_var(--color-gold)] transition-[bottom] duration-300" style={{ bottom: `calc(${(alt / 90) * 100}% - 6px)` }} />
-      </div>
-
       <div className="shell relative py-28 text-center md:py-36">
         {/* the mark draws itself at the top */}
         <div className="mx-auto mb-10 w-[min(220px,46vw)]">
@@ -113,8 +78,7 @@ export function Finale({ children }: { children: React.ReactNode }) {
           </svg>
         </div>
         <p className="t-label flex items-center justify-center gap-3">
-          <span className="text-[var(--color-gold)] tabular-nums">ALT {String(alt).padStart(2, '0')}°</span>
-          <span aria-hidden className="h-px w-8 bg-line-3" />
+          <span className="node node-fill" />
           <span>Zenith</span>
         </p>
         <h2 id="zenith-title" className={`t-display mx-auto mt-8 max-w-4xl text-[clamp(2rem,5vw,3.8rem)] ${seen ? '' : 'kx-hold'}`}>

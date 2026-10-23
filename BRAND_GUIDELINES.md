@@ -1,6 +1,6 @@
 # Zenith Esports — Brand & Interface Guidelines
 
-**Version 2.0 · "Zenith Meridian"** — supersedes v1.0 "Forged in Obsidian".
+**Version 2.2** — supersedes v2.0 "Zenith Meridian" and v1.0 "Forged in Obsidian".
 
 Audience: anyone designing or building screens for zenithesports.pk and its platforms.
 The tokens live in [`src/app/globals.css`](src/app/globals.css) (`@theme`). That file is the source
@@ -8,14 +8,12 @@ of truth; this document explains how to use it.
 
 ## 1. The concept
 
-The **zenith** is the point directly overhead. The **meridian** is the line that passes through it.
+Dark, precise surfaces; chrome and gold for the parent brand; one colour per platform.
 
-- Layouts hang off a thin vertical meridian line with altitude ticks.
-- Sections are indexed as altitudes, rising toward the call to action: `ALT 00°` → `ALT 90°`.
-- Each platform is a **signal** travelling along a trajectory toward a single gold apex — the
-  ecosystem converging on one point of focus.
-- The diamond **node** (a rotated square, the angular tip of the Zenith mark reduced to a point)
-  marks positions, list items, active states and the apex itself.
+- Sections carry a plain label (`Eyebrow`) above the heading — no numbering.
+- **Not used:** altitude labels (`ALT 30°`), rising trajectory lines, vertical meridian rules or an
+  "apex" node. These were retired in v2.2 and must not come back.
+- The small diamond **node** is a bullet: it marks labels, list items and active states only.
 
 Do not reach for generic esports tropes: no character renders, no neon glow fields, no rows of
 identical cards. Every page is composed around its job.
@@ -26,7 +24,7 @@ identical cards. Every page is composed around its job.
 |---|---|---|---|
 | Night (page) | `--color-void` | `#06070a` | Page background |
 | Surfaces | `--color-ink-1…4` | `#0b0d11` → `#1f242e` | Panels, rows, hovers |
-| Lines | `--color-line`, `-2`, `-3` | cool white at 8 / 14 / 26 % | Hairlines, grids, meridian |
+| Lines | `--color-line`, `-2`, `-3` | cool white at 8 / 14 / 26 % | Hairlines, grids |
 | Text | `--color-fg`, `-2`, `-3` | `#edf0f5`, `#a6aebb`, `#6e7684` | Primary, secondary, labels |
 | Chrome | `--color-chrome` | `#c9cfd9` | The silver of the mark; `t-chrome` headline gradient |
 | **Apex gold** | `--color-gold` | `#d9b25f` | The zenith, the ecosystem, Registrations |
@@ -36,7 +34,7 @@ identical cards. Every page is composed around its job.
 
 | Platform | Token | Hex | Meaning |
 |---|---|---|---|
-| Registrations | `--color-reg` | `#d9b25f` | Competition — shares the apex gold |
+| Registrations | `--color-reg` | `#d9b25f` | Competition |
 | ZenithProduction | `--color-prod` | `#ff5a44` | The on-air tally light |
 | ZenithAntiCheat | `--color-ac` | `#3fd8c0` | Verification |
 | ZenithPoints | `--color-pts` | `#9d8cff` | Scoring |
@@ -69,10 +67,10 @@ Motion explains; it never decorates idly.
 | Micro (hover, press) | 160 ms | ease |
 | UI (state change) | 280 ms | `--ease-out-expo` |
 | Reveal (scroll) | 800 ms | `--ease-out-expo`, staggered 70 ms |
-| Draw (trajectories) | 1.4 s | `--ease-draw` |
+| Draw (icons, the finale mark) | 1.4 s | `--ease-draw` |
 
-Signature moves: line-mask headline reveal, trajectory draw, a signal travelling a path, the node
-filling on activation, page transitions via React `<ViewTransition>`.
+Signature moves: line-mask headline reveal, the Zenith mark drawing itself, the node filling on
+activation, page transitions via React `<ViewTransition>`.
 
 Rules:
 - Looping diagrams pause off-screen, offer play/pause, and are keyboard operable.
@@ -98,18 +96,19 @@ Short, precise, confident. Explain what happens next. Errors say what went wrong
 it, and never expose internals. Prefer "you" over "users". Currency: `PKR 1,00,000`
 (`toLocaleString('en-PK')`). Times show the zone (`PKT`).
 
-## Platform logos (v2.1)
+## Platform logos (v2.2)
 
-One family, built in code (`src/components/brand/product-logos.tsx`): the traced Zenith mark on a
-black rounded square, the same base as the real ZenithProduction app icon, plus one accent per platform.
+One family, built in code (`src/components/brand/product-logos.tsx`): the real ZenithProduction app
+icon — the white Zenith mark centred on a rounded square — with each platform on its own tile colour.
+Tiles are dark enough that the white mark always stands out. No badges, rings or extra shapes.
 
-| Platform | Icon | Accent |
+| Platform | Tile | Mark |
 |---|---|---|
-| Zenith Esports | chrome mark | chrome `#c9cfd9` |
-| Zenith Registrations | gold mark + bracket rails | gold `#d9b25f` |
-| ZenithProduction | white mark (the real app icon) | signal red `#ff5a44` |
-| ZenithAntiCheat | white mark in a teal scan ring + check badge | teal `#3fd8c0` |
-| ZenithPoints | white mark + three rising bars | violet `#9d8cff` |
+| Zenith Esports | night `#171a21 → #030405` | chrome |
+| ZenithProduction | black `#0d0d0d → #030405` | white |
+| Zenith Registrations | deep gold `#b07c1c → #5a3d0a` | white |
+| ZenithAntiCheat | deep teal `#12927f → #05433b` | white |
+| ZenithPoints | deep emerald `#14a06c → #064a31` | white |
 
 Use `ProductLockup` (icon + "ZENITH" + platform name) at 44 px or larger; below that use the icon alone.
 

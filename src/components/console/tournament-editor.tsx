@@ -3,6 +3,7 @@
 import { useActionState, useMemo, useState } from 'react'
 import { saveTournamentAction } from '@/app/actions/console'
 import { IDLE } from '@/lib/action-state'
+import { GAME_PRESETS } from '@/lib/forms/presets'
 import { FormAlert, SubmitButton } from '../form'
 
 type FormatOpt = { id: string; gameId: string; gameName: string; label: string; code: string; minPlayers: number; maxPlayers: number; maxSubstitutes: number }
@@ -119,6 +120,7 @@ export function TournamentEditor({ initial, formats, versions }: { initial: Edit
         <F e={e} name="formVersionId" label="Registration form" help="Only published versions can be attached. Entries keep the version they were submitted with." span>
           <select id="t-formVersionId" name="formVersionId" className="input" defaultValue={v.formVersionId ?? ''}>
             <option value="">No extra questions</option>
+            {fmt && GAME_PRESETS[fmt.gameId] && <option value="preset">Ready-made {GAME_PRESETS[fmt.gameId].name.split(' — ')[0]} form (created and published for you)</option>}
             {versions
               .filter((x) => !x.gameId || !fmt || x.gameId === fmt.gameId)
               .map((x) => (

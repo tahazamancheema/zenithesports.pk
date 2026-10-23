@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { PRODUCTS } from '@/config/products'
 import { surfaceForPath, type Surface } from '@/lib/surfaces'
+import type { Viewer } from '@/server/viewer'
+import { Avatar } from './avatar'
 import { ProductIcon } from './brand/product-logos'
 import { useLinkMode, ZLink } from './link'
 
@@ -19,7 +21,7 @@ const PAGES: { label: string; surface: Surface; to: string }[] = [
  * down, returns on scroll up), and its Platforms menu shows every product with
  * its icon and the shortcuts people look for.
  */
-export function SiteHeader() {
+export function SiteHeader({ viewer = null }: { viewer?: Viewer | null }) {
   const mode = useLinkMode()
   const pathname = usePathname()
   const current: Surface = mode.mode === 'subdomain' ? mode.current : surfaceForPath(pathname)
@@ -125,21 +127,22 @@ export function SiteHeader() {
             </nav>
 
             <div className="flex items-center gap-2">
-              {/* /account is served on every host; it asks signed-out visitors to sign in. */}
-              <a href="/account" className="grid h-10 w-10 place-items-center rounded-xl border border-line-2 text-fg-2 transition-colors hover:border-line-3 hover:text-fg" aria-label="My account">
-                <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
-                  <circle cx="12" cy="8.5" r="3.6" />
-                  <path d="M4.8 19.5c1.2-3.4 4-5 7.2-5s6 1.6 7.2 5" strokeLinecap="round" />
-                </svg>
-              </a>
-              <ZLink
-                surface="registrations"
-                to="/"
-                className="btn btn-sm btn-primary hidden !rounded-xl sm:inline-flex"
-                style={{ '--accent': 'var(--color-gold)', '--accent-hi': 'var(--color-gold-hi)' } as React.CSSProperties}
-              >
-                Enter a tournament
-              </ZLink>
+              {/* /login and /account are served on every host, so this works on every subdomain. */}
+              {viewer ? (
+                <a href="/account" className="flex items-center gap-2.5 rounded-xl border border-line-2 py-1 pl-1 pr-3 text-[14px] text-fg-2 transition-colors hover:border-line-3 hover:text-fg" aria-label={`My account (${viewer.name})`}>
+                  <Avatar url={viewer.avatarUrl} name={viewer.name} size={30} />
+                  <span className="hidden max-w-[9rem] truncate font-medium sm:block">{viewer.name}</span>
+                  {viewer.staff && <span className="chip chip-accent hidden !px-1.5 !py-0 text-[11px] sm:inline-flex">Admin</span>}
+                </a>
+              ) : (
+                <a
+                  href={`/login?next=${encodeURIComponent(pathname)}`}
+                  className="btn btn-sm btn-primary !rounded-xl"
+                  style={{ '--accent': 'var(--color-gold)', '--accent-hi': 'var(--color-gold-hi)' } as React.CSSProperties}
+                >
+                  Login / Register
+                </a>
+              )}
               <button
                 type="button"
                 className="relative grid h-10 w-10 place-items-center rounded-xl border border-line-2 lg:hidden"
@@ -242,9 +245,17 @@ export function SiteHeader() {
               </ZLink>
             ))}
           </div>
-          <ZLink surface="registrations" to="/" className="btn btn-primary mt-3" style={{ '--accent': 'var(--color-gold)' } as React.CSSProperties}>
-            Enter a tournament <span className="arrow">→</span>
-          </ZLink>
+          {viewer ? (
+            <a href="/account" className="mt-3 flex items-center gap-3 rounded-xl border border-line px-4 py-3">
+              <Avatar url={viewer.avatarUrl} name={viewer.name} size={36} />
+              <span className="min-w-0 flex-1 truncate font-medium">{viewer.name}</span>
+              {viewer.staff && <span className="chip chip-accent">Admin</span>}
+            </a>
+          ) : (
+            <a href={`/login?next=${encodeURIComponent(pathname)}`} className="btn btn-primary mt-3" style={{ '--accent': 'var(--color-gold)' } as React.CSSProperties}>
+              Login / Register <span className="arrow">→</span>
+            </a>
+          )}
         </nav>
       </div>
     </>

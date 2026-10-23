@@ -6,7 +6,8 @@ elsewhere, check that publisher's community or tournament guidelines.
 
 | File | Shows | Source | Terms |
 |---|---|---|---|
-| `public/visuals/registrations.webp` | Honor of Kings championship arena | honorofkings.com (official site) | © Level Infinite / TiMi |
+| `public/visuals/registrations.webp` | Competitors in a row at a LAN, headsets on | Pexels photo 9072212 | Pexels licence (free to use) |
+| `public/visuals/anticheat.webp` | A player studying the screen | Pexels photo 9072385 | Pexels licence (free to use) |
 | `public/visuals/games/pubg-mobile*.webp` | PUBG: BATTLEGROUNDS gameplay (PC; same maps as PUBG Mobile) | Steam store page, app 578080 | © KRAFTON |
 | `public/products/production/gameplay-frame.webp` | PUBG Mobile gameplay (BGMI, Krafton's Indian release) | Google Play listing `com.pubg.imobile` | © KRAFTON |
 | `public/visuals/games/free-fire*.webp` | Free Fire key art | ff.garena.com (official site) | © Garena |
@@ -18,5 +19,5 @@ elsewhere, check that publisher's community or tournament guidelines.
 | `public/visuals/points.webp` | Generated podium render, recoloured emerald | Zenith | Zenith |
 | `public/products/production/*` | ZenithProduction operator screens (captured at 2× density), overlays and the 1920×1080 walkthrough | Captured from the real software with its built-in sample data | Zenith |
 
-Generated renders made for Zenith (no game trademarks): `public/visuals/{summit,arena,production,points,anticheat,trophy}.webp`
+Generated renders made for Zenith (no game trademarks): `public/visuals/{arena,production,points}.webp`
 and `public/visuals/games/ea-fc*.webp`. The `src/config/game-glyphs.ts` icons are Simple Icons (CC0 data; marks are their owners' trademarks).

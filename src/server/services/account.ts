@@ -75,18 +75,31 @@ export async function updateMyMember(accountId: string, registrationId: string, 
   return updateMember(memberId, patch, { ...PUBLIC_ACTOR, label: `account:${accountId}`, surface: 'registrations', ipHash })
 }
 
+export type StaffProfile = {
+  consoles: ConsoleSurface[]
+  roles: Role[]
+  /** The staff record is linked to this exact sign-in (done on first console entry with Google). */
+  linked: boolean
+}
+
 /**
- * The consoles this signed-in person may enter, if they are on the staff list.
- * Matching by email here only decides which links to show; entering a console
- * still goes through enterWithAccount and its own checks.
+ * The staff side of a signed-in person, if they are on the staff list.
+ * An email match alone only decides which console links to show; anything that
+ * shows staff data requires `linked`, and entering a console still goes through
+ * enterWithAccount and its own checks.
  */
-export async function staffConsolesFor(account: { id: string; email: string }): Promise<ConsoleSurface[]> {
-  const [row] = await db()<{ roles: Role[] }[]>`
-    select coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles
+export async function staffProfileFor(account: { id: string; email: string }): Promise<StaffProfile | null> {
+  const [row] = await db()<{ roles: Role[]; linked: boolean }[]>`
+    select coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles, (u.auth_user_id = ${account.id}) as linked
       from zenith.staff_users u left join zenith.staff_roles r on r.user_id = u.id
      where u.status = 'active' and (u.auth_user_id = ${account.id} or (u.auth_user_id is null and lower(u.email) = ${account.email.toLowerCase()}))
      group by u.id limit 1
   `
-  if (!row) return []
-  return (Object.keys(SURFACE_GATE) as ConsoleSurface[]).filter((s) => can(row.roles, SURFACE_GATE[s]))
+  if (!row) return null
+  return { roles: row.roles, linked: Boolean(row.linked), consoles: (Object.keys(SURFACE_GATE) as ConsoleSurface[]).filter((s) => can(row.roles, SURFACE_GATE[s])) }
+}
+
+/** The consoles this signed-in person may enter (see staffProfileFor). */
+export async function staffConsolesFor(account: { id: string; email: string }): Promise<ConsoleSurface[]> {
+  return (await staffProfileFor(account))?.consoles ?? []
 }

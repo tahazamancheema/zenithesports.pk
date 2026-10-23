@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Altitude, ZenithMark } from '@/components/brand'
+import { Eyebrow, ZenithMark } from '@/components/brand'
 import { Zenith3D } from '@/components/home/zenith-3d'
 import { ZLink } from '@/components/link'
 import { PageIntro } from '@/components/page-intro'
@@ -41,7 +41,7 @@ export default async function AboutPage() {
       <section className="border-b border-line py-24">
         <div className="shell grid gap-12 md:grid-cols-12">
           <div className="md:col-span-5" data-reveal>
-            <Altitude deg={15}>Mission</Altitude>
+            <Eyebrow>Mission</Eyebrow>
             <h2 className="t-display mt-6 text-[clamp(1.4rem,2.8vw,2.1rem)]">Beyond the game</h2>
           </div>
           <div className="space-y-6 md:col-span-6 md:col-start-7" data-reveal>
@@ -58,7 +58,7 @@ export default async function AboutPage() {
       <section className="border-b border-line py-24">
         <div className="shell">
           <div data-reveal>
-            <Altitude deg={30}>Principles</Altitude>
+            <Eyebrow>Principles</Eyebrow>
             <h2 className="t-display mt-6 text-[clamp(1.4rem,2.8vw,2.1rem)]">What the name means to us</h2>
           </div>
           <dl className="mt-12 grid gap-px overflow-hidden rounded-md border border-line bg-line sm:grid-cols-2 lg:grid-cols-4">
@@ -75,7 +75,7 @@ export default async function AboutPage() {
       <section className="border-b border-line py-24">
         <div className="shell">
           <div data-reveal>
-            <Altitude deg={45}>The ecosystem</Altitude>
+            <Eyebrow>The ecosystem</Eyebrow>
             <h2 className="t-display mt-6 text-[clamp(1.4rem,2.8vw,2.1rem)]">Four platforms, one organisation</h2>
           </div>
           <ul className="mt-12 divide-y divide-line border-y border-line">
@@ -100,7 +100,7 @@ export default async function AboutPage() {
       <section className="py-24" aria-labelledby="team-title">
         <div className="shell">
           <div data-reveal>
-            <Altitude deg={60}>Team</Altitude>
+            <Eyebrow>Team</Eyebrow>
             <h2 id="team-title" className="t-display mt-6 text-[clamp(1.4rem,2.8vw,2.1rem)]">
               The people behind Zenith
             </h2>

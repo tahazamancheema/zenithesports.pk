@@ -1,5 +1,6 @@
 import 'server-only'
 import { z } from 'zod'
+import { GAME_PRESETS, presetSchema } from '@/lib/forms/presets'
 import { formSchemaSchema, type FormSchema } from '@/lib/forms/schema'
 import { safeUrl, slugify } from '@/lib/normalize'
 import { zonedToUtc } from '@/lib/zoned'
@@ -59,7 +60,8 @@ export const tournamentInput = z
     requiresApproval: bool,
     waitlistEnabled: bool,
     uniquePhone: bool,
-    formVersionId: z.string().uuid().optional().or(z.literal('')).transform((v) => v || null),
+    // A published version, or `preset` for this game's ready-made form (created and published on save).
+    formVersionId: z.string().uuid().optional().or(z.literal('')).or(z.literal('preset')).transform((v) => v || null),
     communicationLinks: z.string().max(4000).default(''),
     broadcastUrl: z.string().max(500).optional().transform((v) => safeUrl(v)),
     resultsNotes: z.string().trim().max(5000).default(''),
@@ -117,6 +119,10 @@ export async function saveTournament(id: string | null, rawIn: Record<string, st
   const subsReq = t.substitutesRequired ?? 0
   if (rosterMax < rosterMin) return { ok: false, error: 'Roster maximum is below the minimum.', fieldErrors: { rosterMax: 'Below minimum' } }
   if (subsReq > subsMax) return { ok: false, error: 'Required substitutes exceed the maximum.', fieldErrors: { substitutesRequired: 'Above maximum' } }
+  if (t.formVersionId === 'preset') {
+    if (!GAME_PRESETS[format.gameId]) return { ok: false, error: 'There is no ready-made form for this game.', fieldErrors: { formVersionId: 'Not available' } }
+    t.formVersionId = await ensurePresetVersion(format.gameId, actor)
+  }
   if (t.formVersionId) {
     const [fv] = await db()<{ status: string }[]>`select status from zenith.form_versions where id = ${t.formVersionId}`
     if (fv?.status !== 'published') return { ok: false, error: 'Attach a published form version.', fieldErrors: { formVersionId: 'Not published' } }
@@ -231,7 +237,11 @@ export async function createTemplate(name: string, description: string, gameId: 
   if (name.trim().length < 1) throw new Error('Name the template.')
   return db().begin(async (tx) => {
     let schema: FormSchema = { version: 1, fields: [] }
-    if (copyFromVersion) {
+    if (copyFromVersion?.startsWith('preset:')) {
+      const presetGame = copyFromVersion.slice('preset:'.length)
+      schema = presetSchema(presetGame) ?? schema
+      gameId ??= GAME_PRESETS[presetGame] ? presetGame : null
+    } else if (copyFromVersion) {
       const [src] = await tx<{ schema: FormSchema }[]>`select schema from zenith.form_versions where id = ${copyFromVersion}`
       if (src) schema = src.schema
     }
@@ -241,6 +251,35 @@ export async function createTemplate(name: string, description: string, gameId: 
     await tx`insert into zenith.form_versions (template_id, version, schema, created_by) values (${ft.id}, 1, ${tx.json(schema as never)}, ${actor.id})`
     await audit(tx, actor, 'form.template_created', { type: 'form_template', id: ft.id })
     return ft.id
+  })
+}
+
+/**
+ * The published ready-made form for a game, creating and publishing it the first time.
+ * Lets an organiser attach a sensible form to a tournament without building one.
+ */
+export async function ensurePresetVersion(gameId: string, actor: Actor): Promise<string> {
+  const preset = GAME_PRESETS[gameId]
+  const schema = presetSchema(gameId)
+  if (!preset || !schema) throw new Error('There is no ready-made form for this game.')
+  const [existing] = await db()<{ id: string }[]>`
+    select v.id from zenith.form_versions v join zenith.form_templates ft on ft.id = v.template_id
+     where ft.name = ${preset.name} and ft.game_id = ${gameId} and ft.archived_at is null and v.status = 'published'
+     order by v.version desc limit 1
+  `
+  if (existing) return existing.id
+  return db().begin(async (tx) => {
+    const [ft] = await tx<{ id: string }[]>`
+      insert into zenith.form_templates (name, description, game_id, created_by)
+      values (${preset.name}, ${'Ready-made form. Edit it in the form builder; tournaments keep the version they used.'}, ${gameId}, ${actor.id}) returning id
+    `
+    const [v] = await tx<{ id: string }[]>`
+      insert into zenith.form_versions (template_id, version, schema, status, published_at, created_by)
+      values (${ft.id}, 1, ${tx.json(schema as never)}, 'published', now(), ${actor.id}) returning id
+    `
+    await audit(tx, actor, 'form.template_created', { type: 'form_template', id: ft.id }, { preset: gameId })
+    await audit(tx, actor, 'form.published', { type: 'form_version', id: v.id }, { version: 1 })
+    return v.id
   })
 }
 
