@@ -1,6 +1,6 @@
 import 'server-only'
 import { isEmail } from '@/lib/normalize'
-import { ROLES, type Role } from '@/lib/permissions'
+import { GAME_SCOPED_ROLES, ROLES, type Role } from '@/lib/permissions'
 import { audit, type Actor } from '../audit'
 import { hashPassword, randomToken, verifyPassword } from '../crypto'
 import { db, isUniqueViolation, type Db } from '../db'
@@ -14,9 +14,10 @@ export function passwordProblem(pw: string): string | null {
 }
 
 export async function listStaff() {
-  return db()<{ id: string; email: string; displayName: string; status: string; roles: Role[]; lastLoginAt: Date | null; createdAt: Date }[]>`
+  return db()<{ id: string; email: string; displayName: string; status: string; roles: Role[]; games: string[]; lastLoginAt: Date | null; createdAt: Date }[]>`
     select u.id, u.email, u.display_name, u.status, u.last_login_at, u.created_at,
-           coalesce(array_agg(r.role order by r.role) filter (where r.role is not null), '{}') as roles
+           coalesce(array_agg(r.role order by r.role) filter (where r.role is not null), '{}') as roles,
+           coalesce((select array_agg(g.game_id order by g.game_id) from zenith.staff_game_scopes g where g.user_id = u.id), '{}') as games
       from zenith.staff_users u left join zenith.staff_roles r on r.user_id = u.id
      group by u.id order by u.created_at
   `
@@ -28,12 +29,26 @@ export async function listStaff() {
  * through Supabase Auth using this exact address, and the account links itself.
  * Returns the one-time password, or null when none was issued.
  */
-export async function createStaff(d: { email: string; displayName: string; roles: Role[] }, actor: Actor): Promise<string | null> {
+/** Game assignments only mean something for game-scoped roles; anything else is cleared. */
+function scopeFor(roles: Role[], games: string[]) {
+  return roles.some((r) => GAME_SCOPED_ROLES.includes(r)) ? [...new Set(games)] : []
+}
+
+async function writeGames(tx: Db, userId: string, games: string[], actor: Actor) {
+  await tx`delete from zenith.staff_game_scopes where user_id = ${userId}`
+  for (const g of games) await tx`insert into zenith.staff_game_scopes (user_id, game_id, granted_by) values (${userId}, ${g}, ${actor.id}) on conflict do nothing`
+}
+
+export async function createStaff(d: { email: string; displayName: string; roles: Role[]; games?: string[] }, actor: Actor): Promise<string | null> {
   const email = d.email.trim().toLowerCase()
   if (!isEmail(email)) throw new Error('Enter a valid email.')
   if (!d.displayName.trim()) throw new Error('Enter a display name.')
   const roles = d.roles.filter((r) => ROLES.includes(r))
   if (!roles.length) throw new Error('Choose at least one role.')
+  const games = scopeFor(roles, d.games ?? [])
+  if (roles.includes('game_manager') && !roles.some((r) => r === 'super_admin' || r === 'senior_admin' || r === 'tournament_admin') && !games.length) {
+    throw new Error('Choose the games this game manager looks after.')
+  }
   const temp = staffPasswordLogin() ? randomToken(12) : null
   try {
     await db().begin(async (tx) => {
@@ -42,7 +57,8 @@ export async function createStaff(d: { email: string; displayName: string; roles
         values (${email}, ${d.displayName.trim().slice(0, 80)}, ${temp ? await hashPassword(temp) : null}, ${Boolean(temp)}, ${actor.id}) returning id
       `
       for (const r of roles) await tx`insert into zenith.staff_roles (user_id, role, granted_by) values (${u.id}, ${r}, ${actor.id})`
-      await audit(tx, actor, 'staff.created', { type: 'staff_user', id: u.id }, { roles })
+      await writeGames(tx, u.id, games, actor)
+      await audit(tx, actor, 'staff.created', { type: 'staff_user', id: u.id }, { roles, games })
     })
   } catch (e) {
     if (isUniqueViolation(e)) throw new Error('An account with this email already exists.')
@@ -59,17 +75,23 @@ async function superAdminCount(conn: Db = db()) {
   return n
 }
 
-export async function setRoles(userId: string, roles: Role[], actor: Actor) {
+export async function setRoles(userId: string, roles: Role[], actor: Actor, gamesIn: string[] = []) {
   const next = roles.filter((r) => ROLES.includes(r))
+  if (!next.length) throw new Error('Choose at least one role, or disable the account instead.')
+  const games = scopeFor(next, gamesIn)
+  if (next.includes('game_manager') && !next.some((r) => r === 'super_admin' || r === 'senior_admin' || r === 'tournament_admin') && !games.length) {
+    throw new Error('Choose the games this game manager looks after.')
+  }
   await db().begin(async (tx) => {
     await tx`select 1 from zenith.staff_users where id = ${userId} for update`
     const current = (await tx<{ role: Role }[]>`select role from zenith.staff_roles where user_id = ${userId}`).map((r) => r.role)
     if (current.includes('super_admin') && !next.includes('super_admin') && (await superAdminCount(tx)) <= 1) {
-      throw new Error('There must always be at least one active super administrator.')
+      throw new Error('There must always be at least one active Owner.')
     }
     await tx`delete from zenith.staff_roles where user_id = ${userId}`
     for (const r of next) await tx`insert into zenith.staff_roles (user_id, role, granted_by) values (${userId}, ${r}, ${actor.id})`
-    await audit(tx, actor, 'staff.roles', { type: 'staff_user', id: userId }, { from: current, to: next })
+    await writeGames(tx, userId, games, actor)
+    await audit(tx, actor, 'staff.roles', { type: 'staff_user', id: userId }, { from: current, to: next, games })
   })
   // Privileges changed: force fresh sessions.
   await revokeAllSessions(userId)
@@ -82,7 +104,7 @@ export async function setStaffStatus(userId: string, status: 'active' | 'disable
     if (!u) throw new Error('Account not found.')
     if (status === 'disabled') {
       const [isSuper] = await tx`select 1 from zenith.staff_roles where user_id = ${userId} and role = 'super_admin'`
-      if (isSuper && (await superAdminCount(tx)) <= 1) throw new Error('There must always be at least one active super administrator.')
+      if (isSuper && (await superAdminCount(tx)) <= 1) throw new Error('There must always be at least one active Owner.')
     }
     await tx`update zenith.staff_users set status = ${status} where id = ${userId}`
     await audit(tx, actor, `staff.${status}`, { type: 'staff_user', id: userId })

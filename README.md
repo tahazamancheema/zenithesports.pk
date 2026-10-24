@@ -5,10 +5,10 @@ application serving the ecosystem hub and four platforms on their own subdomains
 
 | Surface | Production | Local |
 |---|---|---|
-| Ecosystem hub + HQ console | `zenithesports.pk` | `/`, `/admin` |
-| Zenith Registrations (+ console) | `registrations.zenithesports.pk` | `/registrations`, `/registrations/admin` |
+| Ecosystem hub + admin panel | `www.zenithesports.pk` | `/`, `/admin` |
+| ZenithRegistrations | `registrations.zenithesports.pk` | `/registrations` |
 | ZenithProduction | `production.zenithesports.pk` | `/production` |
-| ZenithAntiCheat (+ console) | `anticheat.zenithesports.pk` | `/anticheat`, `/anticheat/admin` |
+| ZenithAntiCheat | `anticheat.zenithesports.pk` | `/anticheat` |
 | ZenithPoints | `points.zenithesports.pk` | `/points` |
 
 ZenithHisaab (`public/hisaab/admin`) is a separate private app that is only *served* from this
@@ -27,7 +27,8 @@ npm run dev                       # terminal 2 — http://localhost:3000
 npm run admin:bootstrap -- --email you@example.com --name "You"   # with DATABASE_URL set
 ```
 
-Sign in at `/admin/login`, `/registrations/admin/login` or `/anticheat/admin/login` with the
+All staff work in one admin panel at `/admin`; what each person sees depends on their roles
+(`src/lib/permissions.ts`, sections in `src/config/admin-nav.ts`). Sign in at `/admin/login` with the
 one-time password printed by the bootstrap command (you will be asked to change it). Player sign-in
 locally uses `LOCAL_DEV_AUTH=1`; production uses Supabase Auth with Google — see
 [docs/AUTH_SETUP.md](docs/AUTH_SETUP.md).

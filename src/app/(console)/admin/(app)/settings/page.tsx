@@ -1,3 +1,5 @@
+import { can } from '@/lib/permissions'
+import { adminPage } from '@/components/console/entry-points'
 import { saveSettingAction } from '@/app/actions/console'
 import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
@@ -97,12 +99,15 @@ const GROUPS: { key: SettingsKey; title: string; note?: string; fields: FieldDef
 ]
 
 export default async function SettingsPage() {
+  const me = await adminPage('settings.manage', 'settings.production', 'settings.points')
   const s = await getSettings()
+  // Product managers edit only their own product's page; website staff edit everything.
+  const groups = GROUPS.filter((g) => can(me.roles, g.key === 'product.production' ? 'settings.production' : g.key === 'product.points' ? 'settings.points' : 'settings.manage'))
   return (
     <>
       <ConsoleTitle title="Site settings" sub="Public configuration. Changes are live immediately and logged." />
       <div className="grid gap-6 xl:grid-cols-2">
-        {GROUPS.map((g) => {
+        {groups.map((g) => {
           const values = s[g.key] as Record<string, unknown>
           return (
             <section key={g.key} className="panel p-5">

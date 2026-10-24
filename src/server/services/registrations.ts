@@ -455,6 +455,8 @@ export async function listRegistrations(f: {
   sort?: 'newest' | 'oldest' | 'team'
   page?: number
   pageSize?: number
+  /** Limit to these games (a scoped staff member); null or omitted means every game. */
+  games?: string[] | null
 }) {
   const sql = db()
   const pageSize = Math.min(f.pageSize ?? 25, 100)
@@ -467,6 +469,7 @@ export async function listRegistrations(f: {
   const where = sql`
     where (${f.tournamentId ?? null}::uuid is null or r.tournament_id = ${f.tournamentId ?? null}::uuid)
       and (${f.status ?? null}::text is null or r.status = ${f.status ?? null})
+      and (${f.games ?? null}::text[] is null or t.game_id = any(${f.games ?? null}::text[]))
       and (${q}::text is null
            or r.reference ilike ${'%' + (q ?? '') + '%'}
            or r.team_name_norm like ${'%' + (qNorm ?? '') + '%'}
@@ -483,7 +486,7 @@ export async function listRegistrations(f: {
      order by ${order}
      limit ${pageSize} offset ${(page - 1) * pageSize}
   `
-  const [{ total }] = await sql<{ total: number }[]>`select count(*)::int as total from zenith.registrations r ${where}`
+  const [{ total }] = await sql<{ total: number }[]>`select count(*)::int as total from zenith.registrations r join zenith.tournaments t on t.id = r.tournament_id ${where}`
   return { rows, total, page, pageSize }
 }
 

@@ -16,13 +16,12 @@ const LOCK_AFTER = 8
 const LOCK_MINUTES = 15
 
 /**
- * One cookie per console. Cookies are host-only (`__Host-` in production), so a
- * session created on registrations.zenithesports.pk is never sent to
- * anticheat.zenithesports.pk — and the DB row is bound to its surface anyway.
+ * One admin panel, one session. The cookie is host-only (`__Host-` in
+ * production) on the main site, where the panel lives; what a person can do is
+ * decided by their roles, checked on every page and action.
  */
-export function cookieName(surface: ConsoleSurface) {
-  const base = { hq: 'zx_hq', registrations: 'zx_reg', anticheat: 'zx_ac' }[surface]
-  return isProd ? `__Host-${base}` : base
+export function cookieName() {
+  return isProd ? '__Host-zx_admin' : 'zx_admin'
 }
 
 export type Staff = {
@@ -30,10 +29,23 @@ export type Staff = {
   email: string
   displayName: string
   roles: Role[]
+  /** Games this person's tournament work is limited to; null means every game. */
+  gameScope: string[] | null
   mustChangePassword: boolean
   surface: ConsoleSurface
   sessionId: string
 }
+
+/** Owners, administrators and tournament managers work on every game; scoped roles on their assigned games. */
+export function gameScopeFor(roles: Role[], games: string[]): string[] | null {
+  if (roles.some((r) => r === 'super_admin' || r === 'senior_admin' || r === 'tournament_admin')) return null
+  if (roles.includes('game_manager')) return games
+  return games.length ? games : null
+}
+
+/** True when this person may work on tournaments of `gameId`. */
+export const inGameScope = (staff: Pick<Staff, 'gameScope'>, gameId: string | null | undefined) =>
+  staff.gameScope === null || (gameId != null && staff.gameScope.includes(gameId))
 
 export class AuthError extends Error {
   constructor(message = 'You do not have permission to do that.') {
@@ -48,21 +60,21 @@ export const actorOf = async (s: Staff): Promise<Actor> => ({
   ipHash: await ipHash(),
 })
 
-/** Reads and validates the session for one surface. Cached per request. */
-export const getStaff = cache(async (surface: ConsoleSurface): Promise<Staff | null> => {
-  const token = (await cookies()).get(cookieName(surface))?.value
+/** Reads and validates the admin session. Cached per request; the surface argument is historical. */
+export const getStaff = cache(async (surface: ConsoleSurface = 'hq'): Promise<Staff | null> => {
+  const token = (await cookies()).get(cookieName())?.value
   if (!token || token.length < 32) return null
   const id = sha256(token)
   const [row] = await db()<
-    { id: string; email: string; displayName: string; mustChangePassword: boolean; roles: Role[]; lastSeenAt: Date }[]
+    { id: string; email: string; displayName: string; mustChangePassword: boolean; roles: Role[]; games: string[]; lastSeenAt: Date }[]
   >`
     select u.id, u.email, u.display_name, u.must_change_password, s.last_seen_at,
-           coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles
+           coalesce(array_agg(distinct r.role) filter (where r.role is not null), '{}') as roles,
+           coalesce((select array_agg(g.game_id) from zenith.staff_game_scopes g where g.user_id = u.id), '{}') as games
       from zenith.sessions s
       join zenith.staff_users u on u.id = s.user_id
       left join zenith.staff_roles r on r.user_id = u.id
      where s.id = ${id}
-       and s.surface = ${surface}
        and s.revoked_at is null
        and s.expires_at > now()
        and s.last_seen_at > now() - make_interval(mins => ${IDLE_MINUTES})
@@ -79,6 +91,7 @@ export const getStaff = cache(async (surface: ConsoleSurface): Promise<Staff | n
     email: row.email,
     displayName: row.displayName,
     roles: row.roles,
+    gameScope: gameScopeFor(row.roles, row.games),
     mustChangePassword: row.mustChangePassword,
     surface,
     sessionId: id,
@@ -164,7 +177,7 @@ export async function login(surface: ConsoleSurface, emailRaw: string, password:
   }
   if (!can(user.roles, SURFACE_GATE[surface])) {
     await audit(db(), actor, 'auth.login_denied_surface', { type: 'staff_user', id: user.id })
-    return { ok: false, error: 'Your account does not have access to this console.' }
+    return { ok: false, error: 'Your account has no admin role yet. Ask an Owner to give you one.' }
   }
 
   await startSession(surface, user.id, actor, 'auth.login')
@@ -180,11 +193,11 @@ async function startSession(surface: ConsoleSurface, userId: string, actor: Acto
     await tx`update zenith.staff_users set failed_attempts = 0, locked_until = null, last_login_at = now() where id = ${userId}`
     await tx`
       insert into zenith.sessions (id, user_id, surface, expires_at, ip_hash, user_agent)
-      values (${sha256(token)}, ${userId}, ${surface}, now() + make_interval(hours => ${ABSOLUTE_HOURS}), ${ip}, ${await userAgent()})
+      values (${sha256(token)}, ${userId}, 'hq', now() + make_interval(hours => ${ABSOLUTE_HOURS}), ${ip}, ${await userAgent()})
     `
     await audit(tx, actor, action, { type: 'staff_user', id: userId })
   })
-  ;(await cookies()).set(cookieName(surface), token, {
+  ;(await cookies()).set(cookieName(), token, {
     httpOnly: true,
     secure: isProd,
     sameSite: 'strict',
@@ -227,7 +240,7 @@ export async function enterWithAccount(
   }
   if (!can(user.roles, SURFACE_GATE[surface])) {
     await audit(db(), actor, 'auth.login_denied_surface', { type: 'staff_user', id: user.id })
-    return { ok: false, error: 'Your account does not have access to this console.' }
+    return { ok: false, error: 'Your account has no admin role yet. Ask an Owner to give you one.' }
   }
   if (!user.authUserId) {
     // First link of a staff record to a sign-in. Google proves the address belongs to this person.
@@ -248,13 +261,13 @@ export async function enterWithAccount(
 
 export async function logout(surface: ConsoleSurface) {
   const jar = await cookies()
-  const token = jar.get(cookieName(surface))?.value
+  const token = jar.get(cookieName())?.value
   if (token) {
     const staff = await getStaff(surface)
     await db()`update zenith.sessions set revoked_at = now() where id = ${sha256(token)} and revoked_at is null`
     if (staff) await audit(db(), await actorOf(staff), 'auth.logout', { type: 'staff_user', id: staff.id })
   }
-  jar.delete(cookieName(surface))
+  jar.delete(cookieName())
 }
 
 /** Revoke every session of a user (role change, disable, password reset). */

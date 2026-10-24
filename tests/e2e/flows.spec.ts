@@ -53,20 +53,19 @@ test.describe.serial('ecosystem flows', () => {
   })
   test.afterAll(async () => context.close())
 
-  test('consoles are separately authenticated', async () => {
+  test('one admin panel: old console addresses lead to it, and it asks for sign-in', async () => {
     await page.goto('/registrations/admin')
-    await expect(page).toHaveURL(/\/registrations\/admin\/login/)
-    await signIn(page, '/registrations/admin')
-    // A Registrations session grants nothing in the HQ or AntiCheat consoles.
-    await page.goto('/admin')
     await expect(page).toHaveURL(/\/admin\/login/)
-    await page.goto('/anticheat/admin')
-    await expect(page).toHaveURL(/\/anticheat\/admin\/login/)
+    await signIn(page, '/admin')
+    // The same session opens every section; old AntiCheat links land on the matching section.
+    await page.goto('/anticheat/admin/reports')
+    await expect(page).toHaveURL(/\/admin\/reports$/)
+    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   })
 
   test('an administrator creates and publishes a tournament', async () => {
-    await signIn(page, '/registrations/admin')
-    await page.goto('/registrations/admin/tournaments/new')
+    await signIn(page, '/admin')
+    await page.goto('/admin/tournaments/new')
     await page.getByLabel('Name', { exact: true }).fill(`E2E Squad Cup ${run}`)
     await page.getByLabel('Game & format').selectOption({ label: 'PUBG Mobile · Squad' })
     const at = (days: number) => new Date(Date.now() + days * 86400_000 + 5 * 3600_000).toISOString().slice(0, 16)
@@ -150,8 +149,8 @@ test.describe.serial('ecosystem flows', () => {
   })
 
   test('registrations appear in the console and can be approved', async () => {
-    await signIn(page, '/registrations/admin')
-    await page.goto('/registrations/admin/registrations?q=' + encodeURIComponent(`Meridian ${run}`))
+    await signIn(page, '/admin')
+    await page.goto('/admin/registrations?q=' + encodeURIComponent(`Meridian ${run}`))
     await page.getByRole('link', { name: `Meridian ${run}` }).click()
     await expect(page.getByText('Roster')).toBeVisible()
     await page.getByLabel('New status').selectOption('approved')
@@ -169,8 +168,8 @@ test.describe.serial('ecosystem flows', () => {
     await page.getByRole('button', { name: /Submit report/ }).click()
     await expect(page.getByText('Report submitted for review')).toBeVisible()
 
-    await signIn(page, '/anticheat/admin')
-    await page.goto('/anticheat/admin/reports?status=pending')
+    await signIn(page, '/admin')
+    await page.goto('/admin/reports?status=pending')
     await page.getByRole('row', { name: new RegExp(reported) }).getByRole('link').click()
     await expect(page.getByRole('img', { name: 'Report confirmation evidence' })).toBeVisible()
 
@@ -185,7 +184,7 @@ test.describe.serial('ecosystem flows', () => {
     await expect(page.getByRole('link', { name: 'Open flag' })).toBeVisible() // decided; the flag exists
 
     // The historical scan matched the earlier registration.
-    await page.goto('/anticheat/admin/alerts?status=open')
+    await page.goto('/admin/alerts?status=open')
     await expect(page.getByText(`Meridian ${run}`).first()).toBeVisible()
   })
   test('a production booking and a purchase inquiry reach the HQ console', async () => {
@@ -222,11 +221,13 @@ test.describe.serial('ecosystem flows', () => {
     await page.goto('/admin/inquiries')
     await expect(page.getByText(buyer)).toBeVisible()
   })
-  test('every console page opens for an administrator', async () => {
+  test('every admin page opens for an Owner', async () => {
     const consoles: [string, string[]][] = [
-      ['/admin', ['', '/inquiries', '/bookings', '/messages', '/waitlist', '/settings', '/content', '/staff', '/audit']],
-      ['/registrations/admin', ['', '/registrations', '/tournaments', '/tournaments/new', '/forms', '/lft', '/games']],
-      ['/anticheat/admin', ['', '/reports', '/alerts', '/flags', '/flags/new', '/entry', '/scans']],
+      [
+        '/admin',
+        ['', '/tournaments', '/tournaments/new', '/registrations', '/forms', '/lft', '/games', '/reports', '/alerts', '/flags', '/flags/new', '/entry', '/scans',
+         '/bookings', '/inquiries', '/messages', '/waitlist', '/settings', '/content', '/staff', '/audit'],
+      ],
     ]
     for (const [base, pages] of consoles) {
       await signIn(page, base)

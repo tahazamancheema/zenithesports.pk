@@ -11,6 +11,7 @@ import { hqHost, PRODUCT_SURFACES, SURFACES, surfaceForHost, surfaceForPath, typ
  *   www.zenithesports.pk/registrations/x → 308     → registrations.zenithesports.pk/x
  *   zenithesports.pk/*                   → 308     → www.zenithesports.pk/*  (the main site lives on www)
  *   hisaab.zenithesports.pk/*            → 307     → www.zenithesports.pk/hisaab/admin
+ *   <product>.zenithesports.pk/admin/*   → 308     → www.zenithesports.pk/admin/*  (one admin panel)
  * Anywhere else (localhost, previews): path mode, no rewriting.
  *
  * The ZenithHisaab ledger at /hisaab/admin is never rewritten or given this
@@ -146,6 +147,16 @@ export async function proxy(req: NextRequest) {
     // Serve the ledger only from the root domain, untouched.
     if (target && target !== 'hq') return NextResponse.redirect(`https://${hqHost(ROOT)}/hisaab/admin`, 307)
     return NextResponse.next()
+  }
+
+  // The old per-product consoles are now sections of the one admin panel on the main site.
+  const oldConsole = pathname.match(/^\/(?:registrations|anticheat)\/admin(\/.*)?$/)
+  if (oldConsole) {
+    const to = `/admin${oldConsole[1] ?? ''}${search}`
+    return NextResponse.redirect(target === null ? new URL(to, req.url) : `https://${hqHost(ROOT)}${to}`, 308)
+  }
+  if (target && target !== 'hq' && (pathname === '/admin' || pathname.startsWith('/admin/'))) {
+    return NextResponse.redirect(`https://${hqHost(ROOT)}${pathname}${search}`, 308)
   }
 
   // The sign-in callbacks create the session themselves; everything else passes the idle gate.

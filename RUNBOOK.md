@@ -2,37 +2,47 @@
 
 Audience: Zenith administrators and whoever is on call for the website.
 
-## Consoles and roles
+## Admin panel and roles
 
-| Console | Address | Who |
-|---|---|---|
-| HQ | `zenithesports.pk/admin` | Senior / super administrators: inquiries, bookings, messages, waitlist, site settings, media, staff, audit |
-| Registrations | `registrations.zenithesports.pk/admin` | Tournament administrators: tournaments, forms, registrations, LFT, games |
-| AntiCheat | `anticheat.zenithesports.pk/admin` | AntiCheat reviewers: reports, alerts, flags, manual entry, scans |
+All staff work in one admin panel at `www.zenithesports.pk/admin` (old console addresses redirect
+there). The sidebar shows only the sections a person's roles allow, and every page and action
+checks the same permissions on the server.
 
-Each console has its own sign-in; a session on one grants nothing on another. Sessions last 12
-hours, or 2 hours idle. Ten failed attempts per account (or twenty per network) in 15 minutes pause
-sign-in; eight consecutive failures lock the account for 15 minutes.
+| Role | Can do |
+|---|---|
+| Owner | Everything, including staff and roles |
+| Administrator | Everything except staff and roles, and deleting evidence |
+| Tournament manager | Tournaments, forms, games, registrations and Looking for Team, every game |
+| Game manager | Tournaments, forms and registrations for their assigned games only |
+| Registration reviewer | Approves, rejects and waitlists entries; moderates Looking for Team (optionally limited to games) |
+| AntiCheat reviewer | Reports, alerts, flags, manual entries and scans |
+| Inbox manager | Contact messages, production bookings and inquiries, the Points waitlist |
+| Production manager | ZenithProduction bookings, inquiries and its page settings |
+| Website developer | Site settings, announcement bar, media and team pages |
+| App manager | ZenithPoints waitlist and its page settings |
 
-**Staff accounts** — HQ → Staff & roles (super administrators only). In production staff sign in
-with Google or email through Supabase Auth using the address on their staff record (the record links
-itself on first sign-in); "Sign out everywhere" ends their console sessions. Locally, new accounts
-and password resets produce a one-time password shown once; share it privately. Changing roles or disabling an
-account signs that person out everywhere. The last active super administrator cannot be removed.
-If every super administrator is locked out, run `npm run admin:bootstrap` only after removing the
-locked accounts' `super_admin` role directly in the database, and record why.
+Sessions last 12 hours, or 1 hour idle. Ten failed attempts per account (or twenty per network) in
+15 minutes pause sign-in; eight consecutive failures lock the account for 15 minutes.
+
+**Staff accounts** — Admin panel → Staff & roles (Owners only). In production staff sign in with
+Google or email through Supabase Auth using the address on their staff record (the record links
+itself on first sign-in); "Sign out everywhere" ends their admin sessions. Locally, new accounts
+and password resets produce a one-time password shown once; share it privately. Changing roles or
+disabling an account signs that person out everywhere. The last active Owner cannot be removed.
+If every Owner is locked out, run `npm run admin:bootstrap` only after removing the
+locked accounts' `super_admin` (Owner) role directly in the database, and record why.
 
 ## Running a tournament
 
 1. Registrations → Form builder: create or copy a template, add only the questions this event
-   needs (team, roster, IDs and contact are always collected), preview, **Publish version**.
-2. Registrations → Tournaments → New: game & format, schedule (in the tournament's timezone),
+   needs (team, roster, IDs and contact are always collected), preview, **Save & publish**.
+2. Admin panel → Tournaments → New: game & format, schedule (in the tournament's timezone),
    capacity, roster limits, approval/waitlist/phone rules, the published form, rules, prizes, links.
 3. Publish. The public page and registration open at the configured time.
-4. Review in Registrations → Registrations (live). Rejections and disqualifications require a reason,
+4. Review in Admin panel → Registrations (live). Rejections and disqualifications require a reason,
    which the team sees. Bulk actions apply to up to 100 entries and skip illegal transitions.
-5. Entries with AntiCheat alerts are marked; they are never auto-approved. Reviewers decide in the
-   AntiCheat console.
+5. Entries with AntiCheat alerts are marked; they are never auto-approved. AntiCheat reviewers decide
+   in the admin panel under AntiCheat.
 6. Export CSV for brackets or check-in. Cells are escaped against spreadsheet formula injection, and
    every export is logged.
 7. Cancelling a tournament requires a public reason and cancels all active entries.

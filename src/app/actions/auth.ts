@@ -156,5 +156,5 @@ export async function consoleEnterAction(_: ActionState, fd: FormData): Promise<
   } catch (e) {
     return failure(e)
   }
-  redirect(await consoleBase(surface))
+  redirect(await consoleBase())
 }

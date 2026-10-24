@@ -3,12 +3,13 @@ import { utcToZonedInput } from '@/lib/zoned'
 import { publishedVersions } from './admin-tournaments'
 import { getFormats, getGames, type Tournament } from './catalog'
 
-export async function editorOptions() {
+/** Formats and published forms for the tournament editor, limited to the `scope` games when given. */
+export async function editorOptions(scope: string[] | null = null) {
   const [games, formats, versions] = await Promise.all([getGames(), getFormats(), publishedVersions()])
   const name = Object.fromEntries(games.map((g) => [g.id, g.name]))
   return {
-    formats: formats.filter((f) => f.enabled).map((f) => ({ ...f, gameName: name[f.gameId] ?? f.gameId })),
-    versions,
+    formats: formats.filter((f) => f.enabled && (!scope || scope.includes(f.gameId))).map((f) => ({ ...f, gameName: name[f.gameId] ?? f.gameId })),
+    versions: versions.filter((v) => !scope || (v.gameId !== null && scope.includes(v.gameId))),
   }
 }
 

@@ -1,6 +1,6 @@
 import { getSettings } from '@/server/settings'
 
-/** An administrator-controlled notice. Hidden unless switched on in the HQ console. */
+/** An administrator-controlled notice. Hidden unless switched on in the admin panel. */
 export async function AnnouncementBar() {
   const { announcement } = await getSettings()
   if (!announcement.enabled || !announcement.text) return null

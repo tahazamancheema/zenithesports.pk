@@ -19,20 +19,38 @@ export const FIELD_TYPES = [
 export type FieldType = (typeof FIELD_TYPES)[number]
 
 export const FIELD_TYPE_LABEL: Record<FieldType, string> = {
-  short_text: 'Short text',
-  long_text: 'Long text',
+  short_text: 'Short answer',
+  long_text: 'Paragraph',
   number: 'Number',
   email: 'Email',
   phone: 'Phone / WhatsApp',
-  game_uid: 'Game UID',
+  game_uid: 'Game ID',
   ign: 'In-game name',
-  single_choice: 'Single choice (radio)',
-  multi_choice: 'Multiple choice (checkboxes)',
+  single_choice: 'Multiple choice (pick one)',
+  multi_choice: 'Checkboxes (pick several)',
   dropdown: 'Dropdown',
-  consent: 'Consent checkbox',
-  file: 'File upload (image)',
-  heading: 'Section heading',
-  paragraph: 'Description block',
+  consent: 'Agreement checkbox',
+  file: 'Image upload',
+  heading: 'Section title',
+  paragraph: 'Note for applicants',
+}
+
+/** One line on what each question type is for, shown when adding a question. */
+export const FIELD_TYPE_HINT: Record<FieldType, string> = {
+  short_text: 'A name, tag or short reply.',
+  long_text: 'A longer written answer.',
+  number: 'Age, level, rank points…',
+  email: 'An email address, checked for format.',
+  phone: 'A Pakistani mobile number, checked for format.',
+  game_uid: 'A game account ID, checked for the game.',
+  ign: 'An in-game name.',
+  single_choice: 'Choose one option from a short list.',
+  multi_choice: 'Tick any number of options.',
+  dropdown: 'Choose one option from a longer list.',
+  consent: 'A box they must tick to agree.',
+  file: 'A screenshot or logo (PNG, JPEG or WebP).',
+  heading: 'Splits the form into sections.',
+  paragraph: 'Text with instructions, no answer.',
 }
 
 export const DISPLAY_ONLY: readonly FieldType[] = ['heading', 'paragraph']

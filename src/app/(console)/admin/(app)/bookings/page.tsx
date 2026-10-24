@@ -1,3 +1,4 @@
+import { adminPage } from '@/components/console/entry-points'
 import { bookingStatusAction } from '@/app/actions/console'
 import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
@@ -7,6 +8,7 @@ import { BOOKING_TRANSITIONS, listBookings } from '@/server/services/intake'
 export const metadata = { title: 'Production bookings' }
 
 export default async function Bookings() {
+  await adminPage('inbox.production')
   const rows = await listBookings()
   return (
     <>

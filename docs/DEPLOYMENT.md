@@ -124,10 +124,10 @@ is not linked anywhere and not in `robots.txt` or sitemaps.
    ```
    With `NEXT_PUBLIC_SUPABASE_URL` set it creates no password: sign in at
    `https://zenithesports.pk/admin/login` with Google using the same email, then *Enter this console*.
-   Create other staff from HQ console → Staff & roles. Full walkthrough: [AUTH_SETUP.md](AUTH_SETUP.md).
+   Create other staff from Admin panel → Staff & roles. Full walkthrough: [AUTH_SETUP.md](AUTH_SETUP.md).
 3. Each console has its own sign-in: `zenithesports.pk/admin` (HQ),
    `registrations.zenithesports.pk/admin`, `anticheat.zenithesports.pk/admin`.
-4. Fill in HQ console → Site settings: contact details, verified social URLs, product statuses.
+4. Fill in Admin panel → Site settings: contact details, verified social URLs, product statuses.
 
 ## 6. Verify
 

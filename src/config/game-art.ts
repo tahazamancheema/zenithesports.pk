@@ -3,7 +3,7 @@ import type { CSSProperties } from 'react'
 /**
  * Visual identity per game: generated key art (no trademarks, made for Zenith),
  * an accent colour, and how the game is marked when no official logo has been
- * uploaded in the Registrations console.
+ * uploaded in the admin panel (Games).
  */
 export type GameArt = {
   art: string

@@ -29,8 +29,11 @@ function listMigrations() {
 }
 
 async function ensureLedger(sql: Sql) {
+  // Creating a schema needs CREATE on the database, which the app role does not hold; it owns the
+  // schema once it exists, so later migrations run as that role with no extra grants.
+  const [{ exists }] = await sql<{ exists: boolean }[]>`select exists (select 1 from pg_namespace where nspname = 'zenith') as exists`
+  if (!exists) await sql.unsafe('create schema zenith')
   await sql.unsafe(`
-    create schema if not exists zenith;
     create table if not exists zenith.schema_migrations (
       name text primary key,
       checksum text not null,

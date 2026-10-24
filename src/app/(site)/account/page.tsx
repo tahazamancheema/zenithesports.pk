@@ -28,7 +28,7 @@ const TONE: Record<string, string> = {
 export default async function AccountPage() {
   const account = await requireAccount('/account')
   const [regs, staff] = await Promise.all([listMyRegistrations(account.id), staffProfileFor(account)])
-  const [reg, ac, hq] = await Promise.all([href('registrations', '/admin'), href('anticheat', '/admin'), href('hq', '/admin')])
+  const adminHref = await href('hq', '/admin')
   const name = account.displayName ?? account.email.split('@')[0]
 
   return (
@@ -60,7 +60,7 @@ export default async function AccountPage() {
         </div>
       </div>
 
-      {staff && staff.consoles.length > 0 && <AdminHome staff={staff} hrefs={{ registrations: reg, anticheat: ac, hq }} />}
+      {staff && staff.consoles.length > 0 && <AdminHome staff={staff} adminHref={adminHref} />}
 
       <h2 className="t-label mt-14 flex items-center gap-3">
         <span className="node node-fill" /> My registrations · {regs.length}

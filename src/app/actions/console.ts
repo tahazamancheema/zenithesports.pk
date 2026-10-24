@@ -19,6 +19,7 @@ import * as intake from '@/server/services/intake'
 import { adminSetLft } from '@/server/services/lft'
 import { transition, TransitionError, updateMember } from '@/server/services/registrations'
 import * as staffSvc from '@/server/services/staff'
+import { assertGames, gameOf } from '@/server/scope'
 import { saveSetting, SETTINGS_SCHEMA, type SettingsKey } from '@/server/settings'
 
 const SURFACES: ConsoleSurface[] = ['hq', 'registrations', 'anticheat']
@@ -66,7 +67,7 @@ export async function loginAction(_: ActionState, fd: FormData): Promise<ActionS
   } catch (e) {
     return failure(e)
   }
-  redirect(await consoleBase(surface))
+  redirect(await consoleBase())
 }
 
 export async function logoutAction(fd: FormData) {
@@ -75,7 +76,7 @@ export async function logoutAction(fd: FormData) {
   await assertSameOrigin()
   await logout(surface)
   // `out` stops the login page from entering the console again straight away.
-  redirect(`${await consoleBase(surface)}/login?out=1`)
+  redirect(`${await consoleBase()}/login?out=1`)
 }
 
 export async function changePasswordAction(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -90,7 +91,7 @@ export async function changePasswordAction(_: ActionState, fd: FormData): Promis
   } catch (e) {
     return failure(e)
   }
-  redirect(await consoleBase(surface))
+  redirect(await consoleBase())
 }
 
 // ─── registrations console ──────────────────────────────────────────────────
@@ -100,9 +101,10 @@ export async function saveTournamentAction(_: ActionState, fd: FormData): Promis
   try {
     const staff = await gate('registrations', 'tournaments.manage')
     const id = raw.id || null
+    await assertGames(staff, gameOf.format(raw.formatId ?? ''), ...(id ? [gameOf.tournament(id)] : []))
     const r = await adminT.saveTournament(id, raw, await actorOf(staff))
     if (!r.ok) return { status: 'error', message: r.error, fieldErrors: r.fieldErrors, values: raw }
-    if (!id) redirect(`${await consoleBase('registrations')}/tournaments/${r.id}`)
+    if (!id) redirect(`${await consoleBase()}/tournaments/${r.id}`)
     return ok('Saved.')
   } catch (e) {
     if (isRedirect(e)) throw e
@@ -113,6 +115,7 @@ export async function saveTournamentAction(_: ActionState, fd: FormData): Promis
 export async function tournamentStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'tournaments.manage')
+    await assertGames(staff, gameOf.tournament(s(fd, 'id')))
     const to = s(fd, 'to') as 'draft' | 'published' | 'archived' | 'cancelled'
     if (!['draft', 'published', 'archived', 'cancelled'].includes(to)) return { status: 'error', message: 'Unknown status.' }
     await adminT.setTournamentStatus(s(fd, 'id'), to, s(fd, 'reason') || null, await actorOf(staff))
@@ -136,6 +139,7 @@ export async function registrationStatusAction(_: ActionState, fd: FormData): Pr
     const failed: string[] = []
     for (const id of ids) {
       try {
+        await assertGames(staff, gameOf.registration(id))
         await transition(id, to, actor, reason)
       } catch (e) {
         failed.push(e instanceof Error ? e.message : 'failed')
@@ -151,6 +155,7 @@ export async function registrationStatusAction(_: ActionState, fd: FormData): Pr
 export async function updateMemberAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'registrations.review')
+    await assertGames(staff, gameOf.member(s(fd, 'memberId')))
     const r = await updateMember(s(fd, 'memberId'), { ign: s(fd, 'ign'), uid: s(fd, 'uid'), phone: s(fd, 'phone') || null }, await actorOf(staff))
     return r.ok ? ok('Roster updated and re-checked.') : { status: 'error', message: r.error }
   } catch (e) {
@@ -161,8 +166,11 @@ export async function updateMemberAction(_: ActionState, fd: FormData): Promise<
 export async function createTemplateAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'forms.manage')
-    const id = await adminT.createTemplate(s(fd, 'name'), s(fd, 'description'), s(fd, 'gameId') || null, s(fd, 'copyFrom') || null, await actorOf(staff))
-    redirect(`${await consoleBase('registrations')}/forms/${id}`)
+    const copyFrom = s(fd, 'copyFrom') || null
+    const gameId = s(fd, 'gameId') || (copyFrom?.startsWith('preset:') ? copyFrom.slice('preset:'.length) : null)
+    await assertGames(staff, gameId)
+    const id = await adminT.createTemplate(s(fd, 'name'), s(fd, 'description'), gameId, copyFrom, await actorOf(staff))
+    redirect(`${await consoleBase()}/forms/${id}`)
   } catch (e) {
     if (isRedirect(e)) throw e
     return fail(e)
@@ -172,6 +180,7 @@ export async function createTemplateAction(_: ActionState, fd: FormData): Promis
 export async function saveDraftAction(templateId: string, schema: unknown): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'forms.manage')
+    await assertGames(staff, gameOf.template(templateId))
     const r = await adminT.saveDraft(templateId, schema, await actorOf(staff))
     return r.ok ? ok('Draft saved.') : { status: 'error', message: r.error }
   } catch (e) {
@@ -182,6 +191,7 @@ export async function saveDraftAction(templateId: string, schema: unknown): Prom
 export async function publishDraftAction(templateId: string): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'forms.manage')
+    await assertGames(staff, gameOf.template(templateId))
     await adminT.publishDraft(templateId, await actorOf(staff))
     return ok('Published. Attach the new version to tournaments that should use it.')
   } catch (e) {
@@ -191,7 +201,7 @@ export async function publishDraftAction(templateId: string): Promise<ActionStat
 
 export async function gameSettingsAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const staff = await gate('registrations', 'tournaments.manage')
+    const staff = await gate('registrations', 'games.manage')
     const actor = await actorOf(staff)
     const op = s(fd, 'op')
     if (op === 'availability') {
@@ -212,6 +222,7 @@ export async function gameSettingsAction(_: ActionState, fd: FormData): Promise<
 export async function lftAdminAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'lft.manage')
+    await assertGames(staff, gameOf.lft(s(fd, 'id')))
     const st = s(fd, 'status') as 'active' | 'matched' | 'withdrawn' | 'hidden'
     if (!['active', 'matched', 'withdrawn', 'hidden'].includes(st)) return { status: 'error', message: 'Unknown status.' }
     await adminSetLft(s(fd, 'id'), st, s(fd, 'note') || null, await actorOf(staff))
@@ -284,7 +295,7 @@ export async function createFlagAction(_: ActionState, fd: FormData): Promise<Ac
       },
       await actorOf(staff),
     )
-    redirect(`${await consoleBase('anticheat')}/flags/${id}`)
+    redirect(`${await consoleBase()}/flags/${id}`)
   } catch (e) {
     if (isRedirect(e)) throw e
     return { ...fail(e), values }
@@ -372,7 +383,7 @@ export async function manualEntryAction(_: ActionState, fd: FormData): Promise<A
 
 export async function bookingStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const staff = await gate('hq', 'intake.manage')
+    const staff = await gate('hq', 'inbox.production')
     const to = s(fd, 'to') as intake.BookingStatus
     if (!(to in intake.BOOKING_TRANSITIONS)) return { status: 'error', message: 'Unknown status.' }
     await intake.setBookingStatus(s(fd, 'id'), to, s(fd, 'note') || null, await actorOf(staff))
@@ -385,7 +396,7 @@ export async function bookingStatusAction(_: ActionState, fd: FormData): Promise
 
 export async function inquiryStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const staff = await gate('hq', 'intake.manage')
+    const staff = await gate('hq', 'inbox.production')
     const st = s(fd, 'status') as 'new'
     if (!['new', 'contacted', 'qualified', 'closed', 'spam'].includes(st)) return { status: 'error', message: 'Unknown status.' }
     await intake.setInquiryStatus(s(fd, 'id'), st, s(fd, 'note') || null, await actorOf(staff))
@@ -397,7 +408,7 @@ export async function inquiryStatusAction(_: ActionState, fd: FormData): Promise
 
 export async function messageStatusAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const staff = await gate('hq', 'intake.manage')
+    const staff = await gate('hq', 'inbox.messages')
     const st = s(fd, 'status')
     if (!['new', 'replied', 'closed', 'spam'].includes(st)) return { status: 'error', message: 'Unknown status.' }
     const { db } = await import('@/server/db')
@@ -412,7 +423,7 @@ export async function messageStatusAction(_: ActionState, fd: FormData): Promise
 
 export async function waitlistDeleteAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const staff = await gate('hq', 'intake.manage')
+    const staff = await gate('hq', 'inbox.waitlist')
     const { db } = await import('@/server/db')
     const { audit } = await import('@/server/audit')
     await db()`delete from zenith.waitlist_signups where id = ${s(fd, 'id')}`
@@ -425,9 +436,9 @@ export async function waitlistDeleteAction(_: ActionState, fd: FormData): Promis
 
 export async function saveSettingAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const staff = await gate('hq', 'settings.manage')
     const key = s(fd, 'key') as SettingsKey
     if (!(key in SETTINGS_SCHEMA)) return { status: 'error', message: 'Unknown setting.' }
+    const staff = await gate('hq', key === 'product.production' ? 'settings.production' : key === 'product.points' ? 'settings.points' : 'settings.manage')
     const value: Record<string, unknown> = {}
     for (const [k, v] of fd.entries()) {
       if (!k.startsWith('v.') || typeof v !== 'string') continue
@@ -482,13 +493,14 @@ export async function staffAction(_: ActionState, fd: FormData): Promise<ActionS
     const actor = await actorOf(staff)
     const op = s(fd, 'op')
     const roles = fd.getAll('roles').map(String).filter((r): r is Role => (ROLES as readonly string[]).includes(r))
+    const games = fd.getAll('games').map(String).filter((g) => /^[a-z0-9-]{1,40}$/.test(g))
     if (op === 'create') {
-      const temp = await staffSvc.createStaff({ email: s(fd, 'email'), displayName: s(fd, 'displayName'), roles }, actor)
-      if (!temp) return ok('Account created. They sign in at the console with Google or email using exactly this address.')
+      const temp = await staffSvc.createStaff({ email: s(fd, 'email'), displayName: s(fd, 'displayName'), roles, games }, actor)
+      if (!temp) return ok('Account created. They sign in at the admin panel with Google or email using exactly this address.')
       return ok('Account created. Share the one-time password privately; it must be changed at first sign-in.', { temp })
     }
     if (op === 'roles') {
-      await staffSvc.setRoles(s(fd, 'id'), roles, actor)
+      await staffSvc.setRoles(s(fd, 'id'), roles, actor, games)
       return ok('Roles updated; their sessions were signed out.')
     }
     if (op === 'disable' || op === 'enable') {
@@ -497,7 +509,7 @@ export async function staffAction(_: ActionState, fd: FormData): Promise<ActionS
     }
     if (op === 'revoke') {
       await staffSvc.endSessions(s(fd, 'id'), actor)
-      return ok('Signed out of every console.')
+      return ok('Signed out everywhere.')
     }
     if (op === 'reset') {
       const temp = await staffSvc.resetPassword(s(fd, 'id'), actor)
@@ -524,6 +536,7 @@ const fileOf = (fd: FormData, k: string) => {
 export async function tournamentImageAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'tournaments.manage')
+    await assertGames(staff, gameOf.tournament(s(fd, 'id')))
     const slot = s(fd, 'slot') as branding.TournamentImageSlot
     const remove = s(fd, 'remove') === '1'
     const file = fileOf(fd, 'file')
@@ -538,6 +551,7 @@ export async function tournamentImageAction(_: ActionState, fd: FormData): Promi
 export async function tournamentPresentationAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'tournaments.manage')
+    await assertGames(staff, gameOf.tournament(s(fd, 'id')))
     await branding.setTournamentPresentation(s(fd, 'id'), { organizerName: s(fd, 'organizerName'), featured: fd.get('featured') === 'on' }, await actorOf(staff))
     return ok('Saved.')
   } catch (e) {
@@ -548,6 +562,7 @@ export async function tournamentPresentationAction(_: ActionState, fd: FormData)
 export async function sponsorAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
     const staff = await gate('registrations', 'tournaments.manage')
+    await assertGames(staff, s(fd, 'op') === 'remove' ? gameOf.sponsor(s(fd, 'sponsorId')) : gameOf.tournament(s(fd, 'id')))
     const actor = await actorOf(staff)
     if (s(fd, 'op') === 'remove') {
       await branding.removeSponsor(s(fd, 'sponsorId'), actor)
@@ -562,7 +577,7 @@ export async function sponsorAction(_: ActionState, fd: FormData): Promise<Actio
 
 export async function gameBrandingAction(_: ActionState, fd: FormData): Promise<ActionState> {
   try {
-    const staff = await gate('registrations', 'tournaments.manage')
+    const staff = await gate('registrations', 'games.manage')
     await branding.setGameBranding(
       s(fd, 'gameId'),
       { accent: s(fd, 'accent'), logo: fileOf(fd, 'logo'), cover: fileOf(fd, 'cover'), removeLogo: fd.get('removeLogo') === 'on', removeCover: fd.get('removeCover') === 'on' },

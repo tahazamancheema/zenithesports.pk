@@ -1,3 +1,4 @@
+import { adminPage } from '@/components/console/entry-points'
 import { waitlistDeleteAction } from '@/app/actions/console'
 import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
@@ -7,6 +8,7 @@ import { listWaitlist } from '@/server/services/intake'
 export const metadata = { title: 'Points waitlist' }
 
 export default async function Waitlist() {
+  await adminPage('inbox.waitlist')
   const rows = await listWaitlist()
   return (
     <>

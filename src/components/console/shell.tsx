@@ -2,32 +2,28 @@ import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ROLE_LABEL } from '@/lib/permissions'
+import type { AdminNavGroup } from '@/config/admin-nav'
 import type { Staff } from '@/server/auth/session'
 import { ZLink } from '../link'
 import { LiveUpdates } from './live'
 import { NavLinks } from './nav-links'
 import { SignOutButton } from './sign-out'
 
-export type ConsoleNav = { to: string; label: string }[]
-
-const NAMES = { hq: 'HQ console', registrations: 'Registrations console', anticheat: 'AntiCheat console' }
-const ACCENT = { hq: 'var(--color-chrome)', registrations: 'var(--color-reg)', anticheat: 'var(--color-ac)' }
+export type ConsoleNav = AdminNavGroup[]
 
 export function ConsoleShell({ staff, nav, base, children }: { staff: Staff; nav: ConsoleNav; base: string; children: ReactNode }) {
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[240px_1fr]" data-surface={staff.surface === 'hq' ? undefined : staff.surface}>
-      <aside className="border-b border-line bg-ink-1 lg:sticky lg:top-0 lg:h-dvh lg:border-r lg:border-b-0">
+    <div className="min-h-dvh lg:grid lg:grid-cols-[248px_1fr]">
+      <aside className="flex flex-col border-b border-line bg-ink-1 lg:sticky lg:top-0 lg:h-dvh lg:border-r lg:border-b-0">
         <div className="flex h-16 items-center gap-3 border-b border-line px-5">
           <Image src="/brand/zenith-mark-160.webp" alt="" width={26} height={26} unoptimized />
           <div className="leading-tight">
             <p className="font-display text-[12px] tracking-[0.28em]">ZENITH</p>
-            <p className="font-mono text-[11.5px] uppercase tracking-[0.14em]" style={{ color: ACCENT[staff.surface] }}>
-              {NAMES[staff.surface]}
-            </p>
+            <p className="font-mono text-[11.5px] uppercase tracking-[0.14em] text-[var(--color-gold)]">Admin</p>
           </div>
         </div>
         <NavLinks nav={nav} base={base} />
-        <div className="hidden border-t border-line p-5 lg:absolute lg:inset-x-0 lg:bottom-0 lg:block">
+        <div className="mt-auto hidden border-t border-line p-5 lg:block">
           <p className="truncate text-sm">{staff.displayName}</p>
           <p className="t-label mt-1 truncate">{staff.roles.map((r) => ROLE_LABEL[r]).join(', ')}</p>
         </div>

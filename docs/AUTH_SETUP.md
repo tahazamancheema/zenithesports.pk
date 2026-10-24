@@ -153,7 +153,7 @@ Use the **same email as your Google account**. Then open `https://zenithesports.
 choose **Sign in with Google**, and press **Enter this console**. The first time, your staff record
 links itself to that Google account; after that only that account can use it.
 
-Add other staff from **HQ console → Staff & roles** with their Google (or email) address and roles.
+Add other staff from **Admin panel → Staff & roles** with their Google (or email) address and roles.
 They sign in the same way. Each console — HQ (`/admin`), Registrations, AntiCheat — asks you to enter
 it separately; being signed in to one never opens the others.
 

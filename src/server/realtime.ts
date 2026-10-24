@@ -90,8 +90,8 @@ declare global {
 }
 const hub = () => (globalThis.__zenithHub ??= new Hub())
 
-/** Server-Sent Events stream for one topic. The caller has already authorised the request. */
-export function liveStream(topic: Topic, lastEventId: string | null, signal: AbortSignal, maxSeconds = 270): Response {
+/** Server-Sent Events stream for the topics this person may see. The caller has already authorised them. */
+export function liveStream(topics: Topic[], lastEventId: string | null, signal: AbortSignal, maxSeconds = 270): Response {
   const enc = new TextEncoder()
   let cleanup = () => {}
   const stream = new ReadableStream<Uint8Array>({
@@ -110,12 +110,13 @@ export function liveStream(topic: Topic, lastEventId: string | null, signal: Abo
       const since = Number(lastEventId)
       if (Number.isFinite(since) && since > 0) {
         const missed = await db()<LiveEvent[]>`
-          select id::int, topic, kind, entity_id, at from zenith.events where topic = ${topic} and id > ${since} order by id limit 100
+          select id::int, topic, kind, entity_id, at from zenith.events where topic = any(${topics}) and id > ${since} order by id limit 100
         `
         missed.forEach(emit)
       }
 
-      const unsubscribe = await hub().subscribe(topic, emit)
+      const unsubscribers = await Promise.all(topics.map((t) => hub().subscribe(t, emit)))
+      const unsubscribe = () => unsubscribers.forEach((u) => u())
       const heartbeat = setInterval(() => send(`: hb\n\n`), 25_000)
       // Close before the platform's function limit; EventSource reconnects with Last-Event-ID.
       const lifetime = setTimeout(() => cleanup(), maxSeconds * 1000)

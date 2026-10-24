@@ -77,7 +77,7 @@ export function ConsoleEnterForm({ surface, label, auto = false }: { surface: st
     <form ref={ref} action={action} className="grid gap-4">
       <input type="hidden" name="surface" value={surface} />
       <FormAlert state={state} />
-      <SubmitButton pendingLabel="Checking access…">{label}</SubmitButton>
+      <SubmitButton pendingLabel="Opening…">{label}</SubmitButton>
     </form>
   )
 }

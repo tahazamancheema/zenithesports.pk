@@ -1,3 +1,4 @@
+import { adminPage } from '@/components/console/entry-points'
 import { messageStatusAction } from '@/app/actions/console'
 import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
@@ -7,6 +8,7 @@ import { listMessages } from '@/server/services/intake'
 export const metadata = { title: 'Messages' }
 
 export default async function Messages() {
+  await adminPage('inbox.messages')
   const rows = await listMessages()
   return (
     <>

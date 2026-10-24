@@ -350,13 +350,16 @@ export async function updateGameRules(gameId: string, d: { uidLabel: string; uid
   await audit(db(), actor, 'game.rules', { type: 'game', id: gameId })
 }
 
-export async function registrationsDashboard() {
+/** Counts for the admin overview, limited to `games` for scoped staff (null = every game). */
+export async function registrationsDashboard(games: string[] | null = null) {
+  const g = games
   const [row] = await db()<{ pending: number; waitlisted: number; approvedToday: number; openAlerts: number; liveTournaments: number }[]>`
-    select (select count(*)::int from zenith.registrations where status = 'pending') as pending,
-           (select count(*)::int from zenith.registrations where status = 'waitlisted') as waitlisted,
-           (select count(*)::int from zenith.registrations where status = 'approved' and decided_at > now() - interval '1 day') as approved_today,
-           (select count(*)::int from zenith.ac_alerts where status = 'open' and registration_id is not null) as open_alerts,
-           (select count(*)::int from zenith.tournaments where status = 'published') as live_tournaments
+    with t as (select id, status from zenith.tournaments where (${g}::text[] is null or game_id = any(${g}::text[])))
+    select (select count(*)::int from zenith.registrations r join t on t.id = r.tournament_id where r.status = 'pending') as pending,
+           (select count(*)::int from zenith.registrations r join t on t.id = r.tournament_id where r.status = 'waitlisted') as waitlisted,
+           (select count(*)::int from zenith.registrations r join t on t.id = r.tournament_id where r.status = 'approved' and r.decided_at > now() - interval '1 day') as approved_today,
+           (select count(*)::int from zenith.ac_alerts a join zenith.registrations r on r.id = a.registration_id join t on t.id = r.tournament_id where a.status = 'open') as open_alerts,
+           (select count(*)::int from t where t.status = 'published') as live_tournaments
   `
   return row
 }

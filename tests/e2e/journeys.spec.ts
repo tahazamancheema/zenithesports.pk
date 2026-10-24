@@ -114,16 +114,16 @@ test.describe.serial('user journeys', () => {
     await expect(page.locator('li').filter({ hasText: 'Captain Journey' }).locator('.chip')).toBeVisible()
 
     // Staff see the listing in the Registrations console.
-    await signIn(page, '/registrations/admin')
-    await page.goto('/registrations/admin/lft')
+    await signIn(page, '/admin')
+    await page.goto('/admin/lft')
     await expect(page.getByText(`Ace${run}`).first()).toBeVisible()
   })
 
   test('a player edits their roster, staff waitlist the entry, the player withdraws, the CSV export lists it', async () => {
     const name = `Journey Cup ${run}`
     const team = `Waypoint ${run}`
-    await signIn(page, '/registrations/admin')
-    await page.goto('/registrations/admin/tournaments/new')
+    await signIn(page, '/admin')
+    await page.goto('/admin/tournaments/new')
     await page.getByLabel('Name', { exact: true }).fill(name)
     await page.getByLabel('Game & format').selectOption({ label: 'PUBG Mobile · Squad' })
     const at = (days: number) => new Date(Date.now() + days * 86400_000 + 5 * 3600_000).toISOString().slice(0, 16)
@@ -166,7 +166,7 @@ test.describe.serial('user journeys', () => {
     await expect(entry.getByText('Saved.')).toBeVisible()
 
     // Staff see the corrected roster and waitlist the entry.
-    await page.goto(`/registrations/admin/registrations?q=${encodeURIComponent(team)}`)
+    await page.goto(`/admin/registrations?q=${encodeURIComponent(team)}`)
     await page.getByRole('link', { name: team }).click()
     await expect(page.getByText(`Way2fixed_${run}`).first()).toBeVisible()
     await page.getByLabel('New status').selectOption('waitlisted')
@@ -186,7 +186,7 @@ test.describe.serial('user journeys', () => {
     await expect(entry.getByText('Withdrawn')).toBeVisible()
 
     // The CSV export carries the entry.
-    const csv = await page.request.get(`/registrations/admin/export?q=${encodeURIComponent(team)}`)
+    const csv = await page.request.get(`/admin/export?q=${encodeURIComponent(team)}`)
     expect(csv.status()).toBe(200)
     expect(csv.headers()['content-type']).toContain('text/csv')
     expect(await csv.text()).toContain(team)
@@ -195,16 +195,16 @@ test.describe.serial('user journeys', () => {
   test('AntiCheat: a recorded decision catches an offline entry, and the alert is resolved', async () => {
     const flagged = uid(9)
     const summary = `Journey ruling ${run}`
-    await signIn(page, '/anticheat/admin')
-    await page.goto('/anticheat/admin/flags/new')
+    await signIn(page, '/admin')
+    await page.goto('/admin/flags/new')
     await page.locator('input[name="subjectUid"]').fill(flagged)
     await page.locator('input[name="subjectIgn"]').fill(`Flagged${run}`)
     await page.locator('input[name="summary"]').fill(summary)
     await page.getByRole('button', { name: 'Create flag & scan history' }).click()
-    await expect(page).toHaveURL(/\/anticheat\/admin\/flags\/[0-9a-f-]{36}$/)
+    await expect(page).toHaveURL(/\/admin\/flags\/[0-9a-f-]{36}$/)
     await expect(page.getByText(summary).first()).toBeVisible()
 
-    await page.goto('/anticheat/admin/entry')
+    await page.goto('/admin/entry')
     await page.locator('input[name="teamName"]').fill(`Offline ${run}`)
     await page.getByLabel('Player 1 in-game name').fill(`Offline1${run}`)
     await page.getByLabel('Player 1 UID').fill(flagged)
@@ -213,17 +213,17 @@ test.describe.serial('user journeys', () => {
     await page.getByRole('button', { name: 'Save & check against flags' }).click()
     await expect(page.getByText(/Saved\. 1 flag\(s\) matched; 1 new alert\(s\) raised\./)).toBeVisible()
 
-    await page.goto('/anticheat/admin/alerts?status=open')
+    await page.goto('/admin/alerts?status=open')
     const alert = page.locator('li.panel').filter({ hasText: summary })
     await expect(alert).toBeVisible()
     await alert.getByLabel('New status').selectOption('resolved')
     await alert.getByLabel('Note').fill('Team removed from the offline bracket.')
     await alert.getByRole('button', { name: 'Update' }).click()
     await expect(page.locator('li.panel').filter({ hasText: summary })).toHaveCount(0)
-    await page.goto('/anticheat/admin/alerts?status=resolved')
+    await page.goto('/admin/alerts?status=resolved')
     await expect(page.locator('li.panel').filter({ hasText: summary })).toBeVisible()
 
-    await page.goto('/anticheat/admin/scans')
+    await page.goto('/admin/scans')
     page.once('dialog', (d) => d.accept())
     await page.getByRole('button', { name: 'Run full scan' }).click()
     await expect(page.getByText(/Scanned \d+ flag\(s\)/)).toBeVisible()
@@ -253,7 +253,7 @@ test.describe.serial('user journeys', () => {
     const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Create account' }) })
     await form.getByLabel('Display name').fill(`Journey Reviewer ${run}`)
     await form.getByLabel('Email').fill(`reviewer-${run}@test.local`)
-    await form.locator('input[name="roles"]').first().check()
+    await form.getByRole('checkbox', { name: /Registration reviewer/ }).check()
     await form.getByRole('button', { name: 'Create account' }).click()
     await expect(form.getByText(/Account created/)).toBeVisible()
     await expect(page.getByText(`reviewer-${run}@test.local`).first()).toBeVisible()
@@ -265,22 +265,25 @@ test.describe.serial('user journeys', () => {
   })
 
   test('ready-made forms: a game template, quick-add questions, and a tournament that uses one', async () => {
-    await signIn(page, '/registrations/admin')
-    await page.goto('/registrations/admin/forms')
+    await signIn(page, '/admin')
+    await page.goto('/admin/forms')
     await page.getByLabel('Name').fill(`Valorant extras ${run}`)
     await page.getByLabel('Start from').selectOption('preset:valorant')
-    await page.getByRole('button', { name: 'Create & open builder' }).click()
+    await page.getByRole('button', { name: 'Create & edit' }).click()
     await expect(page).toHaveURL(/\/admin\/forms\/[0-9a-f-]{36}$/)
     await expect(page.getByText('Current rank').first()).toBeVisible()
-    // Adding fields never breaks the builder, including the first one on an empty form.
+    // Adding questions never breaks the builder: a common one, then a new short answer edited in place.
+    await page.getByRole('button', { name: '+ Add a question' }).click()
     await page.getByRole('button', { name: '+ City' }).click()
-    await page.getByRole('button', { name: '+ Add field' }).click()
+    await page.getByRole('button', { name: '+ Add a question' }).click()
+    await page.getByRole('button', { name: /^Short answer/ }).click()
+    await page.getByLabel('Question', { exact: true }).fill('Favourite map')
     await expect(page.getByText(/Signal interrupted/i)).toHaveCount(0)
-    await page.getByRole('button', { name: 'Save draft' }).click()
-    await expect(page.getByText('Draft saved.')).toBeVisible()
+    await page.getByRole('button', { name: 'Save & publish' }).click()
+    await expect(page.getByText('Published. Tournaments can now use this version.')).toBeVisible()
 
     // A tournament picks the ready-made form directly; players then see its questions.
-    await page.goto('/registrations/admin/tournaments/new')
+    await page.goto('/admin/tournaments/new')
     await page.getByLabel('Name', { exact: true }).fill(`Preset Cup ${run}`)
     await page.getByLabel('Game & format').selectOption({ label: 'PUBG Mobile · Squad' })
     const at = (days: number) => new Date(Date.now() + days * 86400_000 + 5 * 3600_000).toISOString().slice(0, 16)
@@ -329,8 +332,42 @@ test.describe.serial('user journeys', () => {
     await admin.getByRole('button', { name: /Sign in \(local test\)/ }).click()
     await expect(admin).toHaveURL(/\/account$/)
     await expect(admin.getByText('Admin', { exact: true }).first()).toBeVisible()
-    await expect(admin.getByText('Registrations console').first()).toBeVisible()
+    await expect(admin.getByRole('link', { name: /Open the admin panel/ })).toBeVisible()
     await expect(admin.getByRole('link', { name: 'Login / Register' })).toHaveCount(0)
     await admin.close()
+  })
+
+  test('roles: an Inbox manager sees only the Inbox and cannot open tournament pages', async ({ browser }) => {
+    await signIn(page, '/admin')
+    await page.goto('/admin/staff')
+    const form = page.locator('form').filter({ has: page.getByRole('button', { name: 'Create account' }) })
+    await form.getByLabel('Display name').fill(`Inbox ${run}`)
+    await form.getByLabel('Email').fill(`inbox-${run}@test.local`)
+    await form.getByRole('checkbox', { name: /Inbox manager/ }).check()
+    await form.getByRole('button', { name: 'Create account' }).click()
+    const temp = (await form.locator('strong.select-all').textContent())!.trim()
+
+    const ctx = await browser.newContext()
+    const other = await ctx.newPage()
+    await other.goto('/admin/login')
+    await other.getByLabel('Email').fill(`inbox-${run}@test.local`)
+    await other.getByLabel('Password', { exact: true }).fill(temp)
+    await other.getByRole('button', { name: 'Sign in' }).click()
+    await other.getByLabel('Current password').fill(temp)
+    await other.getByLabel('New password', { exact: true }).fill(`inbox password ${run} 42`)
+    await other.getByLabel('Repeat new password').fill(`inbox password ${run} 42`)
+    await other.getByRole('button', { name: 'Change password' }).click()
+
+    const nav = other.getByRole('navigation', { name: 'Admin' })
+    await expect(nav.getByRole('link', { name: 'Messages' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Production bookings' })).toBeVisible()
+    await expect(nav.getByRole('link', { name: 'Tournaments' })).toHaveCount(0)
+    await expect(nav.getByRole('link', { name: 'Reports' })).toHaveCount(0)
+    await expect(nav.getByRole('link', { name: 'Staff & roles' })).toHaveCount(0)
+
+    await other.goto('/admin/tournaments')
+    await expect(other).toHaveURL(/\/admin\?denied=1$/)
+    await expect(other.getByText('That section is not part of your role.')).toBeVisible()
+    await ctx.close()
   })
 })

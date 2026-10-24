@@ -57,7 +57,7 @@ export async function submitInquiry(raw: Record<string, string>, ipHash: string)
       channel: 'email',
       recipient: settings.notify.inquiryEmail || settings.notify.staffEmail || null,
       subject: `ZenithProduction inquiry ${reference}`,
-      body: `A new ZenithProduction purchase inquiry (${reference}) is waiting in the HQ console.`,
+      body: `A new ZenithProduction purchase inquiry (${reference}) is waiting in the admin panel.`,
     })
     await enqueue(tx, { channel: 'discord', subject: 'ZenithProduction inquiry', body: `${reference} · ${d.organization ?? 'Individual'}` })
   })
@@ -109,7 +109,7 @@ export async function submitBooking(raw: Record<string, string>, ipHash: string)
       channel: 'email',
       recipient: settings.notify.inquiryEmail || settings.notify.staffEmail || null,
       subject: `Production booking request ${reference}`,
-      body: `A production booking request (${reference}) for ${d.eventDate} is waiting in the HQ console. It is not confirmed until an administrator confirms it.`,
+      body: `A production booking request (${reference}) for ${d.eventDate} is waiting in the admin panel. It is not confirmed until an administrator confirms it.`,
     })
     await enqueue(tx, { channel: 'discord', subject: 'Production booking request', body: `${reference} · ${d.game} · ${d.eventDate}` })
   })
@@ -242,7 +242,7 @@ export async function submitContact(raw: Record<string, string>, ipHash: string)
       channel: 'email',
       recipient: settings.notify.staffEmail || null,
       subject: `Website message ${reference} (${d.topic})`,
-      body: `A new ${d.topic} message (${reference}) is waiting in the HQ console.`,
+      body: `A new ${d.topic} message (${reference}) is waiting in the admin panel.`,
     })
   })
   return { ok: true, reference }

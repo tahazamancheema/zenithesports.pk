@@ -1,7 +1,8 @@
 import 'server-only'
-import { can, SURFACE_GATE, type ConsoleSurface, type Role } from '@/lib/permissions'
+import type { ConsoleSurface, Role } from '@/lib/permissions'
 import { LEGAL_TRANSITIONS, phaseOf, type RegistrationStatus } from '@/lib/tournament'
 import { PUBLIC_ACTOR } from '../audit'
+import { gameScopeFor } from '../auth/session'
 import { db } from '../db'
 import { transition, updateMember } from './registrations'
 
@@ -78,28 +79,32 @@ export async function updateMyMember(accountId: string, registrationId: string, 
 export type StaffProfile = {
   consoles: ConsoleSurface[]
   roles: Role[]
-  /** The staff record is linked to this exact sign-in (done on first console entry with Google). */
+  /** Games their tournament work is limited to; null = every game. */
+  gameScope: string[] | null
+  /** The staff record is linked to this exact sign-in (done on first entry with Google). */
   linked: boolean
 }
 
 /**
  * The staff side of a signed-in person, if they are on the staff list.
- * An email match alone only decides which console links to show; anything that
- * shows staff data requires `linked`, and entering a console still goes through
- * enterWithAccount and its own checks.
+ * An email match alone only decides whether to show the admin panel link;
+ * anything that shows staff data requires `linked`, and opening the panel still
+ * goes through enterWithAccount and its own checks.
  */
 export async function staffProfileFor(account: { id: string; email: string }): Promise<StaffProfile | null> {
-  const [row] = await db()<{ roles: Role[]; linked: boolean }[]>`
-    select coalesce(array_agg(r.role) filter (where r.role is not null), '{}') as roles, (u.auth_user_id = ${account.id}) as linked
+  const [row] = await db()<{ roles: Role[]; games: string[]; linked: boolean }[]>`
+    select coalesce(array_agg(distinct r.role) filter (where r.role is not null), '{}') as roles,
+           coalesce((select array_agg(g.game_id) from zenith.staff_game_scopes g where g.user_id = u.id), '{}') as games,
+           (u.auth_user_id = ${account.id}) as linked
       from zenith.staff_users u left join zenith.staff_roles r on r.user_id = u.id
      where u.status = 'active' and (u.auth_user_id = ${account.id} or (u.auth_user_id is null and lower(u.email) = ${account.email.toLowerCase()}))
      group by u.id limit 1
   `
-  if (!row) return null
-  return { roles: row.roles, linked: Boolean(row.linked), consoles: (Object.keys(SURFACE_GATE) as ConsoleSurface[]).filter((s) => can(row.roles, SURFACE_GATE[s])) }
+  if (!row || !row.roles.length) return null
+  return { roles: row.roles, gameScope: gameScopeFor(row.roles, row.games), linked: Boolean(row.linked), consoles: ['hq'] }
 }
 
-/** The consoles this signed-in person may enter (see staffProfileFor). */
+/** ['hq'] when this signed-in person is on the staff list (see staffProfileFor). */
 export async function staffConsolesFor(account: { id: string; email: string }): Promise<ConsoleSurface[]> {
   return (await staffProfileFor(account))?.consoles ?? []
 }

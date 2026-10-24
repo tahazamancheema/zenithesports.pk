@@ -1,3 +1,4 @@
+import { adminPage } from '@/components/console/entry-points'
 import { mediaAction } from '@/app/actions/console'
 import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
@@ -6,6 +7,7 @@ import { listMedia, listOrgMembers } from '@/server/services/content'
 export const metadata = { title: 'Media & team' }
 
 export default async function Content() {
+  await adminPage('content.manage')
   const [production, points, home, members] = await Promise.all([listMedia('production', true), listMedia('points', true), listMedia('home', true), listOrgMembers(true)])
   const media = [...production, ...points, ...home]
   return (

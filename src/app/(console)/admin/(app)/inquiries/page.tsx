@@ -1,3 +1,4 @@
+import { adminPage } from '@/components/console/entry-points'
 import { inquiryStatusAction } from '@/app/actions/console'
 import { ActionForm } from '@/components/console/action-form'
 import { ConsoleTitle } from '@/components/console/shell'
@@ -7,6 +8,7 @@ import { listInquiries } from '@/server/services/intake'
 export const metadata = { title: 'Product inquiries' }
 
 export default async function Inquiries() {
+  await adminPage('inbox.production')
   const rows = await listInquiries()
   return (
     <>

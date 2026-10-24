@@ -7,8 +7,8 @@ import {
   CHOICE_TYPES,
   CONDITION_OPS,
   DISPLAY_ONLY,
+  FIELD_TYPE_HINT,
   FIELD_TYPE_LABEL,
-  FIELD_TYPES,
   IMAGE_MIME,
   formSchemaSchema,
   type Condition,
@@ -33,29 +33,42 @@ const OP_LABEL: Record<string, string> = {
 }
 const NO_VALUE = ['checked', 'not_checked', 'filled', 'empty']
 
+/** A key for answers, derived from the question: "Team tag" → team_tag. */
+function slug(label: string, fallback: string) {
+  const s = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 36)
+  return /^[a-z]/.test(s) && s.length > 1 ? s : fallback
+}
+
+function uniqueKey(base: string, taken: string[]) {
+  let id = base
+  let n = 2
+  while (taken.includes(id)) id = `${base.slice(0, 36)}_${n++}`
+  return id
+}
+
+/** The order questions are offered in: the common ones first. */
+const ADD_ORDER: FieldType[] = ['short_text', 'single_choice', 'dropdown', 'multi_choice', 'number', 'long_text', 'file', 'consent', 'ign', 'game_uid', 'phone', 'email', 'heading', 'paragraph']
+
 function newField(type: FieldType, existing: FormField[]): FormField {
-  let n = existing.length + 1
-  let id = `${type.split('_')[0]}_${n}`
-  while (existing.some((f) => f.id === id)) id = `${type.split('_')[0]}_${++n}`
-  const base: FormField = { id, type, label: FIELD_TYPE_LABEL[type], required: false, scope: 'entry' }
+  const label = type === 'heading' ? 'New section' : type === 'paragraph' ? 'Explain what this section is for.' : type === 'consent' ? 'I agree to …' : 'New question'
+  const id = uniqueKey(type.split('_')[0], existing.map((f) => f.id))
+  const base: FormField = { id, type, label, required: type === 'consent', scope: 'entry' }
   if (CHOICE_TYPES.includes(type)) base.options = [{ value: 'option_1', label: 'Option 1' }, { value: 'option_2', label: 'Option 2' }]
   if (type === 'file') {
     base.accept = ['image/png', 'image/jpeg', 'image/webp']
     base.maxSizeMB = 4
   }
-  if (type === 'consent') {
-    base.label = 'I agree to …'
-    base.required = true
-  }
-  if (type === 'heading') base.label = 'Section'
-  if (type === 'paragraph') base.label = 'Explain what this section is for.'
   return base
 }
 
-export function FormBuilder({ templateId, initial }: { templateId: string; initial: FormSchema }) {
+export function FormBuilder({ templateId, initial, presets = [] }: { templateId: string; initial: FormSchema; presets?: { gameId: string; name: string; schema: FormSchema }[] }) {
   const [schema, setSchema] = useState<FormSchema>(initial)
-  const [sel, setSel] = useState<number | null>(initial.fields.length ? 0 : null)
-  const [addType, setAddType] = useState<FieldType>('short_text')
+  const [open, setOpen] = useState<number | null>(null)
+  const [adding, setAdding] = useState(false)
   const [tab, setTab] = useState<'edit' | 'preview'>('edit')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [dirty, setDirty] = useState(false)
@@ -75,45 +88,44 @@ export function FormBuilder({ templateId, initial }: { templateId: string; initi
     const next = [...fields]
     ;[next[i], next[j]] = [next[j], next[i]]
     update(next)
-    setSel(j)
+    setOpen(j)
+  }
+  const add = (f: FormField) => {
+    update([...fields, f])
+    setOpen(fields.length)
+    setAdding(false)
   }
 
-  function save() {
+  function save(thenPublish: boolean) {
     start(async () => {
       const r = await saveDraftAction(templateId, schema)
-      setMsg({ ok: r.status === 'success', text: r.message ?? '' })
-      if (r.status === 'success') setDirty(false)
-    })
-  }
-  function publish() {
-    if (dirty) return setMsg({ ok: false, text: 'Save the draft first.' })
-    if (!window.confirm('Publish this draft as a new, frozen version?')) return
-    start(async () => {
-      const r = await publishDraftAction(templateId)
-      setMsg({ ok: r.status === 'success', text: r.message ?? '' })
+      if (r.status !== 'success') return setMsg({ ok: false, text: r.message ?? 'Could not save.' })
+      setDirty(false)
+      if (!thenPublish) return setMsg({ ok: true, text: 'Saved. Publish when it is ready for tournaments.' })
+      const p = await publishDraftAction(templateId)
+      setMsg({ ok: p.status === 'success', text: p.status === 'success' ? 'Published. Tournaments can now use this version.' : (p.message ?? 'Could not publish.') })
     })
   }
 
-  const f = sel !== null ? fields[sel] : null
   return (
     <div className="grid gap-6">
       <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="flex gap-2" role="tablist">
           {(['edit', 'preview'] as const).map((t) => (
             <button key={t} role="tab" aria-selected={tab === t} type="button" onClick={() => setTab(t)} className={`btn btn-sm ${tab === t ? 'btn-primary' : 'btn-ghost'}`}>
-              {t === 'edit' ? 'Build' : 'Preview'}
+              {t === 'edit' ? 'Questions' : 'Preview'}
             </button>
           ))}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {!valid.success && <span className="text-sm text-warn">{valid.error.issues[0]?.message}</span>}
           {msg && <span className={`text-sm ${msg.ok ? 'text-ok' : 'text-bad'}`}>{msg.text}</span>}
-          {dirty && <span className="t-label">Unsaved</span>}
-          <button type="button" className="btn btn-sm btn-ghost" onClick={save} disabled={pending || !valid.success}>
+          {dirty && !msg && <span className="t-label">Unsaved changes</span>}
+          <button type="button" className="btn btn-sm btn-ghost" onClick={() => save(false)} disabled={pending || !valid.success}>
             Save draft
           </button>
-          <button type="button" className="btn btn-sm btn-primary" onClick={publish} disabled={pending || !valid.success}>
-            Publish version
+          <button type="button" className="btn btn-sm btn-primary" onClick={() => save(true)} disabled={pending || !valid.success}>
+            {pending ? 'Saving…' : 'Save & publish'}
           </button>
         </div>
       </div>
@@ -121,26 +133,41 @@ export function FormBuilder({ templateId, initial }: { templateId: string; initi
       {tab === 'preview' ? (
         <Preview schema={schema} />
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_26rem]">
-          <div className="grid content-start gap-4">
-            <label className="grid gap-2">
-              <span className="field-label">Introduction (shown above the questions)</span>
-              <textarea className="input" rows={2} value={schema.intro ?? ''} onChange={(e) => update(fields, e.target.value)} maxLength={2000} />
-            </label>
-            <ol className="divide-y divide-line rounded-md border border-line">
-              {fields.length === 0 && <li className="px-4 py-8 text-center text-sm text-fg-3">No fields yet. Team, roster and contact details are collected automatically — add only what this tournament needs extra.</li>}
-              {fields.map((x, i) => (
-                <li key={x.id + i} className={`flex items-center gap-3 px-3 py-2.5 ${sel === i ? 'bg-ink-3' : 'hover:bg-ink-2'}`}>
-                  <button type="button" onClick={() => setSel(i)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+        <div className="mx-auto grid w-full max-w-3xl gap-4">
+          <p className="text-sm text-fg-2">
+            Team name, the captain’s WhatsApp and every player’s in-game name and ID are always collected. Add only what this tournament needs on top.
+          </p>
+          <label className="grid gap-2">
+            <span className="field-label">Introduction (optional, shown above the questions)</span>
+            <textarea className="input" rows={2} value={schema.intro ?? ''} onChange={(e) => update(fields, e.target.value)} maxLength={2000} />
+          </label>
+
+          {fields.length === 0 && presets.length > 0 && (
+            <div className="panel flex flex-wrap items-center justify-between gap-3 p-4">
+              <p className="text-sm text-fg-2">Start from a ready-made form and edit it.</p>
+              <div className="flex flex-wrap gap-2">
+                {presets.map((p) => (
+                  <button key={p.gameId} type="button" className="btn btn-sm btn-ghost" onClick={() => update(p.schema.fields, schema.intro || p.schema.intro)}>
+                    Use {p.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <ol className="grid gap-3">
+            {fields.map((f, i) => (
+              <li key={f.id + i} className={`panel overflow-hidden ${open === i ? 'border-line-3' : ''}`}>
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <button type="button" onClick={() => setOpen(open === i ? null : i)} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-expanded={open === i}>
                     <span className="font-mono text-[12px] text-fg-3">{String(i + 1).padStart(2, '0')}</span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm">{x.label}</span>
-                      <span className="block font-mono text-[12px] text-fg-3">
-                        {FIELD_TYPE_LABEL[x.type]} · {x.id}
-                        {x.scope === 'player' && ' · per player'}
-                        {x.required && ' · required'}
-                        {x.visibleWhen && ' · conditional'}
-                        {x.disqualifyWhen && ' · eligibility'}
+                      <span className="block truncate font-medium">{f.label}</span>
+                      <span className="block text-[12.5px] text-fg-3">
+                        {FIELD_TYPE_LABEL[f.type]}
+                        {f.required && ' · required'}
+                        {f.scope === 'player' && ' · each player'}
+                        {f.visibleWhen && ' · conditional'}
                       </span>
                     </span>
                   </button>
@@ -150,9 +177,9 @@ export function FormBuilder({ templateId, initial }: { templateId: string; initi
                     <IconBtn
                       label="Duplicate"
                       onClick={() => {
-                        const copy = { ...structuredClone(x), id: newField(x.type, fields).id }
+                        const copy = { ...structuredClone(f), id: uniqueKey(f.id, fields.map((x) => x.id)) }
                         update([...fields.slice(0, i + 1), copy, ...fields.slice(i + 1)])
-                        setSel(i + 1)
+                        setOpen(i + 1)
                       }}
                     >
                       ⧉
@@ -161,61 +188,52 @@ export function FormBuilder({ templateId, initial }: { templateId: string; initi
                       label="Delete"
                       onClick={() => {
                         update(fields.filter((_, j) => j !== i))
-                        setSel(null)
+                        setOpen(null)
                       }}
                     >
                       ✕
                     </IconBtn>
                   </div>
-                </li>
-              ))}
-            </ol>
-            <div className="flex flex-wrap gap-2">
-              <select className="input w-auto" value={addType} onChange={(e) => setAddType(e.target.value as FieldType)} aria-label="Field type">
-                {FIELD_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {FIELD_TYPE_LABEL[t]}
-                  </option>
+                </div>
+                {open === i && (
+                  <div className="border-t border-line bg-ink-2/40 p-4">
+                    <QuestionEditor field={f} others={fields.filter((_, j) => j !== i).map((x) => x.id)} earlier={fields.slice(0, i)} onChange={(p) => patch(i, p)} />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ol>
+
+          {adding ? (
+            <div className="panel p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="t-label">Add a question</p>
+                <button type="button" className="t-label hover:text-fg" onClick={() => setAdding(false)}>
+                  Close
+                </button>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {ADD_ORDER.map((t) => (
+                  <button key={t} type="button" onClick={() => add(newField(t, fields))} className="rounded-sm border border-line-2 px-3 py-2.5 text-left transition-colors hover:border-line-3 hover:bg-ink-2">
+                    <span className="block text-sm font-medium">{FIELD_TYPE_LABEL[t]}</span>
+                    <span className="block text-[12.5px] text-fg-3">{FIELD_TYPE_HINT[t]}</span>
+                  </button>
                 ))}
-              </select>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => {
-                  update([...fields, newField(addType, fields)])
-                  setSel(fields.length)
-                }}
-              >
-                + Add field
-              </button>
-            </div>
-            <div className="grid gap-2">
-              <span className="t-label">Quick add a common question</span>
+              </div>
+              <p className="t-label mt-5 mb-2">Or a common question, ready to go</p>
               <div className="flex flex-wrap gap-2">
                 {QUESTION_LIBRARY.map((x) => (
-                  <button
-                    key={x.key}
-                    type="button"
-                    className="rounded-full border border-line-2 px-3 py-1 text-[13px] text-fg-2 transition-colors hover:border-line-3 hover:text-fg"
-                    onClick={() => {
-                      update([...fields, libraryField(x.key, fields)])
-                      setSel(fields.length)
-                    }}
-                  >
+                  <button key={x.key} type="button" className="rounded-full border border-line-2 px-3 py-1 text-[13px] text-fg-2 transition-colors hover:border-line-3 hover:text-fg" onClick={() => add(libraryField(x.key, fields))}>
                     + {x.title}
                   </button>
                 ))}
               </div>
             </div>
-          </div>
-
-          <div className="panel content-start p-5 xl:sticky xl:top-20 xl:max-h-[calc(100dvh-6rem)] xl:overflow-y-auto">
-            {!f || sel === null ? (
-              <p className="text-sm text-fg-3">Select a field to edit it.</p>
-            ) : (
-              <Inspector key={sel} field={f} earlier={fields.slice(0, sel)} onChange={(p) => patch(sel, p)} />
-            )}
-          </div>
+          ) : (
+            <button type="button" className="btn btn-ghost justify-self-start" onClick={() => setAdding(true)}>
+              + Add a question
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -236,156 +254,192 @@ function IconBtn({ label, onClick, children }: { label: string; onClick: () => v
   )
 }
 
-function Inspector({ field: f, earlier, onChange }: { field: FormField; earlier: FormField[]; onChange: (p: Partial<FormField>) => void }) {
+/**
+ * One question: what everyone needs up front (the question, its type, whether
+ * it is required or asked of each player, the choices), and everything else
+ * under "More settings".
+ */
+function QuestionEditor({ field: f, others, earlier, onChange }: { field: FormField; others: string[]; earlier: FormField[]; onChange: (p: Partial<FormField>) => void }) {
   const num = (v: string) => (v === '' ? undefined : Number(v))
   const display = DISPLAY_ONLY.includes(f.type)
   const textual = ['short_text', 'long_text', 'ign', 'game_uid'].includes(f.type)
+  // The answer key follows the question text until someone sets it by hand under More settings.
+  const autoKey = f.id === uniqueKey(slug(f.label, f.id), others) || /^[a-z]+(_\d+)?$/.test(f.id)
+  const setLabel = (label: string) => onChange(display || !autoKey ? { label } : { label, id: uniqueKey(slug(label, f.id), others) })
+  const setOptions = (labels: string[]) => {
+    const taken: string[] = []
+    onChange({
+      options: labels.map((label, i) => {
+        const value = uniqueKey(slug(label, `option_${i + 1}`).slice(0, 40).replace(/[^a-z0-9_-]/g, ''), taken)
+        taken.push(value)
+        return { value, label }
+      }),
+    })
+  }
   return (
     <div className="grid gap-4 text-sm">
-      <p className="t-label">{FIELD_TYPE_LABEL[f.type]}</p>
-      <L label={display ? 'Text' : 'Label / question'}>
-        <textarea className="input" rows={2} value={f.label} onChange={(e) => onChange({ label: e.target.value })} />
+      <L label={display ? 'Text' : 'Question'}>
+        <input className="input" value={f.label} onChange={(e) => setLabel(e.target.value)} maxLength={300} />
       </L>
-      {!display && (
-        <>
-          <L label="Key" help="Stored with each answer. Lowercase letters, numbers and _ .">
-            <input className="input input-mono" value={f.id} onChange={(e) => onChange({ id: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })} />
-          </L>
-          <L label="Help text">
-            <input className="input" value={f.help ?? ''} onChange={(e) => onChange({ help: e.target.value })} />
-          </L>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="choice">
-              <input type="checkbox" checked={f.required} onChange={(e) => onChange({ required: e.target.checked })} />
-              <span>Required</span>
-            </label>
-            <label className="choice">
-              <input type="checkbox" checked={f.scope === 'player'} onChange={(e) => onChange({ scope: e.target.checked ? 'player' : 'entry' })} />
-              <span>Ask each player</span>
-            </label>
-          </div>
-        </>
-      )}
-      {(textual || f.type === 'number' || f.type === 'phone') && (
-        <L label="Placeholder">
-          <input className="input" value={f.placeholder ?? ''} onChange={(e) => onChange({ placeholder: e.target.value })} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <L label="Type">
+          <select
+            className="input"
+            value={f.type}
+            onChange={(e) => {
+              const type = e.target.value as FieldType
+              onChange({ type, options: CHOICE_TYPES.includes(type) ? (f.options ?? [{ value: 'option_1', label: 'Option 1' }]) : undefined, required: DISPLAY_ONLY.includes(type) ? false : f.required })
+            }}
+          >
+            {ADD_ORDER.map((t) => (
+              <option key={t} value={t}>
+                {FIELD_TYPE_LABEL[t]}
+              </option>
+            ))}
+          </select>
         </L>
-      )}
-      {textual && (
-        <div className="grid grid-cols-2 gap-3">
-          <L label="Min length">
-            <input type="number" min={0} className="input" value={f.minLength ?? ''} onChange={(e) => onChange({ minLength: num(e.target.value) })} />
+        {!display && (
+          <L label="Help text (optional)">
+            <input className="input" value={f.help ?? ''} onChange={(e) => onChange({ help: e.target.value })} maxLength={600} />
           </L>
-          <L label="Max length">
-            <input type="number" min={1} className="input" value={f.maxLength ?? ''} onChange={(e) => onChange({ maxLength: num(e.target.value) })} />
-          </L>
-        </div>
-      )}
-      {f.type === 'number' && (
-        <div className="grid grid-cols-2 gap-3">
-          <L label="Minimum">
-            <input type="number" className="input" value={f.min ?? ''} onChange={(e) => onChange({ min: num(e.target.value) })} />
-          </L>
-          <L label="Maximum">
-            <input type="number" className="input" value={f.max ?? ''} onChange={(e) => onChange({ max: num(e.target.value) })} />
-          </L>
-          <label className="choice col-span-2">
-            <input type="checkbox" checked={!!f.integer} onChange={(e) => onChange({ integer: e.target.checked })} />
-            <span>Whole numbers only</span>
+        )}
+      </div>
+      {!display && (
+        <div className="flex flex-wrap gap-3">
+          <label className="choice">
+            <input type="checkbox" checked={f.required} onChange={(e) => onChange({ required: e.target.checked })} />
+            <span>Required</span>
+          </label>
+          <label className="choice">
+            <input type="checkbox" checked={f.scope === 'player'} onChange={(e) => onChange({ scope: e.target.checked ? 'player' : 'entry' })} />
+            <span>Ask each player separately</span>
           </label>
         </div>
       )}
       {CHOICE_TYPES.includes(f.type) && (
         <div className="grid gap-2">
-          <span className="field-label">Options</span>
+          <span className="field-label !mb-0">Choices</span>
           {(f.options ?? []).map((o, i) => (
-            <div key={i} className="grid grid-cols-[1fr_7rem_auto] gap-2">
+            <div key={i} className="grid grid-cols-[1fr_auto] gap-2">
               <input
                 className="input"
                 value={o.label}
-                aria-label="Option label"
-                onChange={(e) => onChange({ options: f.options!.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)) })}
+                aria-label={`Choice ${i + 1}`}
+                onChange={(e) => setOptions((f.options ?? []).map((x, j) => (j === i ? e.target.value : x.label)))}
               />
-              <input
-                className="input input-mono"
-                value={o.value}
-                aria-label="Option value"
-                onChange={(e) => onChange({ options: f.options!.map((x, j) => (j === i ? { ...x, value: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') } : x)) })}
-              />
-              <IconBtn label="Remove option" onClick={() => onChange({ options: f.options!.filter((_, j) => j !== i) })}>
+              <IconBtn label="Remove choice" onClick={() => setOptions((f.options ?? []).filter((_, j) => j !== i).map((x) => x.label))}>
                 ✕
               </IconBtn>
             </div>
           ))}
-          <button type="button" className="btn btn-sm btn-ghost justify-self-start" onClick={() => onChange({ options: [...(f.options ?? []), { value: `option_${(f.options?.length ?? 0) + 1}`, label: `Option ${(f.options?.length ?? 0) + 1}` }] })}>
-            + Option
+          <button type="button" className="btn btn-sm btn-ghost justify-self-start" onClick={() => setOptions([...(f.options ?? []).map((x) => x.label), `Option ${(f.options?.length ?? 0) + 1}`])}>
+            + Choice
           </button>
+        </div>
+      )}
+
+      <details className="rounded-sm border border-line p-3">
+        <summary className="t-label cursor-pointer hover:text-fg">More settings</summary>
+        <div className="mt-4 grid gap-4">
+          {!display && (
+            <L label="Answer key" help="Used in exports. Filled in from the question; change it only if you need a specific column name.">
+              <input className="input input-mono" value={f.id} onChange={(e) => onChange({ id: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })} />
+            </L>
+          )}
+          {(textual || f.type === 'number' || f.type === 'phone') && (
+            <L label="Placeholder">
+              <input className="input" value={f.placeholder ?? ''} onChange={(e) => onChange({ placeholder: e.target.value })} />
+            </L>
+          )}
+          {textual && (
+            <div className="grid grid-cols-2 gap-3">
+              <L label="Shortest answer (characters)">
+                <input type="number" min={0} className="input" value={f.minLength ?? ''} onChange={(e) => onChange({ minLength: num(e.target.value) })} />
+              </L>
+              <L label="Longest answer (characters)">
+                <input type="number" min={1} className="input" value={f.maxLength ?? ''} onChange={(e) => onChange({ maxLength: num(e.target.value) })} />
+              </L>
+            </div>
+          )}
+          {f.type === 'number' && (
+            <div className="grid grid-cols-2 gap-3">
+              <L label="Lowest allowed">
+                <input type="number" className="input" value={f.min ?? ''} onChange={(e) => onChange({ min: num(e.target.value) })} />
+              </L>
+              <L label="Highest allowed">
+                <input type="number" className="input" value={f.max ?? ''} onChange={(e) => onChange({ max: num(e.target.value) })} />
+              </L>
+              <label className="choice col-span-2">
+                <input type="checkbox" checked={!!f.integer} onChange={(e) => onChange({ integer: e.target.checked })} />
+                <span>Whole numbers only</span>
+              </label>
+            </div>
+          )}
           {f.type === 'multi_choice' && (
             <div className="grid grid-cols-2 gap-3">
-              <L label="Min selections">
+              <L label="Pick at least">
                 <input type="number" min={0} className="input" value={f.minSelections ?? ''} onChange={(e) => onChange({ minSelections: num(e.target.value) })} />
               </L>
-              <L label="Max selections">
+              <L label="Pick at most">
                 <input type="number" min={1} className="input" value={f.maxSelections ?? ''} onChange={(e) => onChange({ maxSelections: num(e.target.value) })} />
               </L>
             </div>
           )}
-        </div>
-      )}
-      {f.type === 'file' && (
-        <div className="grid gap-2">
-          <span className="field-label">Accepted formats</span>
-          <div className="flex gap-2">
-            {IMAGE_MIME.map((m) => (
-              <label key={m} className="choice">
-                <input
-                  type="checkbox"
-                  checked={(f.accept ?? []).includes(m)}
-                  onChange={(e) => onChange({ accept: e.target.checked ? [...(f.accept ?? []), m] : (f.accept ?? []).filter((x) => x !== m) })}
-                />
-                <span>{m.split('/')[1].toUpperCase()}</span>
-              </label>
-            ))}
-          </div>
-          <L label="Max size (MB, up to 4)">
-            <input type="number" min={0.1} max={4} step={0.1} className="input" value={f.maxSizeMB ?? ''} onChange={(e) => onChange({ maxSizeMB: num(e.target.value) })} />
-          </L>
-        </div>
-      )}
-      {textual && (
-        <>
-          <L label="Custom validation (regular expression)" help="Optional. Example: ^[A-Z]{2,4}$">
-            <input className="input input-mono" value={f.pattern ?? ''} onChange={(e) => onChange({ pattern: e.target.value })} />
-          </L>
-          {f.pattern && (
-            <L label="Message when it doesn’t match">
-              <input className="input" value={f.patternMessage ?? ''} onChange={(e) => onChange({ patternMessage: e.target.value })} />
-            </L>
+          {f.type === 'file' && (
+            <div className="grid gap-2">
+              <span className="field-label !mb-0">Accepted formats</span>
+              <div className="flex gap-2">
+                {IMAGE_MIME.map((m) => (
+                  <label key={m} className="choice">
+                    <input
+                      type="checkbox"
+                      checked={(f.accept ?? []).includes(m)}
+                      onChange={(e) => onChange({ accept: e.target.checked ? [...(f.accept ?? []), m] : (f.accept ?? []).filter((x) => x !== m) })}
+                    />
+                    <span>{m.split('/')[1].toUpperCase()}</span>
+                  </label>
+                ))}
+              </div>
+              <L label="Largest file (MB, up to 4)">
+                <input type="number" min={0.1} max={4} step={0.1} className="input" value={f.maxSizeMB ?? ''} onChange={(e) => onChange({ maxSizeMB: num(e.target.value) })} />
+              </L>
+            </div>
           )}
-        </>
-      )}
-
-      <ConditionEditor
-        title="Show only when"
-        value={f.visibleWhen}
-        fields={earlier.filter((x) => !DISPLAY_ONLY.includes(x.type) && (f.scope === 'player' || x.scope === 'entry'))}
-        onChange={(c) => onChange({ visibleWhen: c })}
-      />
-      {!display && (
-        <>
+          {textual && (
+            <>
+              <L label="Answer must match (regular expression)" help="Optional, for technical formats. Example: ^[A-Z]{2,4}$">
+                <input className="input input-mono" value={f.pattern ?? ''} onChange={(e) => onChange({ pattern: e.target.value })} />
+              </L>
+              {f.pattern && (
+                <L label="Message when it doesn’t match">
+                  <input className="input" value={f.patternMessage ?? ''} onChange={(e) => onChange({ patternMessage: e.target.value })} />
+                </L>
+              )}
+            </>
+          )}
           <ConditionEditor
-            title="Eligibility: block entry when"
-            value={f.disqualifyWhen}
-            fields={[...earlier, f].filter((x) => !DISPLAY_ONLY.includes(x.type) && (f.scope === 'player' || x.scope === 'entry'))}
-            onChange={(c) => onChange({ disqualifyWhen: c })}
+            title="Only show this when…"
+            value={f.visibleWhen}
+            fields={earlier.filter((x) => !DISPLAY_ONLY.includes(x.type) && (f.scope === 'player' || x.scope === 'entry'))}
+            onChange={(c) => onChange({ visibleWhen: c })}
           />
-          {f.disqualifyWhen && (
-            <L label="Message shown to ineligible applicants">
-              <input className="input" value={f.disqualifyMessage ?? ''} onChange={(e) => onChange({ disqualifyMessage: e.target.value })} />
-            </L>
+          {!display && (
+            <>
+              <ConditionEditor
+                title="Turn the entry away when…"
+                value={f.disqualifyWhen}
+                fields={[...earlier, f].filter((x) => !DISPLAY_ONLY.includes(x.type) && (f.scope === 'player' || x.scope === 'entry'))}
+                onChange={(c) => onChange({ disqualifyWhen: c })}
+              />
+              {f.disqualifyWhen && (
+                <L label="Message shown to teams that are turned away">
+                  <input className="input" value={f.disqualifyMessage ?? ''} onChange={(e) => onChange({ disqualifyMessage: e.target.value })} />
+                </L>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+      </details>
     </div>
   )
 }

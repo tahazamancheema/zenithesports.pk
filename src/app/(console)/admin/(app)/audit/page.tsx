@@ -1,20 +1,18 @@
+import { adminPage } from '@/components/console/entry-points'
 import Link from 'next/link'
 import { ConsoleTitle } from '@/components/console/shell'
 import { fmt } from '@/components/console/status-chip'
-import { can } from '@/lib/permissions'
-import { getStaff } from '@/server/auth/session'
 import { consoleBase } from '@/server/console-base'
 import { listAudit } from '@/server/services/staff'
 
 export const metadata = { title: 'Audit log' }
 
 export default async function Audit(props: { searchParams: Promise<{ action?: string; page?: string }> }) {
-  const me = await getStaff('hq')
-  if (!me || !can(me.roles, 'audit.view')) return <p className="text-fg-2">You do not have access to the audit log.</p>
+  await adminPage('audit.view')
   const sp = await props.searchParams
   const page = Math.max(1, Number(sp.page) || 1)
   const action = sp.action?.replace(/[^a-z_.]/g, '').slice(0, 40) || undefined
-  const [rows, base] = await Promise.all([listAudit({ action, page }), consoleBase('hq')])
+  const [rows, base] = await Promise.all([listAudit({ action, page }), consoleBase()])
   return (
     <>
       <ConsoleTitle title="Audit log" sub="Append-only record of every privileged and public action. Entries cannot be edited or deleted." />
