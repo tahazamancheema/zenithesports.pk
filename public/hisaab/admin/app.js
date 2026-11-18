@@ -21,6 +21,18 @@
   const MAX_SESSIONS_PER_DAY = 100;
   const DEFAULT_RATE = 70; // PKR per session
   const POLL_INTERVAL = 30000;
+  const DEFAULT_REMIND_DAYS = 3; // reminder deadline, days from today
+
+  // Where teams send what they owe us (shown in WhatsApp reminders)
+  const PAYMENT_ACCOUNT = {
+    bank: 'JazzCash',
+    number: '03187157530',
+    holder: 'Taha Zaman Cheema',
+    ...(CONFIG.paymentAccount || {})
+  };
+
+  // "Add charge" template: what a slot purchase can be for
+  const SLOT_TYPES = ['Grand Finals', 'Paid Scrims', 'Daily Battle'];
 
   const MINUTE = 60000;
   const HOUR = 60 * MINUTE;
@@ -75,7 +87,9 @@
     statusFilter: 'ALL',
     sortBy: 'amount-desc',
     openHistory: new Set(),
-    adjust: { teamId: null, type: 'DECREMENT' },
+    adjust: { teamId: null, type: 'DECREMENT', slot: '', slotNote: '' },
+    pay: { staffId: null, owed: 0 },
+    remind: { teamId: null, edited: false, deadline: '' },
     menuTeamId: null,
     payroll: emptyPayroll(),
     openStaff: new Set(),
@@ -373,6 +387,7 @@
       logSessions: (date, counts, admin) => rpc('hisaab_log_sessions', { p_date: date, p_counts: counts, p_admin: admin }),
       payStaff: (items, admin) => rpc('hisaab_pay_staff', { p_items: items, p_admin: admin }),
       undoPayouts: (ids) => rpc('hisaab_undo_payouts', { p_ids: ids }),
+      repriceUnpaid: (staffId) => rpc('hisaab_reprice_unpaid', { p_staff_id: staffId }),
       addStaff: (fields) => rest('/rest/v1/hisaab_staff', { method: 'POST', body: fields, prefer: 'return=minimal' }),
       updateStaff: (id, fields) => rest(`/rest/v1/hisaab_staff?id=eq.${encodeURIComponent(id)}`, { method: 'PATCH', body: fields, prefer: 'return=minimal' })
     };
@@ -391,6 +406,7 @@
         case 'ZH003': return 'That person is no longer on the register. Another admin may have removed them.';
         case 'ZH005': return `${err.message}. Paid sessions can’t be taken off.`;
         case 'ZH006': return 'There’s nothing left to pay. Another admin may have just paid it.';
+        case 'ZH007': return `${err.message}. Log their sessions first, or undo the extra payment.`;
       }
       if (isPayrollMissing(err)) return 'Salaries aren’t set up yet. Run supabase/hisaab-payroll.sql in Supabase first.';
     }
@@ -535,14 +551,20 @@
   function payrollFromServer(data) {
     const day = (v) => String(v || '').slice(0, 10);
     return {
+      // Older hisaab-payroll.sql has no partial payments; it would pay a part payment in full
+      upgraded: (data?.staff || []).every((s) => 'credit' in s),
       staff: (data?.staff || []).map((s) => ({
         id: s.id,
         name: String(s.name || '').trim() || 'Unnamed',
         rate: Math.max(0, Number(s.rate) || 0),
         active: s.active !== false,
+        bank: String(s.bank || '').trim(),
+        accountNo: String(s.account_no || '').trim(),
+        accountTitle: String(s.account_title || '').trim(),
         sessionsTotal: Number(s.sessions_total) || 0,
         earnedTotal: Number(s.earned_total) || 0,
         paidTotal: Number(s.paid_total) || 0,
+        credit: Number(s.credit) || 0, // partial payments not yet set against settled sessions
         lastPaidAt: s.last_paid_at ? Date.parse(s.last_paid_at) : 0
       })),
       sessions: (data?.sessions || []).map((r) => ({
@@ -562,21 +584,29 @@
         amount: Number(r.amount) || 0,
         from: day(r.from_date),
         to: day(r.to_date),
+        partial: r.kind === 'partial',
+        closedBy: r.closed_by || null,
         adminName: String(r.admin_name || ''),
         createdAt: Date.parse(r.created_at) || 0
       }))
     };
   }
 
+  /** "JazzCash · 03187157530 · Taha" — or '' when nothing is on file. */
+  function accountLine(person) {
+    return [person.bank, person.accountNo, person.accountTitle].filter(Boolean).join(' · ');
+  }
+
   /**
    * Per-person days, balances and payments, plus the totals for the figures.
    * A day is the sum of its rows: sessions already paid plus sessions still unpaid.
+   * What someone is owed (due) = their unpaid sessions (work) minus partial payments made since (credit).
    */
   function payrollModel() {
     const { staff, sessions, payouts } = state.payroll;
     const today = todayISO();
     const month = today.slice(0, 7);
-    const people = new Map(staff.map((s) => [s.id, { ...s, due: 0, dueSessions: 0, dueFrom: '', dueTo: '', days: new Map(), payouts: [] }]));
+    const people = new Map(staff.map((s) => [s.id, { ...s, due: 0, work: 0, dueSessions: 0, dueFrom: '', dueTo: '', days: new Map(), payouts: [] }]));
     const totals = { due: 0, dueSessions: 0, duePeople: 0, monthSessions: 0, monthAmount: 0, todaySessions: 0, paidMonth: 0, paidTotal: 0 };
 
     for (const row of sessions) {
@@ -594,7 +624,7 @@
         day.paid += row.sessions;
         day.paidAmount += amount;
       } else {
-        person.due += amount;
+        person.work += amount;
         person.dueSessions += row.sessions;
         if (!person.dueFrom || row.date < person.dueFrom) person.dueFrom = row.date;
         if (row.date > person.dueTo) person.dueTo = row.date;
@@ -617,14 +647,15 @@
 
     const all = [...people.values()];
     for (const person of all) {
-      totals.due += person.due;
+      person.due = person.work - person.credit;
+      totals.due += Math.max(0, person.due);
       totals.dueSessions += person.dueSessions;
       if (person.dueSessions > 0) totals.duePeople++;
       totals.paidTotal += person.paidTotal;
     }
 
     // Removed people stay visible while they still have unpaid sessions
-    const visible = all.filter((p) => p.active || p.dueSessions > 0);
+    const visible = all.filter((p) => p.active || p.dueSessions > 0 || p.credit > 0);
     const rates = new Set(all.filter((p) => p.active).map((p) => p.rate));
     const commonRate = rates.size > 1 ? null : rates.size === 1 ? [...rates][0] : DEFAULT_RATE;
     return { people: all, visible, totals, today, commonRate };
@@ -704,7 +735,7 @@
   }
 
   // The server knows something we don't (another admin's change) — pull the latest numbers
-  const RELOAD_CODES = ['ZH001', 'ZH002', 'ZH003', 'ZH005', 'ZH006', '23505'];
+  const RELOAD_CODES = ['ZH001', 'ZH002', 'ZH003', 'ZH005', 'ZH006', 'ZH007', '23505'];
   const PAYROLL = { reload: loadPayroll, context: 'payroll' };
 
   /** Show a button as busy while a change is saved, then reload from the server. */
@@ -781,13 +812,107 @@
     return digits.length >= 8 ? digits : '';
   }
 
-  function whatsappUrl(team) {
+  const longDeadlineFmt = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  /** "Saturday, 21 November 2026" */
+  function formatDeadline(iso) {
+    return longDeadlineFmt.format(dayDate(iso));
+  }
+
+  /** The polite payment reminder sent to a team that owes us. */
+  function reminderMessage(team, deadline) {
+    return [
+      `Assalam-o-Alaikum ${team.name}!`,
+      '',
+      `We hope you're doing well. This is a gentle reminder from Zenith Esports that a balance of *${formatPKR(team.amount)}* is still pending on your account.`,
+      '',
+      `We'd be really grateful if you could clear it by *${formatDeadline(deadline)}*.`,
+      '',
+      '*Payment details*',
+      `Bank: ${PAYMENT_ACCOUNT.bank}`,
+      `Account No: ${PAYMENT_ACCOUNT.number}`,
+      `Account Holder: ${PAYMENT_ACCOUNT.holder}`,
+      '',
+      'Once you have paid, please share the screenshot here so we can update our records. If you have already paid, kindly ignore this message.',
+      '',
+      'Thank you for being part of Zenith Esports. JazakAllah!',
+      '— Team Zenith Esports'
+    ].join('\n');
+  }
+
+  function whatsappUrl(team, message) {
     const digits = whatsappDigits(team.whatsapp);
     if (!digits) return '';
-    const message = team.category === 'RECEIVABLE'
-      ? `Assalam-o-Alaikum ${team.name}! A reminder from Zenith Esports: your pending balance is ${formatPKR(team.amount)}. Please clear it at your earliest. JazakAllah!`
-      : `Assalam-o-Alaikum ${team.name}! Zenith Esports here about your pending payout of ${formatPKR(team.amount)}. Please share your JazzCash, Easypaisa or bank details so we can send it. Thank you!`;
-    return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
+    const text = message ?? (team.category === 'RECEIVABLE'
+      ? reminderMessage(team, shiftDay(todayISO(), DEFAULT_REMIND_DAYS))
+      : `Assalam-o-Alaikum ${team.name}! Zenith Esports here about your pending payout of ${formatPKR(team.amount)}. Please share your JazzCash, Easypaisa or bank details so we can send it. Thank you!`);
+    return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+  }
+
+  // --- Reminder dialog (teams that owe us): pick a deadline, check the message, send ---
+  function openRemindModal(teamId) {
+    const team = findTeam(teamId);
+    if (!team) return;
+    if (team.category !== 'RECEIVABLE') {
+      const url = whatsappUrl(team);
+      if (url) window.open(url, '_blank', 'noopener');
+      return;
+    }
+    if (!whatsappDigits(team.whatsapp)) {
+      showToast(`${team.name} has no WhatsApp number on file`, 'info');
+      return;
+    }
+    if (team.amount === 0) {
+      showToast(`${team.name} has nothing pending`, 'info');
+      return;
+    }
+    state.remind.teamId = team.id;
+    state.remind.edited = false;
+    state.remind.deadline = '';
+    $('remindModalTitle').textContent = team.name;
+    $('remindEyebrow').textContent = `Payment reminder · ${formatPKR(team.amount)} pending`;
+    const input = $('remindDeadlineInput');
+    input.min = todayISO();
+    input.value = shiftDay(todayISO(), DEFAULT_REMIND_DAYS);
+    setFieldError('remindDeadlineInput', 'remindDeadlineError', '');
+    renderReminder();
+    openModal('remindModalOverlay', 'remindDeadlineInput');
+  }
+
+  function renderReminder() {
+    const team = findTeam(state.remind.teamId);
+    if (!team) return;
+    const deadline = $('remindDeadlineInput').value;
+    const valid = isValidDay(deadline) && deadline >= todayISO();
+    document.querySelectorAll('#remindForm .chip[data-days]').forEach((chip) => {
+      chip.classList.toggle('is-active', deadline === shiftDay(todayISO(), Number(chip.dataset.days)));
+    });
+    if (!valid) return;
+    const box = $('remindMessageInput');
+    const previous = state.remind.deadline;
+    if (!state.remind.edited) box.value = reminderMessage(team, deadline);
+    // The admin edited the text: keep their words, just swap the date
+    else if (previous && previous !== deadline) box.value = box.value.split(formatDeadline(previous)).join(formatDeadline(deadline));
+    state.remind.deadline = deadline;
+  }
+
+  function handleRemindSubmit(e) {
+    e.preventDefault();
+    const team = findTeam(state.remind.teamId);
+    if (!team) {
+      closeModal('remindModalOverlay');
+      return;
+    }
+    const deadline = $('remindDeadlineInput').value;
+    if (!isValidDay(deadline) || deadline < todayISO()) {
+      setFieldError('remindDeadlineInput', 'remindDeadlineError', true);
+      $('remindDeadlineInput').focus();
+      return;
+    }
+    const message = $('remindMessageInput').value.trim() || reminderMessage(team, deadline);
+    const url = whatsappUrl(team, message);
+    if (url) window.open(url, '_blank', 'noopener');
+    closeModal('remindModalOverlay');
   }
 
   // ==========================================================================
@@ -989,7 +1114,7 @@
     const contact = team.whatsapp
       ? `<div class="contact">
           ${waUrl
-            ? `<a class="wa-link" href="${waUrl}" target="_blank" rel="noopener noreferrer" title="Open WhatsApp with a reminder">${icon('message')}<span>${escapeHtml(team.whatsapp)}</span></a>`
+            ? `<a class="wa-link" href="${waUrl}" target="_blank" rel="noopener noreferrer"${team.category === 'RECEIVABLE' && team.amount > 0 ? ' data-action="remind" title="Send a payment reminder on WhatsApp"' : ' title="Open WhatsApp"'}>${icon('message')}<span>${escapeHtml(team.whatsapp)}</span></a>`
             : `<span class="wa-link is-disabled">${escapeHtml(team.whatsapp)}</span>`}
           <button class="icon-btn icon-btn-xs" data-action="copy" title="Copy number" aria-label="Copy number">${icon('copy')}</button>
         </div>`
@@ -1172,9 +1297,12 @@
       return `<button type="button" class="tally ${kind}${iso === model.today ? ' is-today' : ''}" data-action="log-day" data-date="${iso}" title="${label}" aria-label="${label}"><i aria-hidden="true">${weekdayFmt.format(dayDate(iso)).charAt(0)}</i><b>${total || ''}</b></button>`;
     }).join('');
 
-    const meta = [];
-    if (model.commonRate === null || person.rate !== model.commonRate) meta.push(`${formatPKR(person.rate)} a session`);
-    meta.push(`${plural(person.sessionsTotal, 'session')} all time`);
+    // Rates differ per person, so every row shows its own
+    const meta = [`${formatPKR(person.rate)} a session`];
+    const account = accountLine(person);
+    if (account) meta.push(account);
+    else meta.push(`${plural(person.sessionsTotal, 'session')} all time`);
+    const advance = person.due < 0 ? -person.due : 0;
 
     const lastPay = person.payouts[0];
     const lastPayBy = lastPay && lastPay.createdAt === person.lastPaidAt ? `${formatPKR(lastPay.amount)} · ${escapeHtml(lastPay.adminName)}` : '';
@@ -1195,9 +1323,10 @@
           <div class="unpaid${hasDue ? '' : ' is-zero'}">
             <b>${hasDue ? plural(person.dueSessions, 'session') : 'Paid up'}</b>
             ${hasDue ? `<small>${formatDayRange(person.dueFrom, person.dueTo)}</small>` : ''}
+            ${person.credit ? `<small class="part-paid" title="Partial payments made against these sessions">${formatPKR(person.credit)} paid so far</small>` : ''}
           </div>
         </td>
-        <td class="c-due"><span class="balance${person.due ? '' : ' is-zero'}">${formatNumber(person.due)}</span></td>
+        <td class="c-due"><span class="balance${person.due > 0 ? '' : ' is-zero'}"${advance ? ` title="Paid ${formatPKR(advance)} more than their unpaid sessions"` : ''}>${advance ? `−${formatNumber(advance)}` : formatNumber(person.due)}</span></td>
         <td class="c-lastpaid">
           ${person.lastPaidAt
             ? `<span class="activity-time" title="${escapeHtml(stamp(person.lastPaidAt))}">${relativeTime(person.lastPaidAt)}</span><span class="activity-by">${lastPayBy}</span>`
@@ -1205,7 +1334,7 @@
         </td>
         <td class="c-actions">
           <div class="row-actions">
-            <button class="btn btn-sm btn-settle" data-action="pay" ${hasDue ? '' : 'disabled'} title="Mark ${name}’s salary as paid">${icon('check')}<span>Pay</span></button>
+            <button class="btn btn-sm btn-settle" data-action="pay" ${hasDue && !advance ? '' : 'disabled'} title="Pay ${name} in full or in part">${icon('check')}<span>Pay</span></button>
             <button class="icon-btn${open ? ' is-active' : ''}" data-action="staff-history" aria-expanded="${open}" title="${open ? 'Hide' : 'Show'} work record" aria-label="Work record for ${name}">${icon('history')}</button>
             <button class="icon-btn" data-action="staff-menu" title="More" aria-label="More actions for ${name}" aria-haspopup="menu">${icon('more')}</button>
           </div>
@@ -1239,6 +1368,10 @@
     });
 
     person.payouts.forEach((pay) => {
+      const kind = pay.partial ? 'Part payment' : 'Salary paid';
+      const note = pay.partial
+        ? (pay.closedBy ? 'Counted in the full payment after it' : 'Taken off what they’re owed')
+        : `${plural(pay.sessions, 'session')} · ${formatDayRange(pay.from, pay.to)}`;
       items.push({
         key: `${isoDay(new Date(pay.createdAt))}|1|${String(pay.createdAt).padStart(15, '0')}`,
         html: `
@@ -1248,9 +1381,9 @@
             <div class="tl-what">
               <div class="tl-line">
                 <span class="tl-amount">${formatPKR(pay.amount)}</span>
-                <span class="tl-kind">Salary paid</span>
+                <span class="tl-kind">${kind}</span>
               </div>
-              <p class="tl-note">${plural(pay.sessions, 'session')} · ${formatDayRange(pay.from, pay.to)}</p>
+              <p class="tl-note">${note}</p>
             </div>
             <div class="tl-meta"><span class="tl-admin">${icon('user')}${escapeHtml(pay.adminName)}</span></div>
           </li>`
@@ -1586,6 +1719,10 @@
     $('adjustReasonInput').value = '';
     setFieldError('adjustAmountInput', 'adjustAmountError', '');
     setFieldError('adjustAdminNameInput', 'adjustAdminError', '');
+    state.adjust.slot = '';
+    state.adjust.slotNote = '';
+    $('slotDateInput').value = todayISO();
+    renderSlotTemplate();
 
     renderAdjustType();
     openModal('adjustModalOverlay', 'adjustAmountInput');
@@ -1613,6 +1750,7 @@
 
     $('fullBalanceChip').hidden = !isDown;
     $('methodChips').hidden = !isDown;
+    $('slotTemplate').hidden = isDown || team.category !== 'RECEIVABLE';
     $('adjustReasonInput').placeholder = copy[state.adjust.type].placeholder;
     $('confirmAdjustBtn').textContent = copy[state.adjust.type].cta;
     $('adjustOp').textContent = isDown ? '−' : '+';
@@ -1648,8 +1786,44 @@
       chip.classList.toggle('is-active', Number(chip.dataset.amt) === amount);
     });
     $('fullBalanceChip').classList.toggle('is-active', isDown && amount === team.amount && amount > 0);
+    const presets = [...document.querySelectorAll('#slotTemplate .chip[data-amt]')].map((c) => Number(c.dataset.amt));
+    $('slotCustomAmountChip').classList.toggle('is-active', Boolean(state.adjust.slot) && amount > 0 && !presets.includes(amount));
 
     return problem;
+  }
+
+  // --- "Slot purchased" template (optional): writes the note for a charge ---
+  function slotNoteText() {
+    const { slot } = state.adjust;
+    if (!slot) return '';
+    const date = $('slotDateInput').value;
+    return `Slot purchased — ${slot}${isValidDay(date) ? ` — ${formatDate(dayDate(date))}` : ''}`;
+  }
+
+  /** Update the note from the template, unless the admin has written their own. */
+  function applySlotNote() {
+    const input = $('adjustReasonInput');
+    const current = input.value.trim();
+    const next = slotNoteText();
+    if (!current || current === state.adjust.slotNote) input.value = next;
+    state.adjust.slotNote = next;
+  }
+
+  function renderSlotTemplate() {
+    const { slot } = state.adjust;
+    document.querySelectorAll('#slotTemplate .chip[data-slot]').forEach((chip) => {
+      const on = chip.dataset.slot === slot;
+      chip.classList.toggle('is-active', on);
+      chip.setAttribute('aria-pressed', String(on));
+    });
+    $('slotClearBtn').hidden = !slot;
+  }
+
+  function setSlotType(slot) {
+    state.adjust.slot = SLOT_TYPES.includes(slot) && state.adjust.slot !== slot ? slot : '';
+    applySlotNote();
+    renderSlotTemplate();
+    updateAdjustPreview();
   }
 
   async function handleAdjustFormSubmit(e) {
@@ -1768,8 +1942,11 @@
   function copyNumber(teamId) {
     const team = findTeam(teamId);
     if (!team || !team.whatsapp) return;
-    const text = team.whatsapp;
-    const done = () => showToast(`Copied ${text}`, 'success');
+    copyText(team.whatsapp);
+  }
+
+  function copyText(text, message = `Copied ${text}`) {
+    const done = () => showToast(message, 'success');
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text) && done());
     } else if (fallbackCopy(text)) {
@@ -1788,7 +1965,7 @@
     let ok = false;
     try { ok = document.execCommand('copy'); } catch (err) { ok = false; }
     area.remove();
-    if (!ok) showToast(`Copy failed — number is ${text}`, 'warning');
+    if (!ok) showToast(text.length > 80 ? 'Copy failed. Select the text and copy it yourself.' : `Copy failed — it’s ${text}`, 'warning');
     return ok;
   }
 
@@ -1859,11 +2036,7 @@
     switch (action) {
       case 'edit': openEditTeamModal(teamId); break;
       case 'settle': settleTeam(teamId); break;
-      case 'remind': {
-        const url = whatsappUrl(team);
-        if (url) window.open(url, '_blank', 'noopener');
-        break;
-      }
+      case 'remind': openRemindModal(teamId); break;
       case 'delete': deleteTeam(teamId); break;
     }
   }
@@ -1955,16 +2128,16 @@
     $('logTodayBtn').classList.toggle('is-active', date === max);
     $('logEyebrow').textContent = `Salaries · ${rateLabel(model.commonRate)}`;
 
-    $('logList').innerHTML = log.people.map((p) => logRowHTML(p, date, model.commonRate)).join('');
+    $('logList').innerHTML = log.people.map((p) => logRowHTML(p, date)).join('');
     renderLogTotals();
   }
 
-  function logRowHTML(person, date, commonRate) {
+  function logRowHTML(person, date) {
     const paid = person.days.get(date)?.paid || 0;
     const name = escapeHtml(person.name);
     const meta = [];
     if (paid) meta.push(`${paid} paid`);
-    if (commonRate === null || person.rate !== commonRate) meta.push(`${formatPKR(person.rate)} each`);
+    meta.push(`${formatPKR(person.rate)} each`);
     if (!person.active) meta.push('removed');
     return `
       <li class="log-row" data-staff="${escapeHtml(person.id)}">
@@ -2089,7 +2262,8 @@
   }
 
   // --- Pay ------------------------------------------------------------------
-  async function payPerson(staffId) {
+  /** Pay one person: the full amount owed, or part of it. */
+  function openPayModal(staffId) {
     if (!payrollReady()) return;
     const person = findPerson(staffId);
     if (!person) return;
@@ -2097,34 +2271,117 @@
       showToast(`${person.name} is paid up`, 'info');
       return;
     }
-    const amount = person.due;
-    const result = await openDialog({
-      title: `Pay ${person.name} ${formatPKR(amount)}?`,
-      text: `This marks ${plural(person.dueSessions, 'session')} (${formatDayRange(person.dueFrom, person.dueTo)}) as paid. Those days lock, and new sessions start a fresh balance.`,
-      tone: 'success',
-      confirmLabel: 'Mark as paid',
-      input: { label: 'Recorded by', value: state.activeAdmin, placeholder: 'Your name', validate: requireName }
-    });
-    if (!result) return;
+    if (person.due < 0) {
+      showToast(`${person.name} has been paid ${formatPKR(-person.due)} more than their unpaid sessions`, 'warning');
+      return;
+    }
+    state.pay.staffId = person.id;
+    state.pay.owed = person.due;
 
-    saveAdmin(result.value);
-    const { ok, result: ids } = await mutate(null, () => api.payStaff([{ staff_id: person.id, expected: amount }], result.value), PAYROLL);
-    if (!ok) return;
-    showToast(`${person.name} paid ${formatPKR(amount)}`, 'success', {
-      label: 'Undo',
-      onClick: () => undoPayments(ids, `${person.name}’s payment undone`)
-    });
+    $('payModalEyebrow').textContent = `Salary · ${formatPKR(person.rate)} a session`;
+    $('payModalTitle').textContent = `Pay ${person.name}`;
+    $('payOwed').textContent = formatPKR(person.due);
+    const parts = [`${plural(person.dueSessions, 'session')} (${formatDayRange(person.dueFrom, person.dueTo)}) worth ${formatPKR(person.work)}`];
+    if (person.credit) parts.push(`${formatPKR(person.credit)} already paid in part`);
+    $('payBreakdown').textContent = parts.join(' − ');
+
+    const hasAccount = Boolean(person.accountNo);
+    $('payAccount').hidden = !hasAccount;
+    $('payNoAccount').hidden = hasAccount;
+    $('payAccountBank').textContent = person.bank || 'Account';
+    $('payAccountNo').textContent = person.accountNo;
+    $('payAccountTitle').textContent = person.accountTitle;
+
+    $('payAmountInput').value = person.due;
+    $('payAdminNameInput').value = state.activeAdmin;
+    setFieldError('payAmountInput', 'payAmountError', '');
+    setFieldError('payAdminNameInput', 'payAdminError', '');
+    updatePayPreview();
+    openModal('payModalOverlay', 'payAmountInput');
+    setTimeout(() => $('payAmountInput').select(), 70);
+  }
+
+  /** Returns the validation message for the amount being paid, or '' if fine. */
+  function updatePayPreview() {
+    const owed = state.pay.owed;
+    const raw = $('payAmountInput').value;
+    const amount = raw === '' ? NaN : parseAmount(raw);
+    let problem = '';
+    let hint = '';
+    if (!Number.isFinite(amount)) problem = raw === '' ? '' : 'Enter a whole number';
+    else if (amount <= 0 && owed > 0) problem = 'Enter an amount above zero';
+    else if (amount > owed) problem = `That’s more than the ${formatPKR(owed)} owed`;
+    else if (amount < owed) hint = `Part payment: ${formatPKR(owed - amount)} stays owed and the sessions stay open until they’re paid in full.`;
+    else hint = 'Pays in full: the unpaid days lock and new sessions start a fresh balance.';
+
+    $('payResultHint').textContent = problem ? '' : hint;
+    $('payFullChip').classList.toggle('is-active', amount === owed);
+    $('payHalfChip').classList.toggle('is-active', owed > 1 && amount === Math.floor(owed / 2));
+    $('confirmPayBtn').textContent = Number.isFinite(amount) && amount > 0 && amount < owed ? 'Record part payment' : 'Mark as paid';
+    return problem;
+  }
+
+  async function handlePaySubmit(e) {
+    e.preventDefault();
+    const person = findPerson(state.pay.staffId);
+    if (!person) {
+      closeModal('payModalOverlay');
+      return;
+    }
+    const owed = state.pay.owed;
+    const raw = $('payAmountInput').value;
+    const amount = parseAmount(raw);
+    let problem = updatePayPreview();
+    if (!problem && raw === '') problem = 'Enter the amount you’re paying';
+    setFieldError('payAmountInput', 'payAmountError', problem);
+    if (problem) {
+      $('payAmountInput').focus();
+      return;
+    }
+    const adminName = $('payAdminNameInput').value.trim();
+    if (!adminName) {
+      setFieldError('payAdminNameInput', 'payAdminError', true);
+      $('payAdminNameInput').focus();
+      return;
+    }
+
+    const partial = amount < owed;
+    if (partial && !state.payroll.upgraded) {
+      setFieldError('payAmountInput', 'payAmountError', 'Part payments need the latest supabase/hisaab-payroll.sql. Run it in Supabase, then reload.');
+      return;
+    }
+    saveAdmin(adminName);
+    const { ok, error, result: ids } = await mutate($('confirmPayBtn'), () => api.payStaff([{ staff_id: person.id, expected: owed, amount }], adminName), PAYROLL);
+    if (!ok) {
+      if (RELOAD_CODES.includes(error?.code)) closeModal('payModalOverlay');
+      return;
+    }
+    closeModal('payModalOverlay');
+    showToast(
+      partial ? `${person.name} paid ${formatPKR(amount)} — ${formatPKR(owed - amount)} still owed` : `${person.name} paid ${formatPKR(amount)} in full`,
+      'success',
+      { label: 'Undo', onClick: () => undoPayments(ids, `${person.name}’s payment undone`) }
+    );
+  }
+
+  function copyAccount(staffId) {
+    const person = state.payroll.staff.find((s) => s.id === staffId);
+    if (!person?.accountNo) {
+      showToast('No account number on file. Add one with “Edit details”.', 'info');
+      return;
+    }
+    copyText(person.accountNo, `Copied ${person.name}’s ${person.bank || 'account'} number`);
   }
 
   async function payEveryone() {
     if (!payrollReady()) return;
-    const due = payrollModel().people.filter((p) => p.dueSessions > 0);
+    const due = payrollModel().people.filter((p) => p.dueSessions > 0 && p.due >= 0);
     if (!due.length) {
       showToast('Everyone is paid up', 'info');
       return;
     }
     if (due.length === 1) {
-      payPerson(due[0].id);
+      openPayModal(due[0].id);
       return;
     }
     const amount = due.reduce((n, p) => n + p.due, 0);
@@ -2165,9 +2422,25 @@
     $('staffModalTitle').textContent = person ? person.name : 'Add a person';
     $('staffNameInput').value = person?.name || '';
     $('staffRateInput').value = String(person ? person.rate : (payrollModel().commonRate ?? DEFAULT_RATE));
-    $('staffRateHint').hidden = !person;
+    $('staffBankInput').value = person?.bank || '';
+    $('staffAccountNoInput').value = person?.accountNo || '';
+    $('staffAccountTitleInput').value = person?.accountTitle || '';
+    setFieldError('staffAccountNoInput', 'staffAccountNoError', '');
     $('saveStaffBtn').textContent = person ? 'Save changes' : 'Add to register';
+    updateRepriceOption();
     openModal('staffModalOverlay', 'staffNameInput');
+  }
+
+  /** When editing a rate, offer to re-price sessions that aren't paid yet. */
+  function updateRepriceOption() {
+    const editId = $('editStaffId').value;
+    const person = editId ? findPerson(editId) : null;
+    const rate = parseAmount($('staffRateInput').value);
+    const unpaid = person ? person.dueSessions : 0;
+    const show = Boolean(person) && unpaid > 0 && Number.isFinite(rate) && rate !== person.rate;
+    $('staffRepriceWrap').hidden = !show;
+    if (!show) $('staffRepriceCheckbox').checked = false;
+    else $('staffRepriceLabel').textContent = `Also use ${formatPKR(rate)} for their ${plural(unpaid, 'unpaid session')}`;
   }
 
   async function handleStaffSubmit(e) {
@@ -2176,10 +2449,16 @@
     const name = $('staffNameInput').value.trim().replace(/\s+/g, ' ');
     const rateRaw = $('staffRateInput').value;
     const rate = rateRaw === '' ? NaN : parseAmount(rateRaw);
+    const tidy = (id) => $(id).value.trim().replace(/\s+/g, ' ').slice(0, 60);
+    const bank = tidy('staffBankInput');
+    const accountNo = tidy('staffAccountNoInput');
+    const accountTitle = tidy('staffAccountTitleInput');
+    const reprice = !$('staffRepriceWrap').hidden && $('staffRepriceCheckbox').checked;
 
     const errors = {
       staffName: name ? (name.length > 60 ? 'Keep the name under 60 characters' : '') : 'Enter a name',
-      staffRate: Number.isFinite(rate) && rate >= 0 && rate <= 1000000 ? '' : 'Enter an amount of 0 or more'
+      staffRate: Number.isFinite(rate) && rate >= 0 && rate <= 1000000 ? '' : 'Enter an amount of 0 or more',
+      staffAccountNo: (bank || accountTitle) && !accountNo ? 'Enter the account number too' : ''
     };
     let firstInvalid = null;
     Object.entries(errors).forEach(([key, msg]) => {
@@ -2209,18 +2488,29 @@
       const fields = {};
       if (current.name !== name) fields.name = name;
       if (current.rate !== rate) fields.rate = rate;
-      if (!Object.keys(fields).length) {
+      if (current.bank !== bank) fields.bank = bank;
+      if (current.accountNo !== accountNo) fields.account_no = accountNo;
+      if (current.accountTitle !== accountTitle) fields.account_title = accountTitle;
+      const keys = Object.keys(fields);
+      if (!keys.length) {
         closeModal('staffModalOverlay');
         return;
       }
-      action = () => api.updateStaff(editId, fields);
-      message = fields.name === undefined ? `${name} now gets ${formatPKR(rate)} a session` : `Saved ${name}`;
+      action = async () => {
+        await api.updateStaff(editId, fields);
+        if (reprice) await api.repriceUnpaid(editId);
+      };
+      if (keys.length === 1 && fields.rate !== undefined) {
+        message = reprice ? `${name} now gets ${formatPKR(rate)} a session, unpaid sessions included` : `${name} now gets ${formatPKR(rate)} a session`;
+      } else {
+        message = `Saved ${name}`;
+      }
     } else if (clash) {
       // Removed earlier: bring the same person (and their history) back
-      action = () => api.updateStaff(clash.id, { active: true, name, rate });
+      action = () => api.updateStaff(clash.id, { active: true, name, rate, bank, account_no: accountNo, account_title: accountTitle });
       message = `${name} is back on the register`;
     } else {
-      action = () => api.addStaff({ name, rate });
+      action = () => api.addStaff({ name, rate, bank, account_no: accountNo, account_title: accountTitle });
       message = `Added ${name} to the register`;
     }
 
@@ -2239,8 +2529,8 @@
   async function removePerson(staffId) {
     const person = findPerson(staffId);
     if (!person) return;
-    if (person.dueSessions) {
-      showToast(`Pay ${person.name}’s ${formatPKR(person.due)} before removing them`, 'warning');
+    if (person.dueSessions || person.credit) {
+      showToast(person.dueSessions ? `Pay ${person.name}’s ${formatPKR(Math.max(0, person.due))} before removing them` : `${person.name} has a part payment that isn’t settled yet`, 'warning');
       return;
     }
     const result = await openDialog({
@@ -2276,6 +2566,7 @@
     state.menuStaffId = staffId;
     menu.querySelector('[data-staff-action="log"]').disabled = !person.active;
     menu.querySelector('[data-staff-action="remove"]').disabled = !person.active;
+    menu.querySelector('[data-staff-action="copy-account"]').disabled = !person.accountNo;
     showFloatingMenu(menu, button, viaKeyboard);
   }
 
@@ -2286,6 +2577,7 @@
     switch (action) {
       case 'log': openLogModal(todayISO(), staffId); break;
       case 'edit': openStaffModal(staffId); break;
+      case 'copy-account': copyAccount(staffId); break;
       case 'remove': removePerson(staffId); break;
     }
   }
@@ -2598,7 +2890,17 @@
         return [r.date, weekdayFmt.format(dayDate(r.date)), people.get(r.staffId)?.name || '', r.sessions, r.rate, r.sessions * r.rate, r.payoutId ? 'Paid' : 'Unpaid', paid ? formatDate(paid) : '', r.adminName];
       });
     const header = ['Date', 'Day', 'Person', 'Sessions', 'Rate (PKR)', 'Amount (PKR)', 'Status', 'Paid on', 'Logged by'];
-    const csv = '﻿' + [header, ...rows].map((r) => r.map(csvCell).join(',')).join('\r\n');
+    // Then every payment, full and partial, with the account it went to
+    const accounts = new Map(data.staff.map((s) => [s.id, accountLine(s)]));
+    const payHeader = ['Paid on', 'Time', 'Person', 'Payment', 'Amount (PKR)', 'Sessions', 'Days covered', 'Account', 'Recorded by'];
+    const payRows = data.payouts.map((p) => [
+      formatDate(p.createdAt), formatTime(p.createdAt), people.get(p.staffId)?.name || '',
+      p.partial ? 'Part payment' : 'Full payment', p.amount, p.partial ? '' : p.sessions,
+      p.partial ? '' : formatDayRange(p.from, p.to), accounts.get(p.staffId) || '', p.adminName
+    ]);
+    const table = [header, ...rows];
+    if (payRows.length) table.push([], payHeader, ...payRows);
+    const csv = '﻿' + table.map((r) => r.map(csvCell).join(',')).join('\r\n');
     downloadFile(csv, `Zenith-Hisaab-salaries-${today()}.csv`, 'text/csv;charset=utf-8');
     showToast(`Exported ${plural(rows.length, 'row')} of salary records`, 'success');
   }
@@ -2764,6 +3066,12 @@
         case 'adjust': openAdjustModal(teamId, btn.dataset.type); break;
         case 'history': toggleHistory(teamId); break;
         case 'copy': copyNumber(teamId); break;
+        case 'remind':
+          // Plain click opens the reminder dialog; ctrl/middle-click still follows the link
+          if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) break;
+          e.preventDefault();
+          openRemindModal(teamId);
+          break;
         case 'menu':
           e.stopPropagation();
           openRowMenu(btn, teamId, e.detail === 0);
@@ -2792,7 +3100,7 @@
       switch (btn.dataset.action) {
         case 'add-staff': openStaffModal(); break;
         case 'pay-all': payEveryone(); break;
-        case 'pay': payPerson(staffId); break;
+        case 'pay': openPayModal(staffId); break;
         case 'log-day': openLogModal(btn.dataset.date, staffId); break;
         case 'staff-history': toggleStaffHistory(staffId); break;
         case 'staff-menu':
@@ -2882,6 +3190,64 @@
       });
     });
 
+    // Slot purchase template (Add charge)
+    document.querySelectorAll('#slotTemplate .chip[data-slot]').forEach((chip) => {
+      chip.addEventListener('click', () => setSlotType(chip.dataset.slot));
+    });
+    $('slotCustomAmountChip').addEventListener('click', () => {
+      const input = $('adjustAmountInput');
+      const presets = [...document.querySelectorAll('#slotTemplate .chip[data-amt]')].map((c) => c.dataset.amt);
+      if (presets.includes(input.value)) input.value = '';
+      updateAdjustPreview();
+      input.focus();
+    });
+    $('slotDateInput').addEventListener('change', applySlotNote);
+    $('slotClearBtn').addEventListener('click', () => {
+      state.adjust.slot = '';
+      applySlotNote();
+      $('slotDateInput').value = todayISO();
+      renderSlotTemplate();
+      updateAdjustPreview();
+    });
+
+    // Pay a salary
+    $('payForm').addEventListener('submit', handlePaySubmit);
+    $('payAmountInput').addEventListener('input', () => {
+      setFieldError('payAmountInput', 'payAmountError', '');
+      updatePayPreview();
+    });
+    $('payFullChip').addEventListener('click', () => {
+      $('payAmountInput').value = state.pay.owed;
+      setFieldError('payAmountInput', 'payAmountError', '');
+      updatePayPreview();
+    });
+    $('payHalfChip').addEventListener('click', () => {
+      $('payAmountInput').value = Math.floor(state.pay.owed / 2);
+      setFieldError('payAmountInput', 'payAmountError', '');
+      updatePayPreview();
+    });
+    $('payCopyAccountBtn').addEventListener('click', () => copyAccount(state.pay.staffId));
+    $('payAdminNameInput').addEventListener('input', () => setFieldError('payAdminNameInput', 'payAdminError', ''));
+
+    // Payment reminder
+    $('remindForm').addEventListener('submit', handleRemindSubmit);
+    $('remindDeadlineInput').addEventListener('change', () => {
+      setFieldError('remindDeadlineInput', 'remindDeadlineError', '');
+      renderReminder();
+    });
+    document.querySelectorAll('#remindForm .chip[data-days]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        $('remindDeadlineInput').value = shiftDay(todayISO(), Number(chip.dataset.days));
+        setFieldError('remindDeadlineInput', 'remindDeadlineError', '');
+        renderReminder();
+      });
+    });
+    $('remindMessageInput').addEventListener('input', () => { state.remind.edited = true; });
+    $('remindCopyBtn').addEventListener('click', () => {
+      const text = $('remindMessageInput').value.trim();
+      if (text) copyText(text, 'Reminder copied');
+    });
+
     // Log sessions
     $('logForm').addEventListener('submit', handleLogSubmit);
     $('logPrevDayBtn').addEventListener('click', () => changeLogDate(shiftDay(state.log.date, -1)));
@@ -2914,9 +3280,10 @@
 
     // Add / edit person
     $('staffForm').addEventListener('submit', handleStaffSubmit);
-    ['staffName', 'staffRate'].forEach((k) => {
+    ['staffName', 'staffRate', 'staffAccountNo'].forEach((k) => {
       $(`${k}Input`).addEventListener('input', () => setFieldError(`${k}Input`, `${k}Error`, ''));
     });
+    $('staffRateInput').addEventListener('input', updateRepriceOption);
 
     // Dialog & passcode
     $('dialogForm').addEventListener('submit', handleDialogSubmit);

@@ -20,7 +20,7 @@
   <!-- Urdu wordmark (subset to the single word "حساب") -->
   <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@600&text=%D8%AD%D8%B3%D8%A7%D8%A8&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="/hisaab/admin/styles.css?v=3.2">
+  <link rel="stylesheet" href="/hisaab/admin/styles.css?v=3.3">
 </head>
 <body>
 
@@ -565,6 +565,27 @@
           <button type="button" class="seg" id="adjustTypeAdd" data-type="INCREMENT" role="radio">Add charge</button>
         </div>
 
+        <fieldset class="slot-template" id="slotTemplate" hidden>
+          <legend class="field-label">Slot purchased <span class="optional">optional template, fills the note</span></legend>
+          <div class="chips" role="group" aria-label="Slot type">
+            <span class="chips-label">Slot type</span>
+            <button type="button" class="chip chip-text" data-slot="Grand Finals" aria-pressed="false">Grand Finals</button>
+            <button type="button" class="chip chip-text" data-slot="Paid Scrims" aria-pressed="false">Paid Scrims</button>
+            <button type="button" class="chip chip-text" data-slot="Daily Battle" aria-pressed="false">Daily Battle</button>
+          </div>
+          <div class="chips" role="group" aria-label="Amount">
+            <span class="chips-label">Amount</span>
+            <button type="button" class="chip" data-amt="100">100</button>
+            <button type="button" class="chip" data-amt="350">350</button>
+            <button type="button" class="chip chip-text" id="slotCustomAmountChip">Type yourself</button>
+          </div>
+          <div class="slot-date">
+            <label for="slotDateInput" class="chips-label">Date</label>
+            <input type="date" id="slotDateInput" class="input input-mono input-sm">
+            <button type="button" class="chip chip-text" id="slotClearBtn" hidden>Clear template</button>
+          </div>
+        </fieldset>
+
         <div class="field">
           <label for="adjustAmountInput" class="field-label">Amount</label>
           <div class="affix affix-lg">
@@ -677,7 +698,7 @@
   <!-- MODAL: ADD / EDIT PERSON                                  -->
   <!-- ======================================================== -->
   <div class="modal-overlay" id="staffModalOverlay" aria-hidden="true">
-    <div class="modal modal-xs" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="staffModalTitle">
       <header class="modal-head">
         <div>
           <p class="eyebrow" id="staffModalEyebrow">Staff register</p>
@@ -700,12 +721,146 @@
             <input type="number" id="staffRateInput" class="input input-mono" placeholder="70" min="0" step="1" inputmode="numeric">
           </div>
           <span class="field-error" id="staffRateError">Enter an amount of 0 or more</span>
-          <span class="field-hint" id="staffRateHint">Applies to sessions logged from now on. Paid sessions keep the rate they were paid at.</span>
+          <span class="field-hint" id="staffRateHint">Each person can have their own rate. Paid sessions keep the rate they were paid at.</span>
+          <label class="check" id="staffRepriceWrap" hidden>
+            <input type="checkbox" id="staffRepriceCheckbox">
+            <span class="check-box"><svg class="i"><use href="#i-check"/></svg></span>
+            <span id="staffRepriceLabel">Also use the new rate for unpaid sessions</span>
+          </label>
         </div>
+
+        <fieldset class="field account-fields">
+          <legend class="field-label">Salary account <span class="optional">optional</span></legend>
+          <div class="field-row">
+            <div class="field">
+              <label for="staffBankInput" class="field-label field-label-sm">Bank or wallet</label>
+              <input type="text" id="staffBankInput" class="input" placeholder="e.g. JazzCash" autocomplete="off" maxlength="60" list="bankOptions">
+              <datalist id="bankOptions">
+                <option value="JazzCash"></option>
+                <option value="Easypaisa"></option>
+                <option value="SadaPay"></option>
+                <option value="NayaPay"></option>
+                <option value="Meezan Bank"></option>
+                <option value="HBL"></option>
+                <option value="UBL"></option>
+                <option value="Bank Alfalah"></option>
+                <option value="Allied Bank"></option>
+                <option value="MCB"></option>
+              </datalist>
+            </div>
+            <div class="field">
+              <label for="staffAccountNoInput" class="field-label field-label-sm">Account number</label>
+              <input type="text" id="staffAccountNoInput" class="input input-mono" placeholder="0300 1234567 or IBAN" autocomplete="off" maxlength="60">
+              <span class="field-error" id="staffAccountNoError">Enter the account number</span>
+            </div>
+          </div>
+          <div class="field">
+            <label for="staffAccountTitleInput" class="field-label field-label-sm">Account holder</label>
+            <input type="text" id="staffAccountTitleInput" class="input" placeholder="Name on the account" autocomplete="off" maxlength="60">
+          </div>
+        </fieldset>
 
         <footer class="modal-foot">
           <button type="button" class="btn btn-ghost" data-close>Cancel</button>
           <button type="submit" class="btn btn-gold" id="saveStaffBtn">Add to register</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PAY A SALARY (full or partial)                     -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="payModalOverlay" aria-hidden="true">
+    <div class="modal modal-xs" role="dialog" aria-modal="true" aria-labelledby="payModalTitle">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="payModalEyebrow">Salary</p>
+          <h3 class="modal-title" id="payModalTitle">Pay</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="payForm" class="modal-body" novalidate>
+        <div class="pay-summary">
+          <div><span>Owed</span><strong id="payOwed">PKR 0</strong></div>
+          <p id="payBreakdown"></p>
+        </div>
+
+        <div class="pay-account" id="payAccount" hidden>
+          <div class="pay-account-text">
+            <span class="eyebrow" id="payAccountBank">JazzCash</span>
+            <strong id="payAccountNo"></strong>
+            <small id="payAccountTitle"></small>
+          </div>
+          <button type="button" class="icon-btn" id="payCopyAccountBtn" title="Copy account number" aria-label="Copy account number"><svg class="i"><use href="#i-copy"/></svg></button>
+        </div>
+        <p class="field-hint" id="payNoAccount" hidden>No salary account on file. Add one with “Edit details”.</p>
+
+        <div class="field">
+          <label for="payAmountInput" class="field-label">Paying now</label>
+          <div class="affix affix-lg">
+            <span class="affix-text">PKR</span>
+            <input type="number" id="payAmountInput" class="input input-mono input-lg" placeholder="0" min="1" step="1" inputmode="numeric">
+          </div>
+          <div class="chips">
+            <button type="button" class="chip chip-accent" id="payFullChip">Full amount</button>
+            <button type="button" class="chip" id="payHalfChip">Half</button>
+          </div>
+          <span class="field-error" id="payAmountError"></span>
+          <span class="field-hint" id="payResultHint"></span>
+        </div>
+
+        <div class="field">
+          <label for="payAdminNameInput" class="field-label">Recorded by</label>
+          <input type="text" id="payAdminNameInput" class="input" placeholder="Your name" autocomplete="off">
+          <span class="field-error" id="payAdminError">Enter your name for the record</span>
+        </div>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="confirmPayBtn">Mark as paid</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: WHATSAPP PAYMENT REMINDER                          -->
+  <!-- ======================================================== -->
+  <div class="modal-overlay" id="remindModalOverlay" aria-hidden="true">
+    <div class="modal modal-sm" role="dialog" aria-modal="true" aria-labelledby="remindModalTitle">
+      <header class="modal-head">
+        <div>
+          <p class="eyebrow" id="remindEyebrow">Payment reminder</p>
+          <h3 class="modal-title" id="remindModalTitle">Team</h3>
+        </div>
+        <button class="icon-btn" data-close aria-label="Close"><svg class="i"><use href="#i-x"/></svg></button>
+      </header>
+
+      <form id="remindForm" class="modal-body" novalidate>
+        <div class="field">
+          <label for="remindDeadlineInput" class="field-label">Pay by</label>
+          <div class="remind-deadline">
+            <input type="date" id="remindDeadlineInput" class="input input-mono">
+            <div class="chips">
+              <button type="button" class="chip" data-days="1">Tomorrow</button>
+              <button type="button" class="chip" data-days="3">3 days</button>
+              <button type="button" class="chip" data-days="7">1 week</button>
+            </div>
+          </div>
+          <span class="field-error" id="remindDeadlineError">Pick a date from today on</span>
+        </div>
+
+        <div class="field">
+          <label for="remindMessageInput" class="field-label">Message <span class="optional">you can edit it</span></label>
+          <textarea id="remindMessageInput" class="input textarea" rows="12"></textarea>
+        </div>
+
+        <footer class="modal-foot">
+          <button type="button" class="btn btn-ghost" id="remindCopyBtn"><svg class="i"><use href="#i-copy"/></svg>Copy</button>
+          <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+          <button type="submit" class="btn btn-gold" id="remindSendBtn"><svg class="i"><use href="#i-message"/></svg>Open WhatsApp</button>
         </footer>
       </form>
     </div>
@@ -784,14 +939,15 @@
   <!-- Staff overflow menu (positioned by script) -->
   <div class="menu menu-floating" id="staffMenu" role="menu" hidden>
     <button class="menu-item" data-staff-action="log" role="menuitem"><svg class="i"><use href="#i-calendar"/></svg>Log today’s sessions</button>
-    <button class="menu-item" data-staff-action="edit" role="menuitem"><svg class="i"><use href="#i-pencil"/></svg>Edit name or rate</button>
+    <button class="menu-item" data-staff-action="edit" role="menuitem"><svg class="i"><use href="#i-pencil"/></svg>Edit details, rate or account</button>
+    <button class="menu-item" data-staff-action="copy-account" role="menuitem"><svg class="i"><use href="#i-copy"/></svg>Copy account number</button>
     <div class="menu-sep"></div>
     <button class="menu-item menu-item-danger" data-staff-action="remove" role="menuitem"><svg class="i"><use href="#i-trash"/></svg>Remove from register</button>
   </div>
 
   <div class="toasts" id="toastContainer" aria-live="polite"></div>
 
-  <script src="/hisaab/admin/config.js?v=3.2"></script>
-  <script src="/hisaab/admin/app.js?v=3.2"></script>
+  <script src="/hisaab/admin/config.js?v=3.3"></script>
+  <script src="/hisaab/admin/app.js?v=3.3"></script>
 </body>
 </html>

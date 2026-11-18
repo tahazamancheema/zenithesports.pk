@@ -1359,6 +1359,7 @@ a.wa-link:hover { background: rgba(79, 211, 137, 0.08); color: var(--text); }
 .unpaid b { font: 500 13px var(--font-mono); color: var(--text); white-space: nowrap; }
 .unpaid small { font: 400 11.5px var(--font-mono); color: var(--text-3); white-space: nowrap; }
 .unpaid.is-zero b { font: 500 12.5px var(--font-sans); color: var(--settled); }
+.unpaid small.part-paid { color: var(--gold); }
 
 /* Work record timeline */
 .sheet-pay .tl-item.is-up .tl-amount { color: #eef0f3; }
@@ -1846,6 +1847,46 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .dialog-glyph .i { width: 18px; height: 18px; }
 .dialog-glyph.is-danger { color: #ff9a88; background: rgba(235, 107, 87, 0.1); border-color: rgba(235, 107, 87, 0.3); }
 .dialog-glyph.is-success { color: var(--settled); background: rgba(136, 195, 155, 0.08); border-color: rgba(136, 195, 155, 0.3); }
+
+/* Smaller pieces used by the slot template, account fields and reminders */
+.input-sm { height: 32px; font-size: 12.5px; padding: 0 10px; width: auto; }
+.textarea { height: auto; min-height: 120px; padding: 10px 12px; line-height: 1.55; font-size: 13px; resize: vertical; font-family: var(--font-sans); white-space: pre-wrap; }
+.chip-text { font-family: var(--font-sans); }
+.field-label-sm { font-size: 11.5px; color: var(--text-3); }
+.account-fields { gap: 10px; padding-top: 14px; border-top: 1px dashed var(--line-2); }
+
+/* Slot purchase template (Add charge) */
+.slot-template {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed var(--line-3);
+  background: var(--ink-0);
+  min-width: 0;
+}
+.slot-template[hidden] { display: none; }
+.slot-template legend { padding: 0 4px; margin-left: -4px; }
+.slot-template .chips-label { min-width: 64px; }
+.slot-date { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+
+/* Pay a salary */
+.pay-summary { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: 12px; background: var(--ink-0) var(--tex-hairlines); border: 1px dashed var(--line-3); }
+.pay-summary > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.pay-summary span { font: 500 9.5px/1 var(--font-mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-3); }
+.pay-summary strong { font: 500 18px var(--font-mono); color: var(--gold-hi); }
+.pay-summary p { font-size: 12px; color: var(--text-3); line-height: 1.55; }
+.pay-account { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--gold-line); background: var(--gold-tint); }
+.pay-account[hidden] { display: none; }
+.pay-account-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pay-account-text strong { font: 500 15px var(--font-mono); color: var(--text); overflow-wrap: anywhere; }
+.pay-account-text small { font-size: 12px; color: var(--text-2); }
+.field-hint:empty { display: none; }
+
+/* Reminder */
+.remind-deadline { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.remind-deadline .input { width: auto; flex: 0 1 180px; }
 
 /* Custom checkbox */
 .check {
